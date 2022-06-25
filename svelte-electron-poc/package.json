@@ -1,13 +1,13 @@
 {
-	"name": "@ptkdev/svelte-electron-boilerplate",
-	"displayName": "Svelte Electron Boilerplate",
-	"description": "Create a desktop app with this user friendly Svelte boilerplate for electron",
-	"version": "2.0.0",
+	"name": "@tjcouch-sil/svelte-electron-poc",
+	"displayName": "Paranext Svelte Electron POC",
+	"description": "Paranext Svelte Electron Proof of Concept",
+	"version": "0.0.1",
 	"main": "dist/electron/electron/main.js",
 	"publishConfig": {
 		"access": "public"
 	},
-	"author": "Patryk Rzucidło [@ptkdev] <support@ptkdev.io> (https://ptk.dev)",
+	"author": "TJ Couch",
 	"license": "MIT",
 	"license-docs": "CC BY 4.0",
 	"license-translations": "CC BY 4.0",
@@ -55,10 +55,10 @@
 		"contributors-generate": "all-contributors generate",
 		"all-shields-generate": "all-shields-generate",
 		"pre-commit": "npm run contributors-generate && npm run all-shields-generate && npm run lint-fix && npm run test",
-		"pkg-clean": "rm -rf node_modules package-lock.json && npm install && husky install",
+		"pkg-clean": "rm -rf node_modules package-lock.json && npm install && cd .. && husky install svelte-electron-poc/.husky",
 		"pkg-update": "npm update",
-		"pkg-upgrade": "npx --yes npm-check-updates -u && npm install && husky install",
-		"prepare": "ts-patch install -s && husky install"
+		"pkg-upgrade": "npx --yes npm-check-updates -u && npm install && cd .. && husky install svelte-electron-poc/.husky",
+		"prepare": "ts-patch install -s && cd .. && husky install svelte-electron-poc/.husky"
 	},
 	"dependencies": {
 		"bulma": "^0.9.3",
@@ -121,8 +121,8 @@
 		"yargs": "^17.3.1"
 	},
 	"build": {
-		"productName": "svelte-electron-boilerplate",
-		"appId": "io.ptkdev.svelte-electron-boilerplate",
+		"productName": "svelte-electron-poc",
+		"appId": "io.tjcouch-sil.svelte-electron-boilerplate",
 		"artifactName": "${productName}-${version}-${arch}.${ext}",
 		"directories": {
 			"output": "build",

@@ -1,4 +1,5 @@
 #!/bin/sh
+cd svelte-electron-poc
 . "$(dirname "$0")/_/husky.sh"
 
 npm run pre-commit
