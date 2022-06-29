@@ -14,7 +14,14 @@
 
 <nav class="navbar" role="navigation" aria-label="main navigation">
 	<div class="navbar-brand">
-		<a href="#/" role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbar-basic">
+		<a
+			href="#/"
+			role="button"
+			class="navbar-burger"
+			aria-label="menu"
+			aria-expanded="false"
+			data-target="navbar-basic"
+		>
 			<span aria-hidden="true" />
 			<span aria-hidden="true" />
 			<span aria-hidden="true" />
@@ -33,6 +40,10 @@
 					<a href="#/wild/contacts" class="navbar-item"> Contacts </a>
 				</div>
 			</div>
+
+			<a href="#/testing" class="navbar-item"> Testing </a>
+
+			<a href="#/tutorial" class="navbar-item"> Tutorial </a>
 		</div>
 	</div>
 
