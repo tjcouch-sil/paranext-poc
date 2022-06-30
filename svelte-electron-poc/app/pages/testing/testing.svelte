@@ -48,5 +48,6 @@
 <Menu />
 
 <TextEditor document={doc} />
+<pre><code>{JSON.stringify(doc, null, 2)}</code></pre>
 
 <Footer />

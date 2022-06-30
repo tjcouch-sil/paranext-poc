@@ -50,12 +50,24 @@
 		}
 	};
 
+	const onInput = (e: unknown) => {
+
+	};
+
 	afterUpdate(() => {
-		flash(div);
+		if (div) {
+			flash(div);
+		}
 	});
 </script>
 
-<div class="inputdiv" contenteditable="true" on:keydown={onKeyDown}>
+<div
+	bind:this={div}
+	class="inputdiv"
+	contenteditable="true"
+	on:keydown={onKeyDown}
+	on:input={onInput}
+>
 	{#if document}
 		<Document {...document} />
 	{:else}
@@ -64,7 +76,6 @@
 </div>
 <button on:click={bold}>Bold</button>
 <button on:click={important}>Important</button>
-<span bind:this={div}>{html}</span>
 
 <style lang="scss">
 	.inputdiv {

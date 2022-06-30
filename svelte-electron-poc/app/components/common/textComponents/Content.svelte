@@ -2,7 +2,6 @@
 	import { voidElements } from "@app/util/Util";
 	import { afterUpdate } from "svelte";
 	import flash from "@app/transitions/flash";
-
 	import Contents from "./Contents.svelte";
 	import { TextComponents } from "./TextComponents";
 	import { ContentTypes, type IContents } from "./TextComponentTypes";

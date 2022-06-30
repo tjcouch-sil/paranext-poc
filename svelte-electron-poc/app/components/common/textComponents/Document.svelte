@@ -10,7 +10,9 @@
 	let div: HTMLElement;
 
 	afterUpdate(() => {
-		flash(div);
+		if (div) {
+			flash(div);
+		}
 	});
 </script>
 
