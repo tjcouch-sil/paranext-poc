@@ -2,10 +2,9 @@
 	import { afterUpdate } from "svelte";
 	import flash from "@app/transitions/flash";
 	import Document from "./Document.svelte";
+	import type { IDocument } from "./TextComponentTypes";
 
-	// Can remove if we figure out typescript
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	export let document: any; // IDocument;
+	export let document: IDocument;
 
 	let div: HTMLElement;
 	let html = "Stuff and things";

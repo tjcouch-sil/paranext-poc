@@ -5,17 +5,15 @@
 
 	import Contents from "./Contents.svelte";
 	import { TextComponents } from "./TextComponents";
+	import { ContentTypes, type IContents } from "./TextComponentTypes";
 
-	export let id: string;
-	export let type: string;
+	export let id: string | undefined = undefined;
+	export let type: ContentTypes;
 	export let subType: string | undefined = undefined;
-	// Can remove if we figure out typescript
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	export let contents: any = undefined; // IContents;
+	export let contents: IContents = undefined;
 
 	let div: HTMLElement;
 
-	// @ts-expect-error ts(7053) because svelte weirdness
 	$: component = subType ? TextComponents[subType] : undefined;
 	$: voidElement = subType && voidElements.includes(subType);
 
@@ -26,11 +24,11 @@
 	});
 </script>
 
-{#if type == "component"}
+{#if type == ContentTypes.Component}
 	<svelte:component this={component} bind:this={div} {id} {...$$restProps}>
 		<Contents {contents} />
 	</svelte:component>
-{:else if type == "element"}
+{:else if type == ContentTypes.Element}
 	{#if voidElement}
 		<svelte:element this={subType} bind:this={div} {id} {...$$restProps} />
 	{:else}
@@ -38,10 +36,11 @@
 			<Contents {contents} />
 		</svelte:element>
 	{/if}
-{:else if type == "text"}
+{:else if type == ContentTypes.Text}
 	<span bind:this={div} {id} {...$$restProps}>
 		{contents}
 	</span>
 {:else}
+	<!-- Potentially ContentTypes.Unknown -->
 	Content provided unsupported type
 {/if}

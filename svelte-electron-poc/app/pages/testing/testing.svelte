@@ -3,40 +3,42 @@
 	import Footer from "@components/common/footer/footer.svelte";
 	import { populateIds } from "@app/util/Util";
 	import TextEditor from "@components/common/textComponents/TextEditor.svelte";
-	/* import {
-		type IContent,
+	import {
+		ContentTypes,
+		type IContentComponent,
 		type IDocument,
-	} from "@components/common/textComponents/TextComponentTypes"; */
+	} from "@components/common/textComponents/TextComponentTypes";
 
-	const doc /* : IDocument */ = populateIds({
+	const doc: IDocument = populateIds({
+		id: "",
 		body: [
 			{
-				type: "component",
+				type: ContentTypes.Component,
 				subType: "SemiImportant",
 				contents: [
 					{
-						type: "text",
+						type: ContentTypes.Text,
 						contents: "This is not editable",
 					},
 					{
-						type: "element",
+						type: ContentTypes.Element,
 						subType: "br",
 					},
 				],
 				contenteditable: false,
-			},
+			} as IContentComponent,
 			{
-				type: "component",
+				type: ContentTypes.Component,
 				subType: "SemiImportant",
 				contents: [
 					{
-						type: "text",
+						type: ContentTypes.Text,
 						contents: " Edi",
 					},
 				],
 			},
 			{
-				type: "text",
+				type: ContentTypes.Text,
 				contents: "t me!",
 			},
 		],

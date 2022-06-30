@@ -2,11 +2,10 @@
 	import Contents from "@components/common/textComponents/Contents.svelte";
 	import { afterUpdate } from "svelte";
 	import flash from "@app/transitions/flash";
+	import type { IContents } from "./TextComponentTypes";
 
-	export let id: string;
-	// Can remove if we figure out typescript
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	export let body: any[]; // IContents;
+	export let id: string | undefined = undefined;
+	export let body: IContents;
 
 	let div: HTMLElement;
 

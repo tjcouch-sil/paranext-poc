@@ -33,7 +33,7 @@ export function populateIds(doc: IDocument): IDocument {
 }
 
 // thanks to DRAX at https://stackoverflow.com/a/9436948
-export function isString(o: object) {
+export function isString(o: unknown) {
 	return typeof o === "string" || o instanceof String;
 }
 
