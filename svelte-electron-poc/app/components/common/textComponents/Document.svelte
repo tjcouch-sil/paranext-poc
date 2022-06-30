@@ -1,12 +1,20 @@
 <script lang="ts">
-	import Content from "@components/common/textComponents/Content.svelte";
+	import Contents from "@components/common/textComponents/Contents.svelte";
+	import { afterUpdate } from "svelte";
+	import flash from "@app/transitions/flash";
 
 	export let id: string;
-	export let contents: int[];
+	// Can remove if we figure out typescript
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	export let body: any[]; // IContents;
+
+	let div: HTMLElement;
+
+	afterUpdate(() => {
+		flash(div);
+	});
 </script>
 
-<div class="document" {id}>
-	{#each contents as content}
-		<Content {...content} />
-	{/each}
+<div bind:this={div} class="document" {id}>
+	<Contents contents={body} />
 </div>

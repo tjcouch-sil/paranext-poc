@@ -1,10 +1,13 @@
 <script lang="ts">
+	export let id: string;
 </script>
 
-<span class="important"><slot /></span>
+<!-- Every component that wants to be part of the text editing needs at least {...$$restProps} to accept the rest of the props given to its parent Content -->
+<!-- Every text editing component that wants to display anything must have <slot /> in order to accept the children given to its parent Content -->
+<span {id} {...$$restProps} class="semi-important"><slot /></span>
 
 <style lang="scss">
-	.important {
+	.semi-important {
 		font-weight: 700;
 		color: rebeccapurple;
 	}

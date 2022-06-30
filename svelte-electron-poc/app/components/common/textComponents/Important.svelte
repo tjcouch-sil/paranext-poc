@@ -1,7 +1,8 @@
 <script lang="ts">
+	export let id: string;
 </script>
 
-<span class="important"><slot /></span>
+<span {id} {...$$restProps} class="important"><slot /></span>
 
 <style lang="scss">
 	.important {

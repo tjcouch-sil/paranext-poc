@@ -10,25 +10,26 @@
 	 */
 	import DarkMode from "@components/common/darkmode/darkmode.svelte";
 	import "./menu.ts";
+
+	let menuOpen = false;
 </script>
 
-<nav class="navbar" role="navigation" aria-label="main navigation">
+<nav class="navbar" aria-label="main navigation">
 	<div class="navbar-brand">
-		<a
-			href="#/"
-			role="button"
+		<button
 			class="navbar-burger"
 			aria-label="menu"
 			aria-expanded="false"
 			data-target="navbar-basic"
+			on:click={() => (menuOpen = !menuOpen)}
 		>
 			<span aria-hidden="true" />
 			<span aria-hidden="true" />
 			<span aria-hidden="true" />
-		</a>
+		</button>
 	</div>
 
-	<div id="navbar-basic" class="navbar-menu">
+	<div id="navbar-basic" class:navbar-menu={!menuOpen}>
 		<div class="navbar-start">
 			<a href="#/" class="navbar-item"> Home </a>
 
