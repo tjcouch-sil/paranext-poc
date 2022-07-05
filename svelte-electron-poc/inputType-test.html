@@ -1,0 +1,46 @@
+<html lang="en">
+	<head>
+		<meta
+			http-equiv="Content-Type"
+			content="text/html; charset=ISO-8859-1"
+		/>
+		<title>The serialized HTML of a selection in Mozilla and IE</title>
+		<style>
+			#log {
+				white-space: pre-wrap;
+			}
+		</style>
+	</head>
+	<body>
+		<p id="log">beforeinput Events:</p>
+		<div
+			contenteditable="true"
+			style="margin: 20px; padding: 20px; border: 2px dashed red"
+		>
+			<p>
+				Some sample text. Try inserting line breaks, or deleting text in
+				different ways, or pasting different content in.
+			</p>
+			<hr />
+			<ul>
+				<li>A sample</li>
+				<li>bulleted</li>
+				<li>list.</li>
+			</ul>
+			<p>Another paragraph.</p>
+		</div>
+	</body>
+	<script type="text/javascript">
+		const log = document.getElementById("log");
+		const editable = document.querySelector("div[contenteditable]");
+		editable.addEventListener("beforeinput", logInputType);
+
+		function logInputType(event) {
+			log.textContent += `\ndata: '${event.data}' | inputType: ${
+				event.inputType
+			} | getTargetRanges() -> ${JSON.stringify(
+				event.getTargetRanges(),
+			)}`;
+		}
+	</script>
+</html>

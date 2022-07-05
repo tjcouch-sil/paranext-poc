@@ -1,0 +1,62 @@
+<html lang="en">
+    <head>
+		<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+		<title>The serialized HTML of a selection in Mozilla and IE</title>
+		<style>
+			h1 {
+				font-size: 16pt;
+			}
+			h2 {
+				font-size: 14pt;
+			}
+			.line {
+				border: 1px solid black;
+			}
+		</style>
+    </head>
+    <body>
+		<h1>Do everything from the contenteditable div containing the two spans</h1>
+		<h2>The div catches the input events and the spans have no input events</h2>
+		<div id="high" contenteditable>
+			<span contenteditable>Things n</span>
+			<span id="low" contenteditable>
+				Stuff
+			</span>
+		</div>
+		<p id="highlog">highlog: </p>
+		<p id="lowlog">lowlog: </p>
+		<div class="line">
+		</div>
+		<h1>Piece each span together as contenteditable but the div is not</h1>
+		<h2>The spans have their own input events, but the cursor does not work between the spans</h2>
+		<div id="high2">
+			<span contenteditable>Things n</span>
+			<span id="low2" contenteditable>
+				Stuff
+			</span>
+		</div>
+		<p id="highlog2">highlog2: </p>
+		<p id="lowlog2">lowlog2: </p>
+    </body>
+	<script type="text/javascript">
+		const high = document.getElementById('high');
+		const highlog = document.getElementById('highlog');
+		const low = document.getElementById('low');
+		const lowlog = document.getElementById('lowlog');
+
+		high.addEventListener('input', e => updateValue(e, highlog));
+		low.addEventListener('input', e => updateValue(e, lowlog));
+
+		const high2 = document.getElementById('high2');
+		const highlog2 = document.getElementById('highlog2');
+		const low2 = document.getElementById('low2');
+		const lowlog2 = document.getElementById('lowlog2');
+
+		high2.addEventListener('input', e => updateValue(e, highlog2));
+		low2.addEventListener('input', e => updateValue(e, lowlog2));
+
+		function updateValue(e, log) {
+		  log.textContent = `${log.id}: ${e.target.textContent}`;
+		}
+	</script>
+</html>
