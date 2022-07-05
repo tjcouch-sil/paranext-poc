@@ -6,6 +6,7 @@
 
 	export let id: string | undefined = undefined;
 	export let body: IContents;
+	export let contenteditable = false;
 
 	let div: HTMLElement;
 
@@ -16,6 +17,6 @@
 	});
 </script>
 
-<div bind:this={div} class="document" {id}>
-	<Contents contents={body} />
+<div bind:this={div} class="document" {id} {contenteditable}>
+	<Contents contents={body} {contenteditable} />
 </div>

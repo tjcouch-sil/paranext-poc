@@ -50,9 +50,7 @@
 		}
 	};
 
-	const onInput = (e: unknown) => {
-
-	};
+	const onInput = (e: unknown) => {};
 
 	afterUpdate(() => {
 		if (div) {
@@ -63,8 +61,8 @@
 
 <div
 	bind:this={div}
+	id="textEditor"
 	class="inputdiv"
-	contenteditable="true"
 	on:keydown={onKeyDown}
 	on:input={onInput}
 >

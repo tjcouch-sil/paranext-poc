@@ -7,6 +7,7 @@ export enum ContentTypes {
 
 export interface IContentBase {
 	id?: string;
+	contenteditable?: boolean;
 }
 
 export interface IContentComponent extends IContentBase {
@@ -33,7 +34,7 @@ export type IContent = IContentComponent | IContentElement | IContentText;
 
 export type IContents = IContent[] | string | undefined;
 
-export interface IDocument {
+export interface IDocument extends IContentBase {
 	id?: string;
 	body: IContents;
 }

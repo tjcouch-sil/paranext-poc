@@ -1,4 +1,5 @@
 import type {
+	IContent,
 	IContents,
 	IDocument,
 } from "@components/common/textComponents/TextComponentTypes";
@@ -11,11 +12,9 @@ export function newGuid(): string {
 	);
 }
 
-function populateContentIds(contents: IContents) {
+function populateContentIds(contents: IContents): void {
 	if (contents && Array.isArray(contents)) {
-		// Can remove if we figure out typescript
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
-		contents?.forEach((content: any /* IContent */) => {
+		contents.forEach((content: IContent) => {
 			if (content) {
 				content.id = content.id || newGuid();
 				populateContentIds(content.contents);
@@ -30,6 +29,41 @@ export function populateIds(doc: IDocument): IDocument {
 		populateContentIds(doc.body);
 	}
 	return doc;
+}
+
+// TODO: Remove when we use context for documents
+let document: IDocument;
+export function setDocument(doc: IDocument): IDocument {
+	document = doc;
+	return doc;
+}
+
+function getContentFromContentsById(
+	id: string | undefined,
+	contents: IContents,
+): IContent | undefined {
+	let matchingContent: IContent | undefined;
+	if (contents && Array.isArray(contents)) {
+		contents.some((content: IContent) => {
+			if (content.id === id) {
+				matchingContent = content;
+				return true;
+			}
+			matchingContent = getContentFromContentsById(id, content.contents);
+			if (matchingContent) {
+				return true;
+			}
+		});
+	}
+	return matchingContent;
+}
+
+export function getContentById(id: string | undefined): IContent | undefined {
+	if (!document) {
+		return;
+	}
+
+	return getContentFromContentsById(id, document.body);
 }
 
 // thanks to DRAX at https://stackoverflow.com/a/9436948
