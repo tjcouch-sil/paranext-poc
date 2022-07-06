@@ -6,7 +6,7 @@
 
 	afterUpdate(() => {
 		if (div) {
-			flash(div);
+			flash(div, "SemiImportant");
 		}
 	});
 </script>

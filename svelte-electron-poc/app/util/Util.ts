@@ -1,7 +1,8 @@
-import type {
-	IContent,
-	IContents,
-	IDocument,
+import {
+	ContentTypes,
+	type IContent,
+	type IContents,
+	type IDocument,
 } from "@components/common/textComponents/TextComponentTypes";
 
 // Thanks to blubberdiblub at https://stackoverflow.com/a/68141099/217579
@@ -10,6 +11,25 @@ export function newGuid(): string {
 		// @ts-expect-error ts(2363) this works fine
 		(((Math.random() + ~~s) * 0x10000) >> s).toString(16).padStart(4, "0"),
 	);
+}
+
+// thanks to DRAX at https://stackoverflow.com/a/9436948
+/**
+ * Determine whether the object is a string
+ * @param o object to determine if it is a string
+ * @returns true if the object is a string; false otherwise
+ */
+export function isString(o: unknown) {
+	return typeof o === "string" || o instanceof String;
+}
+
+/**
+ * Evaluates if the value is truthy, false, or 0
+ * @param val value to evaluate
+ * @returns whether the value is truthy, false, or 0
+ */
+export function isValidValue(val: unknown): boolean {
+	return !!val || val === false || val === 0;
 }
 
 function populateContentIds(contents: IContents): void {
@@ -39,7 +59,7 @@ export function setDocument(doc: IDocument): IDocument {
 }
 
 function getContentFromContentsById(
-	id: string | undefined,
+	id: string,
 	contents: IContents,
 ): IContent | undefined {
 	let matchingContent: IContent | undefined;
@@ -59,18 +79,37 @@ function getContentFromContentsById(
 }
 
 export function getContentById(id: string | undefined): IContent | undefined {
-	if (!document) {
+	if (!document || !isValidValue(id)) {
 		return;
 	}
 
-	return getContentFromContentsById(id, document.body);
+	return getContentFromContentsById(id as string, document.body);
 }
 
-// thanks to DRAX at https://stackoverflow.com/a/9436948
-export function isString(o: unknown) {
-	return typeof o === "string" || o instanceof String;
+/**
+ * Updates the contents of the current document with the supplied contents at the specified id if the contents have changed
+ * @param id id of the content whose contents to update
+ * @param contents new contents for updating
+ * @returns true if there was a change; false otherwise
+ */
+export function updateContentsById(
+	id: string | undefined,
+	contents: IContents,
+): boolean {
+	const content = getContentById(id);
+	if (!content) {
+		return false;
+	}
+
+	if (content.type !== ContentTypes.Text || content.contents !== contents) {
+		content.contents = contents;
+		return true;
+	}
+
+	return false;
 }
 
+/** string[] of element tags that cannot have contents */
 export const voidElements: string[] = [
 	"area",
 	"base",

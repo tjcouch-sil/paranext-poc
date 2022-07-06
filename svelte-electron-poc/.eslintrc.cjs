@@ -21,9 +21,7 @@ module.exports = {
 	},
 	settings: {
 		jsdoc: {
-			tagNamePreference: {
-				returns: "return",
-			},
+			tagNamePreference: {},
 		},
 		"svelte3/typescript": require("typescript"),
 	},
@@ -105,11 +103,8 @@ module.exports = {
 		"jsdoc/require-param": 1,
 		"jsdoc/require-param-description": 1,
 		"jsdoc/require-param-name": 1,
-		"jsdoc/require-param-type": 1,
 		"jsdoc/require-returns": 1,
 		"jsdoc/require-returns-description": 1,
-		"jsdoc/require-returns-type": 1,
 		"jsdoc/require-returns-check": 1,
-		"jsdoc/require-hyphen-before-param-description": 1,
 	},
 };

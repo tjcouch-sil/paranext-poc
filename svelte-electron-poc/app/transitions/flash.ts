@@ -1,6 +1,8 @@
 // Taken from https://svelte.dev/tutorial/svelte-options
-export default function flash(element: HTMLElement) {
-	console.log(`${element.id} updated!`);
+export default function flash(element: HTMLElement, readableName?: string) {
+	console.log(
+		`Update: ${readableName ? `${readableName}: ` : ""}${element.id}`,
+	);
 	requestAnimationFrame(() => {
 		element.style.transition = "none";
 		element.style.color = "rgba(255,62,0,1)";

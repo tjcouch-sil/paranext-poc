@@ -54,7 +54,7 @@
 
 	afterUpdate(() => {
 		if (div) {
-			flash(div);
+			flash(div, "TextEditor");
 		}
 	});
 </script>

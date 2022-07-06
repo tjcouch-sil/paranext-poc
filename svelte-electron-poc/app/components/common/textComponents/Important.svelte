@@ -8,7 +8,7 @@
 
 	afterUpdate(() => {
 		if (div) {
-			flash(div);
+			flash(div, "Important");
 		}
 	});
 </script>

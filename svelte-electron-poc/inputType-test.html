@@ -6,13 +6,23 @@
 		/>
 		<title>The serialized HTML of a selection in Mozilla and IE</title>
 		<style>
-			#log {
+			.logbox {
+				display: flex;
+				justify-content: space-between;
+				flex-wrap: wrap;
+			}
+
+			.log {
 				white-space: pre-wrap;
 			}
 		</style>
 	</head>
 	<body>
-		<p id="log">beforeinput Events:</p>
+		<div class="logbox">
+			<p class="log" id="beforeinputlog">beforeinput Events:</p>
+			<p class="log" id="inputlog">input Events:</p>
+			<p class="log" id="compositionendlog">compositionend Events:</p>
+		</div>
 		<div
 			contenteditable="true"
 			style="margin: 20px; padding: 20px; border: 2px dashed red"
@@ -31,16 +41,28 @@
 		</div>
 	</body>
 	<script type="text/javascript">
-		const log = document.getElementById("log");
+		const beforeinputlog = document.getElementById("beforeinputlog");
+		const inputlog = document.getElementById("inputlog");
+		const compositionendlog = document.getElementById("compositionendlog");
 		const editable = document.querySelector("div[contenteditable]");
-		editable.addEventListener("beforeinput", logInputType);
+		editable.addEventListener("beforeinput", (e) =>
+			logInput(e, beforeinputlog),
+		);
+		editable.addEventListener("input", (e) => logInput(e, inputlog));
+		editable.addEventListener("compositionend", (e) =>
+			logCompositionend(e, compositionendlog),
+		);
 
-		function logInputType(event) {
-			log.textContent += `\ndata: '${event.data}' | inputType: ${
+		function logInput(event, element) {
+			element.textContent += `\ndata: '${event.data}' | inputType: ${
 				event.inputType
 			} | getTargetRanges() -> ${JSON.stringify(
 				event.getTargetRanges(),
 			)}`;
+		}
+
+		function logCompositionend(event, element) {
+			element.textContent += `\ndata: '${event.data}'`;
 		}
 	</script>
 </html>

@@ -3,7 +3,7 @@
 	import { afterUpdate } from "svelte";
 	import flash from "@app/transitions/flash";
 	import type { IContents } from "./TextComponentTypes";
-	import { getContentById } from "@app/util/Util";
+	import { updateContentsById } from "@app/util/Util";
 
 	export let id: string | undefined = undefined;
 	export let body: IContents;
@@ -13,65 +13,84 @@
 
 	/**
 	 * Run commands on the document and prevent default ones
-	 * @param e - keyboard event
+	 * @param e keyboard event
 	 */
 	const onKeyDown = (e: KeyboardEvent) => {
 		if (e.ctrlKey || e.altKey || e.metaKey) {
 			// Commands
+			// TODO: undo
+			// TODO: redo
 		}
 	};
 
 	/**
+	 * Contains selection info before an input happens for use in updating the document.
+	 * Contains the location of the selection before the input happens (before text is deleted).
+	 * Set in onBeforeinput, used in onInput
+	 */
+	let inputSelection: StaticRange | undefined;
+
+	/**
 	 * When a user types, we need to prevent replacing selections if there's a non-contenteditable element selected or inbetween
-	 * TODO: If the user copies/pastes/drag-and-drops (DataTransfer), we need to figure out a way to transfer the svelte component info as well
-	 * @param e - input event
+	 * @param e input event
 	 */
 	const onBeforeinput = (e: InputEvent) => {
-		// TODO: implement
+		// Save the selection so we can update the start and end containers in onInput
+		const targetRanges = e.getTargetRanges();
+		if (targetRanges?.length > 0) {
+			inputSelection = targetRanges[0];
+		}
+		/* During the input event, windowSelection contains the location of the cursor after the input happens (after text is deleted).
+		   Maybe this will be useful later, so leaving this here for now.
+		const windowSel = window.getSelection();
+		if (windowSel && windowSel.rangeCount > 0) {
+			windowSelection = windowSel.getRangeAt(0);
+		}
+		*/
+
 		// TODO: Handle Enter here?
+		// TODO: Prevent replacing selections if there is a non-editable element selected or inbetween
+		// TODO: figure out copy/paste/drag-and-drop (DataTransfer) svelte component info
 	};
 
 	/**
 	 * When a user types something, we need to find where it is typed and update it.
 	 * If the user selects something and types, we need to delete everything contenteditable between the selection.
 	 * TODO: make sure this works with IME like emojis/Japanese and RTL like Arabic
-	 * @param e - input event
+	 * @param e input event
 	 */
-	const onInput = (e: InputEvent) => {
+	const onInput = (e: Event) => {
 		// Get the selection (or cursor position) and update the content
-		const selection = window.getSelection()?.getRangeAt(0);
-		if (selection) {
-			const startElement = selection.startContainer?.parentElement;
+		if (inputSelection) {
+			const startElement = inputSelection.startContainer?.parentElement;
 			if (startElement) {
-				const startContent = getContentById(startElement.id);
-				if (
-					startContent &&
-					startContent.contents !== startElement.innerText
-				) {
-					// TODO: Confirm we don't want textContent https://stackoverflow.com/questions/35213147/difference-between-textcontent-vs-innertext
-					startContent.contents = startElement.innerText;
-				}
+				// TODO: Confirm we don't want textContent https://stackoverflow.com/questions/35213147/difference-between-textcontent-vs-innertext
+				updateContentsById(startElement.id, startElement.innerText);
 			}
 			// It is a selection, not just a cursor position. Update the end element as well (OnDestroy will destroy the intermediate elements)
-			if (!selection.collapsed) {
-				const endElement = selection.endContainer?.parentElement;
+			if (!inputSelection.collapsed) {
+				const endElement = inputSelection.endContainer?.parentElement;
 				if (endElement) {
-					const endContent = getContentById(endElement.id);
-					if (
-						endContent &&
-						endContent.contents !== endElement.innerText
-					) {
-						// TODO: Confirm we don't want textContent https://stackoverflow.com/questions/35213147/difference-between-textcontent-vs-innertext
-						endContent.contents = endElement.innerText;
-					}
+					// TODO: Confirm we don't want textContent https://stackoverflow.com/questions/35213147/difference-between-textcontent-vs-innertext
+					updateContentsById(endElement.id, endElement.innerText);
 				}
 			}
 		}
 	};
 
+	const onCompositionend = (e: CompositionEvent) => {
+		// When you first enter text using an IME after loading the page, onBeforeinput and onCompositionend run,
+		// but onInput doesn't run. Some actions like deleting a character fix the problem, but it continues until
+		// certain actions occur. Maybe we could spoof an input event or just add the e.data to the text manually.
+		// We should probably figure out if this is an electron, svelte, or other issue and file it. See inputType-test.html
+		// TODO: fix missing first IME input
+		const imeInput = e.data;
+		console.log(imeInput);
+	};
+
 	afterUpdate(() => {
 		if (div) {
-			flash(div);
+			flash(div, "Document");
 		}
 	});
 </script>
@@ -84,6 +103,7 @@
 	on:keydown={onKeyDown}
 	on:beforeinput={onBeforeinput}
 	on:input={onInput}
+	on:compositionend={onCompositionend}
 >
 	<Contents contents={body} {contenteditable} />
 </div>
