@@ -3,7 +3,11 @@
 	import flash from "@app/transitions/flash";
 	import Document from "./Document.svelte";
 	import type { IDocument } from "./TextComponentTypes";
-	import { destroyContentAtRandom } from "@app/util/Util";
+	import {
+		destroyContentAtRandom,
+		getRandomContentId,
+		updateContentById,
+	} from "@app/util/Util";
 
 	export let document: IDocument;
 
@@ -34,7 +38,14 @@
 	const destroyRandom = () => {
 		destroyContentAtRandom();
 		// Refreshes the whole document. Not efficient
-		document = document;
+		// document = document;
+	};
+
+	const purpleRandom = () => {
+		updateContentById(getRandomContentId(), (content) => {
+			content.style = "border: 1px solid purple";
+			return content;
+		});
 	};
 
 	const onKeyDown = (e: KeyboardEvent) => {
@@ -82,6 +93,7 @@
 <button on:click={bold}>Bold</button>
 <button on:click={important}>Important</button>
 <button on:click={destroyRandom}>Destroy Random</button>
+<button on:click={purpleRandom}>Purple Random</button>
 
 <style lang="scss">
 	.inputdiv {

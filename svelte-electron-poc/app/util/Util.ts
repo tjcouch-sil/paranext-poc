@@ -128,6 +128,19 @@ export function updateContentsById(
 	return false;
 }
 
+export function updateContentById(
+	id: string | undefined,
+	updateContent: (content: IContent) => IContent,
+): boolean {
+	const content = getContentById(id);
+	if (!content) {
+		return false;
+	}
+
+	updateContent(content);
+	return true;
+}
+
 function destroyContent(
 	id: string,
 	contentsToCheck: IContents,
@@ -168,13 +181,23 @@ export function destroyContentById(
 	readableName?: string,
 ) {
 	console.log(`Destroy: ${readableName ? `${readableName}: ` : ""}${id}`);
+	// TODO: Implement recurse = false
+	if (!recurse) {
+		console.warn(
+			`recurse = false not implemented on destroyContentById(${id}, ${recurse}, ${readableName})`,
+		);
+	}
 	if (id) {
 		destroyContent(id, document.body, recurse);
 	}
 }
 
+export function getRandomContentId(): string {
+	return docIds[Math.floor(Math.random() * docIds.length)];
+}
+
 export function destroyContentAtRandom() {
-	const idToDestroy = docIds[Math.floor(Math.random() * docIds.length)];
+	const idToDestroy = getRandomContentId();
 	destroyContentById(idToDestroy);
 }
 

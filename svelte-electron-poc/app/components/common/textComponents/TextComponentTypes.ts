@@ -8,6 +8,7 @@ export enum ContentTypes {
 export interface IContentBase {
 	id?: string;
 	contenteditable?: boolean;
+	[prop: string]: unknown;
 }
 
 export interface IContentComponent extends IContentBase {
