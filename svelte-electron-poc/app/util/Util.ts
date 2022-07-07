@@ -51,10 +51,29 @@ export function populateIds(doc: IDocument): IDocument {
 	return doc;
 }
 
+function saveContentIds(contents: IContents): void {
+	if (contents && Array.isArray(contents)) {
+		contents.forEach((content: IContent) => {
+			if (content) {
+				if (content.id) {
+					docIds.push(content.id);
+				}
+				saveContentIds(content.contents);
+			}
+		});
+	}
+}
+
 // TODO: Remove when we use context for documents
 let document: IDocument;
+let docIds: string[];
 export function setDocument(doc: IDocument): IDocument {
 	document = doc;
+
+	// Purposely not adding the doc id right now because we don't want to delete it
+	docIds = [];
+	saveContentIds(doc.body);
+
 	return doc;
 }
 
@@ -107,6 +126,56 @@ export function updateContentsById(
 	}
 
 	return false;
+}
+
+function destroyContent(
+	id: string,
+	contentsToCheck: IContents,
+	recurse = true,
+): IContent | undefined {
+	let deletedContent: IContent | undefined;
+	if (contentsToCheck && Array.isArray(contentsToCheck)) {
+		contentsToCheck.some((content: IContent, index: number) => {
+			if (content.id === id) {
+				// Delete this content
+				// TODO: Implement recurse = false
+				deletedContent = content;
+				contentsToCheck.splice(index, 1);
+				const docIdsInd = docIds.findIndex((docId) => docId === id);
+				if (docIdsInd >= 0) {
+					docIds.splice(docIdsInd, 1);
+				}
+				return true;
+			}
+			deletedContent = destroyContent(id, content.contents);
+			if (deletedContent) {
+				return true;
+			}
+		});
+	}
+	return deletedContent;
+}
+
+/**
+ * Removes the content at the specified id
+ * @param id id of the content to remove
+ * @param recurse NOT IMPLEMENTED whether to delete the deleted content's child contents (false to put them in this content's place). Defaults to true
+ * @param readableName name to print in console for the deleted content
+ */
+export function destroyContentById(
+	id: string | undefined,
+	recurse = true,
+	readableName?: string,
+) {
+	console.log(`Destroy: ${readableName ? `${readableName}: ` : ""}${id}`);
+	if (id) {
+		destroyContent(id, document.body, recurse);
+	}
+}
+
+export function destroyContentAtRandom() {
+	const idToDestroy = docIds[Math.floor(Math.random() * docIds.length)];
+	destroyContentById(idToDestroy);
 }
 
 /** string[] of element tags that cannot have contents */

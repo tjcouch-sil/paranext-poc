@@ -3,6 +3,7 @@
 	import flash from "@app/transitions/flash";
 	import Document from "./Document.svelte";
 	import type { IDocument } from "./TextComponentTypes";
+	import { destroyContentAtRandom } from "@app/util/Util";
 
 	export let document: IDocument;
 
@@ -28,6 +29,12 @@
 			const range = selection.getRangeAt(0);
 			// selection.
 		}
+	};
+
+	const destroyRandom = () => {
+		destroyContentAtRandom();
+		// Refreshes the whole document. Not efficient
+		document = document;
 	};
 
 	const onKeyDown = (e: KeyboardEvent) => {
@@ -74,6 +81,7 @@
 </div>
 <button on:click={bold}>Bold</button>
 <button on:click={important}>Important</button>
+<button on:click={destroyRandom}>Destroy Random</button>
 
 <style lang="scss">
 	.inputdiv {

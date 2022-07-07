@@ -49,7 +49,7 @@
 		*/
 
 		// TODO: Handle Enter here?
-		// TODO: Prevent replacing selections if there is a non-editable element selected or inbetween
+		// TODO: Prevent replacing selections if there is a non-editable element selected or inbetween?
 		// TODO: figure out copy/paste/drag-and-drop (DataTransfer) svelte component info
 	};
 
