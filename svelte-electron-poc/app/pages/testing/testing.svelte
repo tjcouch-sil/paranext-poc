@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Menu from "@components/common/menu/menu.svelte";
 	import Footer from "@components/common/footer/footer.svelte";
-	import { populateIds, setDocument } from "@app/util/Util";
+	import { populateDocumentIds, setDocument } from "@app/util/Util";
 	import TextEditor from "@components/common/textComponents/TextEditor.svelte";
 	import {
 		ContentTypes,
@@ -13,8 +13,7 @@
 	let showJson = true;
 
 	const doc: Writable<IDocument> = setDocument(
-		populateIds({
-			id: "",
+		populateDocumentIds({
 			contenteditable: true,
 			body: [
 				{
@@ -39,7 +38,7 @@
 					contents: [
 						{
 							type: ContentTypes.Text,
-							contents: " Edi",
+							contents: "Edi",
 						},
 					],
 				},

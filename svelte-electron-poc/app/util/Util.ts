@@ -33,23 +33,32 @@ export function isValidValue(val: unknown): boolean {
 	return !!val || val === false || val === 0;
 }
 
-function populateContentIds(contents: IContents): void {
+export function populateContentsIds(contents: IContents): IContents {
 	if (contents && Array.isArray(contents)) {
 		contents.forEach((content: IContent) => {
 			if (content) {
 				content.id = content.id || newGuid();
-				populateContentIds(content.contents);
+				populateContentsIds(content.contents);
 			}
 		});
 	}
+	return contents;
 }
 
-export function populateIds(doc: IDocument): IDocument {
+export function populateDocumentIds(doc: IDocument): IDocument {
 	if (doc) {
 		doc.id = doc.id || newGuid();
-		populateContentIds(doc.body);
+		populateContentsIds(doc.body);
 	}
 	return doc;
+}
+
+export function populateContentIds(content: IContent): IContent {
+	if (content) {
+		content.id = content.id || newGuid();
+		populateContentsIds(content.contents);
+	}
+	return content;
 }
 
 function saveContentIds(contents: IContents): void {
@@ -111,6 +120,14 @@ export function getContentById(id: string | undefined): IContent | undefined {
 	return getContentFromContentsById(id as string, document.body);
 }
 
+export function isContentText(content: IContent | undefined): boolean {
+	if (!content) {
+		return false;
+	}
+
+	return content.type === ContentTypes.Text || isString(content.contents);
+}
+
 /**
  * Updates the contents of the content object with the specified id with the supplied contents
  * and refreshes the document if the contents have changed
@@ -127,8 +144,7 @@ export function updateContentsById(
 		return false;
 	}
 
-	const contentIsText =
-		content.type === ContentTypes.Text || isString(content.contents);
+	const contentIsText = isContentText(content);
 
 	// TODO: maybe we could deep compare contents at some point, but comparing the text is fine for now
 	if (!contentIsText || content.contents !== contents) {
@@ -247,8 +263,27 @@ export function destroyContentById(
 	}
 }
 
-export function getRandomContentId(): string {
-	return docIds[Math.floor(Math.random() * docIds.length)];
+/**
+ * Get the id of a random content - matching the filter predicate if supplied
+ * @param filterPredicate funtion to filter random ids by whether the content passed into this function returns true
+ * @returns id of a random content - matching the filter predicate if supplied. Undefined if there are no passing ids
+ */
+export function getRandomContentId(
+	filterPredicate?: (content: IContent) => boolean,
+): string | undefined {
+	let filteredIds = docIds;
+	if (filterPredicate) {
+		filteredIds = filteredIds.filter((id) => {
+			const content = getContentById(id);
+			if (content) {
+				return filterPredicate(content);
+			}
+			return false;
+		});
+	}
+	return filteredIds.length > 0
+		? filteredIds[Math.floor(Math.random() * filteredIds.length)]
+		: undefined;
 }
 
 export function destroyContentAtRandom() {
