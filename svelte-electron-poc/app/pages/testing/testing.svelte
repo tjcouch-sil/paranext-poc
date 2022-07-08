@@ -8,10 +8,11 @@
 		type IContentComponent,
 		type IDocument,
 	} from "@components/common/textComponents/TextComponentTypes";
+	import type { Writable } from "svelte/store";
 
 	let showJson = true;
 
-	const doc: IDocument = setDocument(
+	const doc: Writable<IDocument> = setDocument(
 		populateIds({
 			id: "",
 			contenteditable: true,
@@ -45,6 +46,19 @@
 					type: ContentTypes.Text,
 					contents: "t me!",
 				},
+				{
+					type: ContentTypes.Element,
+					subType: "br",
+				},
+				{
+					type: ContentTypes.Element,
+					subType: "br",
+				},
+				{
+					type: ContentTypes.Component,
+					subType: "SemiImportant",
+					contents: "This text is directly on the component!",
+				},
 			],
 		}),
 	);
@@ -55,6 +69,6 @@
 <TextEditor document={doc} />
 <button on:click={() => (showJson = !showJson)}>Toggle JSON</button>
 {#if showJson}
-	<pre><code>{JSON.stringify(doc, null, 2)}</code></pre>
+	<pre><code>{JSON.stringify($doc, null, 2)}</code></pre>
 {/if}
 <Footer />

@@ -10,27 +10,11 @@
 	export let type: ContentTypes;
 	export let subType: string | undefined = undefined;
 	export let contents: IContents = undefined;
-	export let contenteditable = false;
 
 	let div: HTMLElement;
 
 	$: component = subType ? TextComponents[subType] : undefined;
 	$: voidElement = subType && voidElements.includes(subType);
-	$: thisContent = getContentById(id);
-	$: {
-		if (type === ContentTypes.Text) {
-			if (thisContent && thisContent.contents !== contents) {
-				thisContent.contents = contents;
-			}
-		}
-	}
-
-	const onInput = (e: any) => {
-		const newText = e.target.textContent;
-		if (thisContent && thisContent.contents !== newText) {
-			thisContent.contents = newText;
-		}
-	};
 
 	afterUpdate(() => {
 		if (div) {
@@ -40,43 +24,21 @@
 </script>
 
 {#if type === ContentTypes.Component}
-	<svelte:component this={component} {id} {contenteditable} {...$$restProps}>
-		<Contents {contents} {contenteditable} />
+	<svelte:component this={component} {id} {...$$restProps}>
+		<Contents {contents} />
 	</svelte:component>
 {:else if type === ContentTypes.Element}
 	{#if voidElement}
-		<svelte:element
-			this={subType}
-			bind:this={div}
-			{id}
-			{contenteditable}
-			{...$$restProps}
-		/>
+		<svelte:element this={subType} bind:this={div} {id} {...$$restProps} />
 	{:else}
-		<svelte:element
-			this={subType}
-			bind:this={div}
-			{id}
-			{contenteditable}
-			{...$$restProps}
-		>
-			<Contents {contents} {contenteditable} />
+		<svelte:element this={subType} bind:this={div} {id} {...$$restProps}>
+			<Contents {contents} />
 		</svelte:element>
 	{/if}
 {:else if type === ContentTypes.Text}
-	{#if contenteditable}
-		<span
-			bind:this={div}
-			bind:textContent={contents}
-			{id}
-			contenteditable
-			{...$$restProps}
-		/>
-	{:else}
-		<span bind:this={div} {id} {...$$restProps}>
-			{contents}
-		</span>
-	{/if}
+	<span bind:this={div} {id} {...$$restProps}>
+		{contents}
+	</span>
 {:else}
 	<!-- Potentially ContentTypes.Unknown -->
 	Content provided unsupported type

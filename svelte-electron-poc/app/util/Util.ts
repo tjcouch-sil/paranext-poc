@@ -4,6 +4,7 @@ import {
 	type IContents,
 	type IDocument,
 } from "@components/common/textComponents/TextComponentTypes";
+import { writable, type Writable } from "svelte/store";
 
 // Thanks to blubberdiblub at https://stackoverflow.com/a/68141099/217579
 export function newGuid(): string {
@@ -64,17 +65,22 @@ function saveContentIds(contents: IContents): void {
 	}
 }
 
-// TODO: Remove when we use context for documents
+// TODO: Fix when we use context for documents
+/** The document. Any time you want to change this, run refreshDocument afterward. Otherwise use documentStore.update */
 let document: IDocument;
+let documentStore: Writable<IDocument>;
+let refreshDocument: () => void;
 let docIds: string[];
-export function setDocument(doc: IDocument): IDocument {
+export function setDocument(doc: IDocument): Writable<IDocument> {
 	document = doc;
+	documentStore = writable(document);
+	refreshDocument = () => documentStore.update((doc) => doc);
 
 	// Purposely not adding the doc id right now because we don't want to delete it
 	docIds = [];
 	saveContentIds(doc.body);
 
-	return doc;
+	return documentStore;
 }
 
 function getContentFromContentsById(
@@ -106,7 +112,8 @@ export function getContentById(id: string | undefined): IContent | undefined {
 }
 
 /**
- * Updates the contents of the current document with the supplied contents at the specified id if the contents have changed
+ * Updates the contents of the content object with the specified id with the supplied contents
+ * and refreshes the document if the contents have changed
  * @param id id of the content whose contents to update
  * @param contents new contents for updating
  * @returns true if there was a change; false otherwise
@@ -120,25 +127,62 @@ export function updateContentsById(
 		return false;
 	}
 
-	if (content.type !== ContentTypes.Text || content.contents !== contents) {
+	const contentIsText =
+		content.type === ContentTypes.Text || isString(content.contents);
+
+	// TODO: maybe we could deep compare contents at some point, but comparing the text is fine for now
+	if (!contentIsText || content.contents !== contents) {
 		content.contents = contents;
+		// Don't refresh the whole document if it was just a text change since contenteditable does that for us
+		// TODO: improve document efficiency to prevent this from being needful
+		if (!contentIsText) {
+			refreshDocument();
+		}
 		return true;
 	}
 
 	return false;
 }
 
+/**
+ * Runs an updating function on a content object and refreshes the document if it changed
+ * @param id id of the content to change
+ * @param updateContent function that takes the content and returns true if it changed the content
+ * @returns whether the content was changed
+ */
 export function updateContentById(
 	id: string | undefined,
-	updateContent: (content: IContent) => IContent,
+	updateContent: (content: IContent) => boolean,
 ): boolean {
 	const content = getContentById(id);
 	if (!content) {
 		return false;
 	}
 
-	updateContent(content);
-	return true;
+	if (updateContent(content)) {
+		refreshDocument();
+		return true;
+	}
+	return false;
+}
+
+function getContentsIds(contents: IContents): string[] {
+	const ids: string[] = [];
+	if (contents && Array.isArray(contents)) {
+		contents.forEach((content: IContent) => {
+			if (content) {
+				if (content.id) {
+					ids.push(content.id);
+				}
+				const contentIds = getContentsIds(content.contents);
+				if (contentIds.length > 0) {
+					contentIds.forEach((id) => ids.push(id));
+				}
+			}
+		});
+	}
+
+	return ids;
 }
 
 function destroyContent(
@@ -154,10 +198,21 @@ function destroyContent(
 				// TODO: Implement recurse = false
 				deletedContent = content;
 				contentsToCheck.splice(index, 1);
-				const docIdsInd = docIds.findIndex((docId) => docId === id);
-				if (docIdsInd >= 0) {
-					docIds.splice(docIdsInd, 1);
-				}
+
+				// Remove the id and child ids from the docIds
+				const idsToRemove = recurse
+					? getContentsIds(content.contents)
+					: [];
+				idsToRemove.push(id);
+				idsToRemove.forEach((idToRemove) => {
+					const docIdsInd = docIds.findIndex(
+						(docId) => docId === idToRemove,
+					);
+					if (docIdsInd >= 0) {
+						docIds.splice(docIdsInd, 1);
+					}
+				});
+				refreshDocument();
 				return true;
 			}
 			deletedContent = destroyContent(id, content.contents);
@@ -181,7 +236,7 @@ export function destroyContentById(
 	readableName?: string,
 ) {
 	console.log(`Destroy: ${readableName ? `${readableName}: ` : ""}${id}`);
-	// TODO: Implement recurse = false
+	// TODO: Implement recurse = false in destroyContent
 	if (!recurse) {
 		console.warn(
 			`recurse = false not implemented on destroyContentById(${id}, ${recurse}, ${readableName})`,

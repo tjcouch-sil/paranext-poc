@@ -5,7 +5,6 @@
 	import type { IContents, IContent } from "./TextComponentTypes";
 
 	export let contents: IContents;
-	export let contenteditable = false;
 
 	$: contentsContent = contents as IContent[];
 </script>
@@ -15,7 +14,7 @@
 		{contents}
 	{:else}
 		{#each contentsContent as content, i (content.id || content || i)}
-			<Content {contenteditable} {...content} />
+			<Content {...content} />
 		{/each}
 	{/if}
 {/if}

@@ -8,8 +8,9 @@
 		getRandomContentId,
 		updateContentById,
 	} from "@app/util/Util";
+	import type { Writable } from "svelte/store";
 
-	export let document: IDocument;
+	export let document: Writable<IDocument>;
 
 	let div: HTMLElement;
 	let html = "Stuff and things";
@@ -43,8 +44,16 @@
 
 	const purpleRandom = () => {
 		updateContentById(getRandomContentId(), (content) => {
-			content.style = "border: 1px solid purple";
-			return content;
+			const purpleBorderStyle = "border: 1px solid purple";
+			let changed = false;
+			if (!content.style) {
+				content.style = purpleBorderStyle;
+				changed = true;
+			} else if (!(content.style as string).includes(purpleBorderStyle)) {
+				content.style += purpleBorderStyle;
+				changed = true;
+			}
+			return changed;
 		});
 	};
 
@@ -85,7 +94,7 @@
 	on:input={onInput}
 >
 	{#if document}
-		<Document {...document} />
+		<Document {...$document} />
 	{:else}
 		Text Editor
 	{/if}
