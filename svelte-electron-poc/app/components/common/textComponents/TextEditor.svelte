@@ -159,12 +159,15 @@
 			switch (e.key) {
 				case "i":
 					important();
+					e.preventDefault();
 					break;
 				case "d":
 					destroyRandom();
+					e.preventDefault();
 					break;
 				case "p":
 					purpleRandom();
+					e.preventDefault();
 					break;
 			}
 
