@@ -19,7 +19,7 @@
 			body: [
 				{
 					type: ContentTypes.Component,
-					subType: "SemiImportant",
+					subType: "Important",
 					contents: [
 						{
 							type: ContentTypes.Text,
@@ -31,6 +31,7 @@
 						},
 					],
 					contenteditable: false,
+					class: "underlined",
 				} as IContentComponent,
 				{
 					type: ContentTypes.Component,

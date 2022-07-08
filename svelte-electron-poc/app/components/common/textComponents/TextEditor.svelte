@@ -13,17 +13,6 @@
 	export let document: Writable<IDocument>;
 
 	let div: HTMLElement;
-	let html = "Stuff and things";
-
-	const bS = "<b>";
-	const bE = "</b>";
-	const bold = () => {
-		if (html.startsWith(bS)) {
-			html = html.slice(bS.length, html.indexOf(bE));
-		} else {
-			html = `${bS}${html}${bE}`;
-		}
-	};
 
 	const important = () => {
 		/* console.log(
@@ -43,41 +32,41 @@
 	};
 
 	const purpleRandom = () => {
-		updateContentById(getRandomContentId(), (content) => {
-			const purpleBorderStyle = "border: 1px solid purple";
-			let changed = false;
-			if (!content.style) {
-				content.style = purpleBorderStyle;
-				changed = true;
-			} else if (!(content.style as string).includes(purpleBorderStyle)) {
-				content.style += purpleBorderStyle;
-				changed = true;
-			}
-			return changed;
-		});
-	};
+		if (
+			!updateContentById(getRandomContentId(), (content) => {
+				const purpleBorderStyle = "border: 1px solid purple";
+				let changed = false;
+				if (!content.style) {
+					content.style = purpleBorderStyle;
+					changed = true;
+				} else if (
+					!(content.style as string).includes(purpleBorderStyle)
+				) {
+					content.style += purpleBorderStyle;
+					changed = true;
+				}
 
-	const onKeyDown = (e: KeyboardEvent) => {
-		const things = (e.target as HTMLInputElement)?.value;
-
-		let range: Range;
-		if (window.getSelection) {
-			const selection = window.getSelection();
-			if (selection && selection.rangeCount > 0) {
-				range = selection.getRangeAt(0);
-				/* const clonedSelection = range.cloneContents();
-				const div = document.createElement("div");
-				div.appendChild(clonedSelection);
-				return div.innerHTML; */
-			} else {
-				/* return ""; */
-			}
-		} else {
-			/* return ""; */
+				if (changed) {
+					console.log(`Purple: ${content.id}`);
+				}
+				return changed;
+			})
+		) {
+			purpleRandom();
 		}
 	};
 
-	const onInput = (e: unknown) => {};
+	/**
+	 * Run commands on the document and prevent default ones
+	 * @param e keyboard event
+	 */
+	const onKeyDown = (e: KeyboardEvent) => {
+		if (e.ctrlKey || e.altKey || e.metaKey) {
+			// Commands
+			// TODO: undo
+			// TODO: redo
+		}
+	};
 
 	afterUpdate(() => {
 		if (div) {
@@ -86,20 +75,13 @@
 	});
 </script>
 
-<div
-	bind:this={div}
-	id="textEditor"
-	class="inputdiv"
-	on:keydown={onKeyDown}
-	on:input={onInput}
->
+<div bind:this={div} id="textEditor" class="inputdiv" on:keydown={onKeyDown}>
 	{#if document}
 		<Document {...$document} />
 	{:else}
 		Text Editor
 	{/if}
 </div>
-<button on:click={bold}>Bold</button>
 <button on:click={important}>Important</button>
 <button on:click={destroyRandom}>Destroy Random</button>
 <button on:click={purpleRandom}>Purple Random</button>
@@ -109,5 +91,9 @@
 		min-height: 5em;
 		border: 1px solid black;
 		border-radius: 10px;
+	}
+
+	:global(.underlined) {
+		text-decoration: underline;
 	}
 </style>

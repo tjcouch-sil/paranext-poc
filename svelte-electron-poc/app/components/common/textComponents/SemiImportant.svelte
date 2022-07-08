@@ -12,8 +12,13 @@
 </script>
 
 <!-- Every component that wants to be part of the text editing needs at least {...$$restProps} to accept the rest of the props given to its parent Content -->
+<!-- Additionally, any attributes on a component need to be able to accept props coming in (for example, class here also accepts $$restProps.class)-->
 <!-- Every text editing component that wants to display children must have <slot /> in order to accept the children given to its parent Content -->
-<span bind:this={div} {...$$restProps} class="semi-important"><slot /></span>
+<span
+	bind:this={div}
+	{...$$restProps}
+	class="semi-important {$$restProps.class || ''}"><slot /></span
+>
 
 <style lang="scss">
 	.semi-important {

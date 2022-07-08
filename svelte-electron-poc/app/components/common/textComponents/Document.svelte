@@ -12,18 +12,6 @@
 	let div: HTMLElement;
 
 	/**
-	 * Run commands on the document and prevent default ones
-	 * @param e keyboard event
-	 */
-	const onKeyDown = (e: KeyboardEvent) => {
-		if (e.ctrlKey || e.altKey || e.metaKey) {
-			// Commands
-			// TODO: undo
-			// TODO: redo
-		}
-	};
-
-	/**
 	 * Contains selection info before an input happens for use in updating the document.
 	 * Contains the location of the selection before the input happens (before text is deleted).
 	 * Set in onBeforeinput, used in onInput
@@ -100,10 +88,9 @@
 	class="document"
 	{id}
 	{contenteditable}
-	on:keydown={onKeyDown}
 	on:beforeinput={onBeforeinput}
 	on:input={onInput}
 	on:compositionend={onCompositionend}
 >
-	<Contents contents={body} {contenteditable} />
+	<Contents contents={body} />
 </div>
