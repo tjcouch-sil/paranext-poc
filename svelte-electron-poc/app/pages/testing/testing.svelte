@@ -29,9 +29,10 @@
 							subType: "br",
 						},
 					],
+					verseApproved: false,
 					contenteditable: false,
 					class: "underlined",
-				} as IContentComponent,
+				},
 				{
 					type: ContentTypes.Component,
 					subType: "SemiImportant",
@@ -45,6 +46,7 @@
 				{
 					type: ContentTypes.Text,
 					contents: "t me!",
+					verseApproved: false,
 				},
 				{
 					type: ContentTypes.Element,
@@ -58,6 +60,17 @@
 					type: ContentTypes.Component,
 					subType: "SemiImportant",
 					contents: "This text is directly on the component!",
+				},
+				{
+					type: ContentTypes.Element,
+					subType: "div",
+					contents: [
+						{
+							type: ContentTypes.Text,
+							contents: "This verse is already approved!",
+							verseApproved: true,
+						},
+					],
 				},
 			],
 		}),

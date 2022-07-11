@@ -5,9 +5,32 @@ export enum ContentTypes {
 	Text,
 }
 
+export interface IAnnotationBase {
+	/** Name of field on owner that is affected */
+	ownerField: string;
+}
+
+export interface IAnnotationDefinition extends IAnnotationBase {
+	/** The annotation svelte component that this definition uses */
+	annotation: unknown;
+	/** Determines whether this annotation should be on the content */
+	annotates: (content: IContent) => boolean;
+}
+
+export interface IAnnotation extends IAnnotationBase {
+	/** Type of annotation */
+	type: string;
+	/** Id of owning IContent */
+	ownerId: string | undefined;
+}
+
+export type IAnnotations = IAnnotation[] | undefined;
+
 export interface IContentBase {
 	id?: string;
 	contenteditable?: boolean;
+	/** Should not be saved as this is a temporary field */
+	annotations?: IAnnotations;
 	[prop: string]: unknown;
 }
 

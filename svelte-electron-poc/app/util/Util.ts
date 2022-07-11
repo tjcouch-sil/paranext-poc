@@ -1,3 +1,4 @@
+import { AnnotationDefinitions } from "@components/common/textComponents/annotations/AnnotationDefinitions";
 import {
 	ContentTypes,
 	type IContent,
@@ -61,33 +62,97 @@ export function populateContentIds(content: IContent): IContent {
 	return content;
 }
 
-function saveContentIds(contents: IContents): void {
+function saveContentsIds(contents: IContents): void {
 	if (contents && Array.isArray(contents)) {
 		contents.forEach((content: IContent) => {
 			if (content) {
 				if (content.id) {
 					docIds.push(content.id);
 				}
-				saveContentIds(content.contents);
+				saveContentsIds(content.contents);
 			}
 		});
 	}
 }
 
+function updateContentAnnotations(content: IContent): IContent {
+	if (content) {
+		// Check each annotation definition to determine if it should be on this content
+		Object.entries(AnnotationDefinitions).forEach(([type, def]) => {
+			const annotationIndex = content.annotations?.findIndex(
+				(annotation) => annotation.type === type,
+			);
+			if (def.annotates(content)) {
+				// If annotation is present and should be, leave it alone
+
+				if (annotationIndex === undefined || annotationIndex < 0) {
+					// Annotation is not present but should be. Add
+
+					// If content.annotations doesn't exist, add it
+					if (!content.annotations) {
+						content.annotations = [];
+					}
+
+					content.annotations.push({
+						type,
+						ownerField: def.ownerField,
+						ownerId: content.id,
+					});
+				}
+			} else {
+				if (
+					content.annotations &&
+					annotationIndex !== undefined &&
+					annotationIndex >= 0
+				) {
+					// Annotation is present but should not be. Remove
+					content.annotations.splice(annotationIndex, 1);
+				}
+			}
+		});
+
+		if (content.contents && Array.isArray(content.contents)) {
+			content.contents.forEach((content: IContent) => {
+				if (content) {
+					updateContentAnnotations(content);
+				}
+			});
+		}
+	}
+	return content;
+}
+
+function updateDocumentAnnotations(doc: IDocument): IDocument {
+	if (doc.body && Array.isArray(doc.body)) {
+		doc.body.forEach((content: IContent) => {
+			if (content) {
+				updateContentAnnotations(content);
+			}
+		});
+	}
+	return doc;
+}
+
 // TODO: Fix when we use context for documents
 /** The document. Any time you want to change this, run refreshDocument afterward. Otherwise use documentStore.update */
 let document: IDocument;
+// Probably can fix this to use stores for each level and have better updates than refreshing the doc all at once
+// Only thing is I dunno if we will be able to read the document at any time this way because the object/array references are not
+// Preserved from the original doc. Maybe we could just subscribe to all the stores and update the original doc with every change!
+// See my REPL https://svelte.dev/repl/cd10a53783104887be669781f58375bd?version=3.49.0 for an example of reactive nested objects/arrays
+// Modified from REPL on Stack Overflow question at https://stackoverflow.com/a/72901624/8535752
 let documentStore: Writable<IDocument>;
 let refreshDocument: () => void;
 let docIds: string[];
 export function setDocument(doc: IDocument): Writable<IDocument> {
-	document = doc;
+	document = updateDocumentAnnotations(doc);
 	documentStore = writable(document);
-	refreshDocument = () => documentStore.update((doc) => doc);
+	refreshDocument = () =>
+		documentStore.update((doc) => updateDocumentAnnotations(doc));
 
 	// Purposely not adding the doc id right now because we don't want to delete it
 	docIds = [];
-	saveContentIds(doc.body);
+	saveContentsIds(doc.body);
 
 	return documentStore;
 }

@@ -14,8 +14,6 @@
 		destroyContentAtRandom,
 		getRandomContentId,
 		isContentText,
-		isString,
-		newGuid,
 		populateContentsIds,
 		updateContentById,
 	} from "@app/util/Util";
@@ -31,7 +29,7 @@
 			const range = selection.getRangeAt(0);
 			const element = range.startContainer?.parentElement;
 
-			// Make what is selected is within one element
+			// Make sure what is selected is within one element
 			// TODO: make this work between elements
 			if (!element || element !== range.startContainer?.parentElement) {
 				console.warn(
@@ -39,6 +37,7 @@
 				);
 				return;
 			}
+			// TODO: save selection and set back to appropriate location after setting Important
 			updateContentById(element.id, (content) => {
 				if (
 					range.collapsed ||

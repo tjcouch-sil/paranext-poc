@@ -45,9 +45,8 @@
 	 * When a user types something, we need to find where it is typed and update it.
 	 * If the user selects something and types, we need to delete everything contenteditable between the selection.
 	 * TODO: make sure this works with IME like emojis/Japanese and RTL like Arabic
-	 * @param e input event
 	 */
-	const onInput = (e: Event) => {
+	const onInput = (/* e: Event */) => {
 		// Get the selection (or cursor position) and update the content
 		if (inputSelection) {
 			const startElement = inputSelection.startContainer?.parentElement;
