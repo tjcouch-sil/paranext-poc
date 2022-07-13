@@ -36,7 +36,7 @@
 		}
 		*/
 
-		// TODO: Handle Enter here?
+		// TODO: Handle Enter here? And other special inputTypes? https://rawgit.com/w3c/input-events/v1/index.html#interface-InputEvent-Attributes
 		// TODO: Prevent replacing selections if there is a non-editable element selected or inbetween?
 		// TODO: figure out copy/paste/drag-and-drop (DataTransfer) svelte component info
 	};
@@ -44,10 +44,16 @@
 	/**
 	 * When a user types something, we need to find where it is typed and update it.
 	 * If the user selects something and types, we need to delete everything contenteditable between the selection.
+	 * Note: unfortunately, we cannot bind:textContent or on:input in Content.svelte because html only creates events
+	 * for the highest contenteditable element in the hierarchy. The cursor and selection do not work between contenteditable elements
+	 * if their parent is not also contenteditable, so we pretty much have to work with this top-level Document input event.
+	 * Since svelte components themselves do not appear in the DOM, we have to use the selected DOM elements to find the appropriate
+	 * Content to change in the document data.
 	 * TODO: make sure this works with IME like emojis/Japanese and RTL like Arabic
 	 */
 	const onInput = (/* e: Event */) => {
 		// Get the selection (or cursor position) and update the content
+		// TODO: remove the content between the two selected elements if there is any
 		if (inputSelection) {
 			const startElement = inputSelection.startContainer?.parentElement;
 			if (startElement) {

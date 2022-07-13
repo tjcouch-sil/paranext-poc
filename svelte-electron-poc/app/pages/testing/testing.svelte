@@ -54,6 +54,11 @@
 				},
 				{
 					type: ContentTypes.Element,
+					subType: "span",
+					contents: "Text here",
+				},
+				{
+					type: ContentTypes.Element,
 					subType: "br",
 				},
 				{

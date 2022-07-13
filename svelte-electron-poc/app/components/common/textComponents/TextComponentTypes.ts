@@ -5,20 +5,17 @@ export enum ContentTypes {
 	Text,
 }
 
-export interface IAnnotationBase {
-	/** Name of field on owner that is affected */
-	ownerField: string;
-}
-
-export interface IAnnotationDefinition extends IAnnotationBase {
+export interface IAnnotationDefinition {
 	/** The annotation svelte component that this definition uses */
-	annotation: unknown;
+	component: unknown;
 	/** Determines whether this annotation should be on the content */
 	annotates: (content: IContent) => boolean;
+	[prop: string]: unknown;
 }
 
-export interface IAnnotation extends IAnnotationBase {
-	/** Type of annotation */
+/** The annotation component receives props from the spread IAnnotationDefinition and IAnnotation */
+export interface IAnnotation {
+	/** Type of annotation - corresponds to the name of the IAnnotationDefinition to use */
 	type: string;
 	/** Id of owning IContent */
 	ownerId: string | undefined;

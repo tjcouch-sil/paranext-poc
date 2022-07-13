@@ -2,9 +2,10 @@ import type { IAnnotationDefinition } from "../../TextComponentTypes";
 import Checkbox from "./Checkbox.svelte";
 
 export const VerseApprovedCheckbox: IAnnotationDefinition = {
-	annotation: Checkbox,
+	component: Checkbox,
 	annotates: (content) => {
 		return content.verseApproved !== undefined;
 	},
+	/** Name of checked field on owner */
 	ownerField: "verseApproved",
 };

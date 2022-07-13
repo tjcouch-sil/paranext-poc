@@ -3,9 +3,11 @@ import type { IAnnotationDefinition } from "../../TextComponentTypes";
 import Highlight from "./Highlight.svelte";
 
 export const ExclamationHighlight: IAnnotationDefinition = {
-	annotation: Highlight,
+	component: Highlight,
 	annotates: (content) => {
-		return isContentText(content) && content.contents?.includes("!");
+		if (isContentText(content)) {
+			return (content.contents as string)?.includes("!");
+		}
+		return false;
 	},
-	ownerField: "!",
 };

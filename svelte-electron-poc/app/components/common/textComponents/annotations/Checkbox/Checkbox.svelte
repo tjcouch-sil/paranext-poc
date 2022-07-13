@@ -8,11 +8,12 @@
 	let checked = false;
 
 	// TODO: find a reactive way to do this later
+	// Maybe we will use stores for annotations and will be able to bind:checked appropriately https://svelte.dev/tutorial/checkbox-inputs
 	onMount(() => {
 		if (ownerField) {
 			const owner = getContentById(ownerId);
 			if (owner) {
-				checked = owner[ownerField];
+				checked = owner[ownerField] as boolean;
 			}
 		}
 	});

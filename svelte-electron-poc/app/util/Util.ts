@@ -95,7 +95,6 @@ function updateContentAnnotations(content: IContent): IContent {
 
 					content.annotations.push({
 						type,
-						ownerField: def.ownerField,
 						ownerId: content.id,
 					});
 				}
@@ -133,14 +132,18 @@ function updateDocumentAnnotations(doc: IDocument): IDocument {
 	return doc;
 }
 
-// TODO: Fix when we use context for documents
+// TODO: Modify to use context for documents so there is not one global doc (or just use ids - not sure)
+// TODO: Example Context + stores https://svelte.dev/repl/3f84703b08104f6cb54d5052e165ef4e?version=3.6.7
 /** The document. Any time you want to change this, run refreshDocument afterward. Otherwise use documentStore.update */
 let document: IDocument;
-// Probably can fix this to use stores for each level and have better updates than refreshing the doc all at once
-// Only thing is I dunno if we will be able to read the document at any time this way because the object/array references are not
-// Preserved from the original doc. Maybe we could just subscribe to all the stores and update the original doc with every change!
+// Probably can fix this to use stores for each level and have more performant updates than refreshing the doc all at once
+// Only thing is I dunno if we will be able to read the document at any time without overhead this way because the object/array references
+// are not preserved from the original doc. Maybe we could just subscribe to all the stores and update the original doc with every change!
 // See my REPL https://svelte.dev/repl/cd10a53783104887be669781f58375bd?version=3.49.0 for an example of reactive nested objects/arrays
-// Modified from REPL on Stack Overflow question at https://stackoverflow.com/a/72901624/8535752
+// Also see my observable arrays REPL https://svelte.dev/repl/69cdcc8596bf466cbb7f7483ed0f1ef3?version=3.49.0
+// Both modified from REPLs on Stack Overflow question at https://stackoverflow.com/a/72901624/8535752
+// Another thought-provoking REPL that seems not to support removing sections https://svelte.dev/repl/c61cd22b1a52475eab1685b9b8a26351?version=3.21.0
+// May be good to normalize the document state. Then children can get props and such by calling into the stores https://redux.js.org/usage/structuring-reducers/normalizing-state-shape
 let documentStore: Writable<IDocument>;
 let refreshDocument: () => void;
 let docIds: string[];

@@ -29,6 +29,7 @@
 			const range = selection.getRangeAt(0);
 			const element = range.startContainer?.parentElement;
 
+			// TODO: make this a utility function
 			// Make sure what is selected is within one element
 			// TODO: make this work between elements
 			if (!element || element !== range.startContainer?.parentElement) {
@@ -38,6 +39,7 @@
 				return;
 			}
 			// TODO: save selection and set back to appropriate location after setting Important
+			// May need to do when refreshing the document. Maybe use https://developer.mozilla.org/en-US/docs/Web/API/Selection/setBaseAndExtent
 			updateContentById(element.id, (content) => {
 				if (
 					range.collapsed ||
@@ -45,7 +47,7 @@
 						range.endOffset === element.innerText.length)
 				) {
 					// If there is no selection but just content, wrap it in Important
-					// TODO: change this to keeping track of a state so you can put in the Important when the user types?
+					// TODO: change this to keeping track of a state so you can put in the Important when the user types if nothing is selected?
 					if (content.type !== ContentTypes.Text) {
 						// Non-text content with text as its contents. Wrap content in Important
 						content.contents = populateContentsIds([
@@ -115,8 +117,6 @@
 
 	const destroyRandom = () => {
 		destroyContentAtRandom();
-		// Refreshes the whole document. Not efficient
-		// document = document;
 	};
 
 	const purpleRandom = () => {
@@ -173,6 +173,8 @@
 			// Commands
 			// TODO: undo
 			// TODO: redo
+
+			// TODO: block built-in execCommand https://developer.mozilla.org/en-US/docs/Web/Guide/HTML/Editable_content
 		}
 	};
 

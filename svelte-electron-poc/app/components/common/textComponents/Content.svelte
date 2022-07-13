@@ -20,7 +20,7 @@
 	let div: HTMLElement;
 
 	$: component = subType ? TextComponents[subType] : undefined;
-	$: annotationComponents =
+	$: annotationDefinitions =
 		annotations && annotations.length > 0
 			? annotations.map(
 					(annotation) => AnnotationDefinitions[annotation.type],
@@ -35,9 +35,12 @@
 	});
 </script>
 
-{#if annotations && annotationComponents && annotationComponents.length > 0}
+<!-- TODO: consider alternative solutions to spread operators https://stackoverflow.com/questions/64805298/using-spread-properties-versus-the-whole-object-when-passing-data-to-a-component -->
+<!-- TODO: separate the annotation into its own component - can probably render the first element in annotations array then <svelte:self><slot /></svelte:self> recursively -->
+{#if annotations && annotationDefinitions && annotationDefinitions.length > 0}
 	<svelte:component
-		this={annotationComponents[0].annotation}
+		this={annotationDefinitions[0].component}
+		{...annotationDefinitions[0]}
 		{...annotations[0]}
 	>
 		{#if type === ContentTypes.Component}
