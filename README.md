@@ -1,2 +1,2 @@
 # paranext-poc
-A handful of Paratext next gen proof of concepts
+A Paratext next gen proof of concept
