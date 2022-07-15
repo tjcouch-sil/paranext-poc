@@ -15,6 +15,7 @@
 		getRandomContentId,
 		isContentText,
 		populateContentsIds,
+		refreshOnTextChangeStore,
 		updateContentById,
 	} from "@app/util/Util";
 	import type { Writable } from "svelte/store";
@@ -185,6 +186,10 @@
 	});
 </script>
 
+<label>
+	<input type="checkbox" bind:checked={$refreshOnTextChangeStore} />
+	Refresh document on text change
+</label>
 <div bind:this={div} id="textEditor" class="inputdiv" on:keydown={onKeyDown}>
 	{#if document}
 		<Document {...$document} />

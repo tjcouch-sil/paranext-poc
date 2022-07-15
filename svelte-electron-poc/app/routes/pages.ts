@@ -15,10 +15,10 @@ import Tutorial from "@app/pages/tutorial/tutorial.svelte";
 import NotFound from "@app/pages/404/404.svelte";
 
 export default {
-	"/": Home,
+	"/": Testing,
 	"/wild": Wild,
 	"/wild/*": Wild,
-	"/testing": Testing,
+	"/home": Home,
 	"/tutorial": Tutorial,
 	"*": NotFound,
 };

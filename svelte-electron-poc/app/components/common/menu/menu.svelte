@@ -31,7 +31,9 @@
 
 	<div id="navbar-basic" class:navbar-menu={!menuOpen}>
 		<div class="navbar-start">
-			<a href="#/" class="navbar-item"> Home </a>
+			<a href="#/" class="navbar-item"> Testing </a>
+
+			<a href="#/home" class="navbar-item"> Home </a>
 
 			<div class="navbar-item has-dropdown is-hoverable">
 				<a href="#/wild" class="navbar-link"> Wild </a>
@@ -41,8 +43,6 @@
 					<a href="#/wild/contacts" class="navbar-item"> Contacts </a>
 				</div>
 			</div>
-
-			<a href="#/testing" class="navbar-item"> Testing </a>
 
 			<a href="#/tutorial" class="navbar-item"> Tutorial </a>
 		</div>

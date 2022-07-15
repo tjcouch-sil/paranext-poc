@@ -196,6 +196,13 @@ export function isContentText(content: IContent | undefined): boolean {
 	return content.type === ContentTypes.Text || isString(content.contents);
 }
 
+/** Whether to refresh the document when text changes */
+let refreshOnTextChange = false;
+export const refreshOnTextChangeStore = writable(refreshOnTextChange);
+refreshOnTextChangeStore.subscribe((refresh) => {
+	refreshOnTextChange = refresh;
+});
+
 /**
  * Updates the contents of the content object with the specified id with the supplied contents
  * and refreshes the document if the contents have changed
@@ -219,7 +226,7 @@ export function updateContentsById(
 		content.contents = contents;
 		// Don't refresh the whole document if it was just a text change since contenteditable does that for us
 		// TODO: improve document efficiency to prevent this from being needful
-		if (!contentIsText) {
+		if (!contentIsText || refreshOnTextChange) {
 			refreshDocument();
 		}
 		return true;
