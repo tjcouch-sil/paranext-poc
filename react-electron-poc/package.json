@@ -11,25 +11,25 @@
     "hot",
     "reload"
   ],
-  "homepage": "https://github.com/electron-react-boilerplate/electron-react-boilerplate#readme",
+  "homepage": "https://github.com/tjcouch-sil/paranext-poc/tree/main/react-electron-poc",
   "bugs": {
-    "url": "https://github.com/electron-react-boilerplate/electron-react-boilerplate/issues"
+    "url": "https://github.com/tjcouch-sil/paranext-poc/tree/main/react-electron-poc"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/electron-react-boilerplate/electron-react-boilerplate.git"
+    "url": "git+https://github.com/tjcouch-sil/paranext-poc.git"
   },
   "license": "MIT",
   "author": {
-    "name": "Electron React Boilerplate Maintainers",
-    "email": "electronreactboilerplate@gmail.com",
-    "url": "https://electron-react-boilerplate.js.org"
+    "name": "TJ Couch",
+    "email": "tj_couch@sil.org",
+    "url": "https://github.com/tjcouch-sil/paranext-poc/tree/main/react-electron-poc"
   },
   "contributors": [
     {
-      "name": "Amila Welihinda",
-      "email": "amilajack@gmail.com",
-      "url": "https://github.com/amilajack"
+      "name": "TJ Couch",
+      "email": "tj_couch@sil.org",
+      "url": "https://github.com/tjcouch-sil"
     }
   ],
   "main": "./src/main/main.ts",
@@ -108,6 +108,7 @@
     }
   },
   "dependencies": {
+    "dockview": "^1.5.1",
     "electron-debug": "^3.2.0",
     "electron-log": "^4.4.8",
     "electron-updater": "^5.2.1",
@@ -183,8 +184,8 @@
     "webpack-merge": "^5.8.0"
   },
   "build": {
-    "productName": "ElectronReact",
-    "appId": "org.erb.ElectronReact",
+    "productName": "react-electron-poc",
+    "appId": "io.tjcouch-sil.react-electron-bolierplate",
     "asar": true,
     "asarUnpack": "**\\*.{node,dll}",
     "files": [
@@ -241,9 +242,9 @@
       "./assets/**"
     ],
     "publish": {
-      "provider": "github",
-      "owner": "electron-react-boilerplate",
-      "repo": "electron-react-boilerplate"
+      "provider": "",
+      "owner": "",
+      "repo": ""
     }
   },
   "collective": {
