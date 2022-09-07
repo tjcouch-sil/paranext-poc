@@ -1,0 +1,19 @@
+body {
+    margin: 0px;
+}
+
+#root {
+    width: 100vw;
+    height: 100vh;
+}
+
+.layout {
+    height: 100%;
+}
+
+.groupview.active-group > .tabs-and-actions-container {
+    border-bottom: 2px solid #009de6;
+}
+.groupview.inactive-group > .tabs-and-actions-container {
+    border-bottom: 2px solid #000c18;
+}

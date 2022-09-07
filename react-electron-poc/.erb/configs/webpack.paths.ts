@@ -4,9 +4,16 @@ const rootPath = path.join(__dirname, '../..');
 
 const dllPath = path.join(__dirname, '../dll');
 
+const nodeModulesPath = path.join(rootPath, 'node_modules');
+const assetsPath = path.join(rootPath, 'assets');
+
 const srcPath = path.join(rootPath, 'src');
 const srcMainPath = path.join(srcPath, 'main');
 const srcRendererPath = path.join(srcPath, 'renderer');
+
+const componentsPath = path.join(srcRendererPath, 'components');
+const servicesPath = path.join(srcRendererPath, 'services');
+const utilPath = path.join(srcRendererPath, 'util');
 
 const releasePath = path.join(rootPath, 'release');
 const appPath = path.join(releasePath, 'app');
@@ -23,9 +30,14 @@ const buildPath = path.join(releasePath, 'build');
 export default {
   rootPath,
   dllPath,
+  nodeModulesPath,
+  assetsPath,
   srcPath,
   srcMainPath,
   srcRendererPath,
+  componentsPath,
+  servicesPath,
+  utilPath,
   releasePath,
   appPath,
   appPackagePath,

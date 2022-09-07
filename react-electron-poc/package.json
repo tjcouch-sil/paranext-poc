@@ -64,6 +64,8 @@
   },
   "browserslist": [],
   "prettier": {
+    "tabWidth": 4,
+	  "trailingComma": "all",
     "singleQuote": true,
     "overrides": [
       {
