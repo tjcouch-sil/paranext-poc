@@ -13,6 +13,7 @@ module.exports = {
         'react/jsx-indent-props': ['warn', 4],
         'comma-dangle': ['error', 'always-multiline'],
         'prettier/prettier': ['warn', { tabWidth: 4, trailingComma: 'all' }],
+        'no-console': 'off',
     },
     parserOptions: {
         ecmaVersion: 2020,

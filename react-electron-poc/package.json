@@ -244,9 +244,9 @@
       "./assets/**"
     ],
     "publish": {
-      "provider": "",
-      "owner": "",
-      "repo": ""
+      "provider": "github",
+      "owner": "tjcouch-sil",
+      "repo": "react-electron-poc"
     }
   },
   "collective": {

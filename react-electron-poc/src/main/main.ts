@@ -9,11 +9,12 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain } from 'electron';
+import { app, BrowserWindow, shell } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
+import { ipcMain } from './electron-extensions';
 
 class AppUpdater {
     constructor() {
@@ -24,12 +25,6 @@ class AppUpdater {
 }
 
 let mainWindow: BrowserWindow | null = null;
-
-ipcMain.on('ipc-example', async (event, arg) => {
-    const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
-    console.log(msgTemplate(arg));
-    event.reply('ipc-example', msgTemplate('pong'));
-});
 
 if (process.env.NODE_ENV === 'production') {
     const sourceMapSupport = require('source-map-support');
@@ -75,7 +70,6 @@ const createWindow = async () => {
         height: 728,
         icon: getAssetPath('icon.png'),
         webPreferences: {
-            sandbox: false,
             preload: app.isPackaged
                 ? path.join(__dirname, 'preload.js')
                 : path.join(__dirname, '../../.erb/dll/preload.js'),
@@ -126,8 +120,16 @@ app.on('window-all-closed', () => {
     }
 });
 
+app.enableSandbox();
 app.whenReady()
     .then(() => {
+        // TODO: consider making an object for these or an interface or something
+        ipcMain.on('ipc-test:example', async (event, arg) => {
+            const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
+            console.log(msgTemplate(arg));
+            event.reply('ipc-test:example', msgTemplate('pong'));
+        });
+
         createWindow();
         app.on('activate', () => {
             // On macOS it's common to re-create a window in the app when the
