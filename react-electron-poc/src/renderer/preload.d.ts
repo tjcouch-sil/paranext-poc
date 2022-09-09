@@ -2,6 +2,18 @@ import { IpcChannel } from 'main/preload';
 
 declare global {
     interface Window {
+        electronAPI: {
+            scripture: {
+                getScripture(
+                    bookNum: number,
+                    chapter?: number,
+                ): Promise<string>;
+                getScriptureHtml(
+                    bookNum: number,
+                    chapter?: number,
+                ): Promise<string>;
+            };
+        };
         electron: {
             ipcRenderer: {
                 send(channel: IpcChannel, args: unknown[]): void;

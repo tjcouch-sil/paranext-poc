@@ -47,4 +47,3 @@ export const Erb = ({ display = 'electron-react-boilerplate' }: ErbProps) => {
         </div>
     );
 };
-export default Erb;

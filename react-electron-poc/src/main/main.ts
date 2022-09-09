@@ -9,7 +9,15 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { app, BrowserWindow, shell } from 'electron';
+import fs from 'fs';
+import {
+    app,
+    BrowserWindow,
+    shell,
+    ipcMain as ipcMainReal,
+    IpcMainEvent,
+    IpcMainInvokeEvent,
+} from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
@@ -51,18 +59,18 @@ const installExtensions = async () => {
         .catch(console.log);
 };
 
+const RESOURCES_PATH = app.isPackaged
+    ? path.join(process.resourcesPath, 'assets')
+    : path.join(__dirname, '../../assets');
+
+const getAssetPath = (...paths: string[]): string => {
+    return path.join(RESOURCES_PATH, ...paths);
+};
+
 const createWindow = async () => {
     if (isDebug) {
         await installExtensions();
     }
-
-    const RESOURCES_PATH = app.isPackaged
-        ? path.join(process.resourcesPath, 'assets')
-        : path.join(__dirname, '../../assets');
-
-    const getAssetPath = (...paths: string[]): string => {
-        return path.join(RESOURCES_PATH, ...paths);
-    };
 
     mainWindow = new BrowserWindow({
         show: false,
@@ -120,10 +128,42 @@ app.on('window-all-closed', () => {
     }
 });
 
+async function handleGetScripture(
+    _event: IpcMainInvokeEvent,
+    bookNum: number,
+    chapter = -1,
+): Promise<string> {
+    return `Book ${bookNum} Chapter ${chapter}`;
+}
+
+async function handleGetScriptureHtml(
+    _event: IpcMainInvokeEvent,
+    bookNum: number,
+    chapter = -1,
+): Promise<string> {
+    const fileReadPromise = new Promise<string>((resolve, reject) => {
+        fs.readFile(
+            getAssetPath('testScripture/Psa119.html'),
+            'utf8',
+            (err, data) => {
+                if (err) reject(err.message);
+                else resolve(data);
+            },
+        );
+    });
+    return fileReadPromise;
+}
+
 app.enableSandbox();
 app.whenReady()
     .then(() => {
         // TODO: consider making an object for these or an interface or something
+        ipcMainReal.handle('ipc-scripture:getScripture', handleGetScripture);
+        ipcMainReal.handle(
+            'ipc-scripture:getScriptureHtml',
+            handleGetScriptureHtml,
+        );
+
         ipcMain.on('ipc-test:example', async (event, arg) => {
             const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
             console.log(msgTemplate(arg));

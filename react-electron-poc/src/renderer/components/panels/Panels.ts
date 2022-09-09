@@ -3,16 +3,18 @@ import {
     IDockviewPanelProps,
     AddPanelOptions,
 } from 'dockview';
-import React from 'react';
+import { createElement, FunctionComponent } from 'react';
 import { newGuid } from '@util/Util';
 import { Erb } from './Erb/Erb';
-import { TextPanel } from './TextPanel/TextPanel';
+import { TextPanel } from './TextPanels/TextPanel';
+import { HtmlTextPanel } from './TextPanels/HtmlTextPanel';
 
 // TODO: Consider doing something a bit different with this https://stackoverflow.com/questions/29722270/is-it-possible-to-import-modules-from-all-files-in-a-directory-using-a-wildcard
 /** All available panels for use in dockviews */
 export const Panels = {
     Erb,
     TextPanel,
+    HtmlTextPanel,
 };
 export default Panels;
 
@@ -25,7 +27,7 @@ export const DockViewPanels: PanelCollection<IDockviewPanelProps> =
         Object.entries(Panels).map(([panelType, panelComponent]) => [
             panelType,
             ({ params }: IDockviewPanelProps) =>
-                React.createElement(panelComponent, params),
+                createElement(panelComponent as FunctionComponent, params),
         ]),
     );
 /* const DockViewPanels: PanelCollection<IDockviewPanelProps> = {
@@ -44,7 +46,7 @@ export class PanelFactory {
     /** Returns AddPanelOptions for the specified input */
     static buildAddPanel(
         panelType: PanelType,
-        panelProps: { [prop: string]: unknown } = {},
+        panelProps: object = {},
         addPanelOptions: Omit<
             AddPanelOptions,
             'id' | 'component' | 'params'

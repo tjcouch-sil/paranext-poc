@@ -14,6 +14,7 @@ module.exports = {
         'comma-dangle': ['error', 'always-multiline'],
         'prettier/prettier': ['warn', { tabWidth: 4, trailingComma: 'all' }],
         'no-console': 'off',
+        'react/require-default-props': 'off',
     },
     parserOptions: {
         ecmaVersion: 2020,
