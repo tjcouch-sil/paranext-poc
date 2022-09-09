@@ -5,10 +5,12 @@ declare global {
         electronAPI: {
             scripture: {
                 getScripture(
+                    shortName: string,
                     bookNum: number,
                     chapter?: number,
                 ): Promise<string>;
                 getScriptureHtml(
+                    shortName: string,
                     bookNum: number,
                     chapter?: number,
                 ): Promise<string>;

@@ -13,11 +13,25 @@ export type IpcChannel = typeof ipcChannels[number];
 
 contextBridge.exposeInMainWorld('electronAPI', {
     scripture: {
-        getScripture: (bookNum: number, chapter = -1): Promise<string> =>
-            ipcRenderer.invoke('ipc-scripture:getScripture', bookNum, chapter),
-        getScriptureHtml: (bookNum: number, chapter = -1): Promise<string> =>
+        getScripture: (
+            shortName: string,
+            bookNum: number,
+            chapter = -1,
+        ): Promise<string> =>
+            ipcRenderer.invoke(
+                'ipc-scripture:getScripture',
+                shortName,
+                bookNum,
+                chapter,
+            ),
+        getScriptureHtml: (
+            shortName: string,
+            bookNum: number,
+            chapter = -1,
+        ): Promise<string> =>
             ipcRenderer.invoke(
                 'ipc-scripture:getScriptureHtml',
+                shortName,
                 bookNum,
                 chapter,
             ),

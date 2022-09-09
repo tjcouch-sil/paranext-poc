@@ -8,6 +8,7 @@ import { newGuid } from '@util/Util';
 import { Erb } from './Erb/Erb';
 import { TextPanel } from './TextPanels/TextPanel';
 import { HtmlTextPanel } from './TextPanels/HtmlTextPanel';
+import { EditableHtmlTextPanel } from './TextPanels/EditableHtmlTextPanel';
 
 // TODO: Consider doing something a bit different with this https://stackoverflow.com/questions/29722270/is-it-possible-to-import-modules-from-all-files-in-a-directory-using-a-wildcard
 /** All available panels for use in dockviews */
@@ -15,6 +16,7 @@ export const Panels = {
     Erb,
     TextPanel,
     HtmlTextPanel,
+    EditableHtmlTextPanel,
 };
 export default Panels;
 

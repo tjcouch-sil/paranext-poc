@@ -8,52 +8,108 @@ import { getScripture, getScriptureHtml } from '@services/ScriptureService';
 
 const Layout = () => {
     const onReady = useCallback((event: DockviewReadyEvent) => {
-        const erbAddInfo = PanelFactory.buildAddPanel('Erb', undefined, {
+        /* const erbAddInfo = PanelFactory.buildAddPanel('Erb', undefined, {
             title: 'ERB',
-        });
-        const textPanelAddInfo = PanelFactory.buildAddPanel(
+        }); */
+        /* const textPanelAddInfo = PanelFactory.buildAddPanel(
             'TextPanel',
             {
-                placeholderText: 'Loading Psalm 119 USX',
-                textPromise: getScripture(19, 119),
+                placeholderText: 'Loading zzz6 Psalm 119 USX',
+                textPromise: getScripture('zzz6', 19, 119),
             } as TextPanelProps,
             {
                 title: 'zzz6: Psalm 119 USX',
-                position: {
-                    direction: 'right',
-                    referencePanel: erbAddInfo.id,
-                },
             },
-        );
+        ); */
         const htmlTextPanelAddInfo = PanelFactory.buildAddPanel(
             'HtmlTextPanel',
             {
-                placeholderText: 'Loading Psalm 119 HTML',
-                textPromise: getScriptureHtml(19, 119),
+                placeholderText: 'Loading CSB Psalm 119 HTML',
+                textPromise: getScriptureHtml('CSB', 19, 119),
             } as TextPanelProps,
             {
-                title: 'zzz6: Psalm 119 HTML',
+                title: 'CSB: Psalm 119 HTML',
+            },
+        );
+        const htmlTextPanelAddInfoOHEB = PanelFactory.buildAddPanel(
+            'HtmlTextPanel',
+            {
+                placeholderText: 'Loading OHEB Psalm 119 HTML',
+                textPromise: getScriptureHtml('OHEB', 19, 119),
+            } as TextPanelProps,
+            {
+                title: 'OHEB: Psalm 119 HTML',
                 position: {
-                    direction: 'within',
-                    referencePanel: textPanelAddInfo.id,
+                    direction: 'right',
+                    referencePanel: htmlTextPanelAddInfo.id,
                 },
             },
         );
-        const erb = event.api.addPanel(erbAddInfo);
-        const textPanel = event.api.addPanel(textPanelAddInfo);
+        const editableHtmlTextPanelAddInfo = PanelFactory.buildAddPanel(
+            'EditableHtmlTextPanel',
+            {
+                placeholderText: 'Loading zzz6 Psalm 119 Editable HTML',
+                textPromise: getScriptureHtml('zzz6', 19, 119),
+            } as TextPanelProps,
+            {
+                title: 'zzz6: Psalm 119 Editable HTML',
+                position: {
+                    direction: 'below',
+                    referencePanel: htmlTextPanelAddInfo.id,
+                },
+            },
+        );
+        /* const erb = event.api.addPanel(erbAddInfo); */
+        /* const textPanel = event.api.addPanel(textPanelAddInfo); */
         const htmlTextPanel = event.api.addPanel(htmlTextPanelAddInfo);
+        const htmlTextPanelOHEB = event.api.addPanel(htmlTextPanelAddInfoOHEB);
+        const editableHtmlTextPanel = event.api.addPanel(
+            editableHtmlTextPanelAddInfo,
+        );
+        event.api.addPanel(
+            PanelFactory.buildAddPanel(
+                'HtmlTextPanel',
+                {
+                    placeholderText: 'Loading NIV84 Psalm 119 HTML',
+                    textPromise: getScriptureHtml('NIV84', 19, 119),
+                } as TextPanelProps,
+                {
+                    title: 'NIV84: Psalm 119 HTML',
+                    position: {
+                        direction: 'below',
+                        referencePanel: htmlTextPanelAddInfoOHEB.id,
+                    },
+                },
+            ),
+        );
+        event.api.addPanel(
+            PanelFactory.buildAddPanel(
+                'EditableHtmlTextPanel',
+                {
+                    placeholderText: 'Loading zzz1 Psalm 119 Editable HTML',
+                    textPromise: getScriptureHtml('zzz1', 19, 119),
+                } as TextPanelProps,
+                {
+                    title: 'zzz1: Psalm 119 Editable HTML',
+                    position: {
+                        direction: 'below',
+                        referencePanel: htmlTextPanelAddInfoOHEB.id,
+                    },
+                },
+            ),
+        );
 
         event.api.getPanel(htmlTextPanelAddInfo.id)?.focus();
 
         // TODO: Figure out how to resize panels or do anything with them really
-        setTimeout(
+        /* setTimeout(
             () =>
                 textPanel.api.setSize({
                     width: textPanel.api.width,
                     height: 100,
                 }),
             1000,
-        );
+        ); */
     }, []);
 
     return (

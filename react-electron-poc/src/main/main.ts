@@ -130,26 +130,61 @@ app.on('window-all-closed', () => {
 
 async function handleGetScripture(
     _event: IpcMainInvokeEvent,
+    shortName: string,
     bookNum: number,
     chapter = -1,
 ): Promise<string> {
-    return `Book ${bookNum} Chapter ${chapter}`;
-}
-
-async function handleGetScriptureHtml(
-    _event: IpcMainInvokeEvent,
-    bookNum: number,
-    chapter = -1,
-): Promise<string> {
+    const start = performance.now();
     const fileReadPromise = new Promise<string>((resolve, reject) => {
         fs.readFile(
-            getAssetPath('testScripture/Psa119.html'),
+            getAssetPath(
+                `testScripture/${shortName}/${bookNum}-${chapter}.usx`,
+            ),
             'utf8',
             (err, data) => {
                 if (err) reject(err.message);
                 else resolve(data);
+                console.log(`USX took ${performance.now() - start} ms`);
             },
         );
+    });
+    return fileReadPromise;
+}
+
+/**
+ * Get the Scripture for a certain project at a certain chapter. These test files are from breakpointing at ViewUsfmXhtmlConverter.cs at the return on UsfmToXhtml.
+ * Waits for 50 milliseconds before doing anything to simulate getting from file, converting, etc
+ * @param _event
+ * @param shortName
+ * @param bookNum
+ * @param chapter
+ * @returns Final HTML that Paratext renders in its WebView
+ */
+async function handleGetScriptureHtml(
+    _event: IpcMainInvokeEvent,
+    shortName: string,
+    bookNum: number,
+    chapter = -1,
+): Promise<string> {
+    const start = performance.now();
+    const fileReadPromise = new Promise<string>((resolve, reject) => {
+        setTimeout(() => {
+            fs.readFile(
+                getAssetPath(
+                    `testScripture/${shortName}/${bookNum}-${chapter}.html`,
+                ),
+                'utf8',
+                (err, data) => {
+                    if (err) reject(err.message);
+                    else resolve(data);
+                    console.log(
+                        `Loading ${shortName}/${bookNum}-${chapter}.html took ${
+                            performance.now() - start
+                        } ms`,
+                    );
+                },
+            );
+        }, 50);
     });
     return fileReadPromise;
 }

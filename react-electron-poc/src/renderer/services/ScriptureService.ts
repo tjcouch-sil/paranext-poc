@@ -1,25 +1,37 @@
 /**
- * Gets the specified Scripture chapter in the specified book in USX
+ * Gets the specified Scripture chapter in the specified book from the specified project in USX
+ * @param shortName the short name of the project
  * @param bookNum number of book to get
  * @param chapter number of chapter to get. Defaults to -1 meaning the whole book
  * @returns Promise with specified chapter or book if chapter not specified
  */
 export const getScripture = async (
+    shortName: string,
     bookNum: number,
     chapter = -1,
 ): Promise<string> => {
-    return window.electronAPI.scripture.getScripture(bookNum, chapter);
+    return window.electronAPI.scripture.getScripture(
+        shortName,
+        bookNum,
+        chapter,
+    );
 };
 
 /**
- * Gets the specified Scripture book and chapter in HTML
+ * Gets the specified Scripture chapter in the specified book from the specified project in HTML
+ * @param shortName the short name of the project
  * @param bookNum number of book to get
  * @param chapter number of chapter to get. Defaults to -1 meaning the whole book
  * @returns Promise with specified chapter or book if chapter not specified
  */
 export const getScriptureHtml = async (
+    shortName: string,
     bookNum: number,
     chapter = -1,
 ): Promise<string> => {
-    return window.electronAPI.scripture.getScriptureHtml(bookNum, chapter);
+    return window.electronAPI.scripture.getScriptureHtml(
+        shortName,
+        bookNum,
+        chapter,
+    );
 };
