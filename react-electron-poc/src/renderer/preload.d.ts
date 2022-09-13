@@ -14,6 +14,7 @@ declare global {
                     bookNum: number,
                     chapter?: number,
                 ): Promise<string>;
+                getScriptureStyle(shortName: string): Promise<string>;
             };
         };
         electron: {

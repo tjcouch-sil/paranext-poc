@@ -10,14 +10,7 @@
  */
 import path from 'path';
 import fs from 'fs';
-import {
-    app,
-    BrowserWindow,
-    shell,
-    ipcMain as ipcMainReal,
-    IpcMainEvent,
-    IpcMainInvokeEvent,
-} from 'electron';
+import { app, BrowserWindow, shell, IpcMainInvokeEvent } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
@@ -128,27 +121,47 @@ app.on('window-all-closed', () => {
     }
 });
 
+/**
+ * Gets the text of a file asynchronously. Delays 1ms or more if desired
+ * @param filePath Path to file from assets
+ * @param delay delay before resolving promise in ms
+ * @returns promise that resolves to the file text after delay ms
+ */
+async function getFileText(filePath: string, delay = 0): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+        const start = performance.now();
+        setTimeout(() => {
+            fs.readFile(getAssetPath(filePath), 'utf8', (err, data) => {
+                if (err) reject(err.message);
+                else resolve(data);
+                console.log(
+                    `Loading ${filePath} took ${performance.now() - start} ms`,
+                );
+            });
+        }, delay);
+    });
+}
+
+/**
+ * Get the Scripture for a certain project at a certain chapter. These test files are from breakpointing at ViewUsfmXhtmlConverter.cs at the return on UsfmToXhtml.
+ * Should return data for ingesting and displaying.
+ * Waits for 50 milliseconds before doing anything to simulate getting from file, converting, etc
+ * @param _event
+ * @param shortName
+ * @param bookNum
+ * @param chapter
+ * @returns Data for ingesting and displaying
+ */
 async function handleGetScripture(
     _event: IpcMainInvokeEvent,
     shortName: string,
     bookNum: number,
     chapter = -1,
 ): Promise<string> {
-    const start = performance.now();
-    const fileReadPromise = new Promise<string>((resolve, reject) => {
-        fs.readFile(
-            getAssetPath(
-                `testScripture/${shortName}/${bookNum}-${chapter}.usx`,
-            ),
-            'utf8',
-            (err, data) => {
-                if (err) reject(err.message);
-                else resolve(data);
-                console.log(`USX took ${performance.now() - start} ms`);
-            },
-        );
-    });
-    return fileReadPromise;
+    return getFileText(
+        `testScripture/${shortName}/${bookNum}-${chapter}.usx`,
+        50,
+    );
 }
 
 /**
@@ -166,37 +179,32 @@ async function handleGetScriptureHtml(
     bookNum: number,
     chapter = -1,
 ): Promise<string> {
-    const start = performance.now();
-    const fileReadPromise = new Promise<string>((resolve, reject) => {
-        setTimeout(() => {
-            fs.readFile(
-                getAssetPath(
-                    `testScripture/${shortName}/${bookNum}-${chapter}.html`,
-                ),
-                'utf8',
-                (err, data) => {
-                    if (err) reject(err.message);
-                    else resolve(data);
-                    console.log(
-                        `Loading ${shortName}/${bookNum}-${chapter}.html took ${
-                            performance.now() - start
-                        } ms`,
-                    );
-                },
-            );
-        }, 50);
-    });
-    return fileReadPromise;
+    return getFileText(
+        `testScripture/${shortName}/${bookNum}-${chapter}.html`,
+        50,
+    );
+}
+
+/** These test files are from breakpointing at UsfmSinglePaneControl.cs at the line that gets Css in LoadUsfm. */
+async function handleGetScriptureStyle(
+    _event: IpcMainInvokeEvent,
+    shortName: string,
+) {
+    return getFileText(`testScripture/${shortName}/styles.css`);
 }
 
 app.enableSandbox();
 app.whenReady()
     .then(() => {
         // TODO: consider making an object for these or an interface or something
-        ipcMainReal.handle('ipc-scripture:getScripture', handleGetScripture);
-        ipcMainReal.handle(
+        ipcMain.handle('ipc-scripture:getScripture', handleGetScripture);
+        ipcMain.handle(
             'ipc-scripture:getScriptureHtml',
             handleGetScriptureHtml,
+        );
+        ipcMain.handle(
+            'ipc-scripture:getScriptureStyle',
+            handleGetScriptureStyle,
         );
 
         ipcMain.on('ipc-test:example', async (event, arg) => {

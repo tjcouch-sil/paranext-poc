@@ -35,3 +35,12 @@ export const getScriptureHtml = async (
         chapter,
     );
 };
+
+/**
+ * Gets the specified Scripture stylesheeet from the specified project
+ * @param shortName the short name of the project
+ * @returns Promise with specified Scripture stylesheet
+ */
+export const getScriptureStyle = async (shortName: string): Promise<string> => {
+    return window.electronAPI.scripture.getScriptureStyle(shortName);
+};
