@@ -2,6 +2,7 @@ import {
     PanelCollection,
     IDockviewPanelProps,
     AddPanelOptions,
+    DockviewReadyEvent,
 } from 'dockview';
 import { createElement, FunctionComponent } from 'react';
 import { newGuid } from '@util/Util';
@@ -45,6 +46,8 @@ export const DockViewPanels: PanelCollection<IDockviewPanelProps> =
 
 /** Dockview Panel builder for our panels */
 export class PanelFactory {
+    constructor(readonly event: DockviewReadyEvent) {}
+
     /** Returns AddPanelOptions for the specified input */
     static buildAddPanel(
         panelType: PanelType,
@@ -60,5 +63,18 @@ export class PanelFactory {
             component: panelType,
             params: { ...panelProps },
         };
+    }
+
+    addPanel(
+        PanelType: PanelType,
+        panelProps: object = {},
+        addPanelOptions: Omit<
+            AddPanelOptions,
+            'id' | 'component' | 'params'
+        > = {},
+    ) {
+        return this.event.api.addPanel(
+            PanelFactory.buildAddPanel(PanelType, panelProps, addPanelOptions),
+        );
     }
 }

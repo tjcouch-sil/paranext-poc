@@ -129,8 +129,8 @@ app.on('window-all-closed', () => {
  */
 async function getFileText(filePath: string, delay = 0): Promise<string> {
     return new Promise<string>((resolve, reject) => {
-        const start = performance.now();
         setTimeout(() => {
+            const start = performance.now();
             fs.readFile(getAssetPath(filePath), 'utf8', (err, data) => {
                 if (err) reject(err.message);
                 else resolve(data);
@@ -141,6 +141,8 @@ async function getFileText(filePath: string, delay = 0): Promise<string> {
         }, delay);
     });
 }
+
+const getScriptureDelay = 50;
 
 /**
  * Get the Scripture for a certain project at a certain chapter. These test files are from breakpointing at ViewUsfmXhtmlConverter.cs at the return on UsfmToXhtml.
@@ -160,7 +162,7 @@ async function handleGetScripture(
 ): Promise<string> {
     return getFileText(
         `testScripture/${shortName}/${bookNum}-${chapter}.usx`,
-        50,
+        getScriptureDelay,
     );
 }
 
@@ -181,7 +183,7 @@ async function handleGetScriptureHtml(
 ): Promise<string> {
     return getFileText(
         `testScripture/${shortName}/${bookNum}-${chapter}.html`,
-        50,
+        getScriptureDelay,
     );
 }
 

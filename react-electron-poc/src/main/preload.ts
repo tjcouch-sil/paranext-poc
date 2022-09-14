@@ -35,8 +35,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
                 bookNum,
                 chapter,
             ),
-        getScriptureStyles: (shortName: string): Promise<string> =>
-            ipcRenderer.invoke('ipc-scripture:getStyle', shortName),
+        getScriptureStyle: (shortName: string): Promise<string> =>
+            ipcRenderer.invoke('ipc-scripture:getScriptureStyle', shortName),
     },
 });
 

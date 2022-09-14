@@ -1,4 +1,3 @@
-import '@assets/testScripture/zzz6.css';
 import { useEffect, useState } from 'react';
 import './TextPanel.css';
 

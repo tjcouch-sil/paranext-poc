@@ -1,4 +1,3 @@
-import '@assets/testScripture/zzz6.css';
 import ContentEditable, { ContentEditableEvent } from 'react-contenteditable';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import './TextPanel.css';
@@ -55,7 +54,7 @@ export const EditableHtmlTextPanel = ({
     return text.current === undefined ? (
         <div className="text-panel">{placeholderText}</div>
     ) : (
-        <div>
+        <div className="text-panel">
             <div className={`jimmy${id}`}>Jimmy!</div>
             <button
                 type="button"

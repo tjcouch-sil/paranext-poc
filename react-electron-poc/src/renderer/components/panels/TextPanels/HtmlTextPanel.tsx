@@ -1,5 +1,6 @@
-import '@assets/testScripture/zzz6.css';
+import { getScriptureStyle } from '@services/ScriptureService';
 import { useEffect, useState } from 'react';
+import useStyle from 'renderer/hooks/useStyle';
 import './TextPanel.css';
 
 export interface HtmlTextPanelProps {
@@ -12,6 +13,14 @@ export const HtmlTextPanel = ({
     textPromise = undefined,
 }: HtmlTextPanelProps) => {
     const [text, setText] = useState<string | undefined>(undefined);
+
+    const [scrStyle, setScrStyle] = useState<string>('');
+    useEffect(() => {
+        // eslint-disable-next-line promise/catch-or-return
+        getScriptureStyle('zzz6').then((s) => setScrStyle(s));
+    }, []);
+
+    useStyle(scrStyle);
 
     useEffect(() => {
         let textPromiseIsCurrent = false;
