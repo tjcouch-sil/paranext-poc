@@ -10,6 +10,7 @@ const assetsPath = path.join(rootPath, 'assets');
 const srcPath = path.join(rootPath, 'src');
 const srcMainPath = path.join(srcPath, 'main');
 const srcRendererPath = path.join(srcPath, 'renderer');
+const srcSharedPath = path.join(srcPath, 'shared');
 
 const componentsPath = path.join(srcRendererPath, 'components');
 const servicesPath = path.join(srcRendererPath, 'services');
@@ -35,6 +36,7 @@ export default {
   srcPath,
   srcMainPath,
   srcRendererPath,
+  srcSharedPath,
   componentsPath,
   servicesPath,
   utilPath,

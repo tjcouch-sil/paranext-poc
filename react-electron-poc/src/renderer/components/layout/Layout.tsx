@@ -4,7 +4,7 @@ import '@node_modules/dockview/dist/styles/dockview.css';
 import { DockViewPanels, PanelFactory } from '@components/panels/Panels';
 import { useCallback } from 'react';
 import { TextPanelProps } from '@components/panels/TextPanels/TextPanel';
-import { getScripture, getScriptureHtml } from '@services/ScriptureService';
+import { getScriptureHtml } from '@services/ScriptureService';
 
 const Layout = () => {
     const onReady = useCallback((event: DockviewReadyEvent) => {
@@ -26,7 +26,9 @@ const Layout = () => {
             'HtmlTextPanel',
             {
                 placeholderText: 'Loading CSB Psalm 119 HTML',
-                textPromise: getScriptureHtml('CSB', 19, 119),
+                textPromise: getScriptureHtml('CSB', 19, 119).then(
+                    (result) => result[0],
+                ),
             } as TextPanelProps,
             {
                 title: 'CSB: Psalm 119 HTML',
@@ -36,7 +38,9 @@ const Layout = () => {
             'HtmlTextPanel',
             {
                 placeholderText: 'Loading OHEB Psalm 119 HTML',
-                textPromise: getScriptureHtml('OHEB', 19, 119),
+                textPromise: getScriptureHtml('OHEB', 19, 119).then(
+                    (result) => result[0],
+                ),
             } as TextPanelProps,
             {
                 title: 'OHEB: Psalm 119 HTML',
@@ -50,7 +54,9 @@ const Layout = () => {
             'EditableHtmlTextPanel',
             {
                 placeholderText: 'Loading zzz6 Psalm 119 Editable HTML',
-                textPromise: getScriptureHtml('zzz6', 19, 119),
+                textPromise: getScriptureHtml('zzz6', 19, 119).then(
+                    (result) => result[0],
+                ),
             } as TextPanelProps,
             {
                 title: 'zzz6: Psalm 119 Editable HTML',
@@ -64,7 +70,9 @@ const Layout = () => {
             'HtmlTextPanel',
             {
                 placeholderText: 'Loading NIV84 Psalm 119 HTML',
-                textPromise: getScriptureHtml('NIV84', 19, 119),
+                textPromise: getScriptureHtml('NIV84', 19, 119).then(
+                    (result) => result[0],
+                ),
             } as TextPanelProps,
             {
                 title: 'NIV84: Psalm 119 HTML',
@@ -78,7 +86,9 @@ const Layout = () => {
             'EditableHtmlTextPanel',
             {
                 placeholderText: 'Loading zzz1 Psalm 119 Editable HTML',
-                textPromise: getScriptureHtml('zzz1', 19, 119),
+                textPromise: getScriptureHtml('zzz1', 19, 119).then(
+                    (result) => result[0],
+                ),
             } as TextPanelProps,
             {
                 title: 'zzz1: Psalm 119 Editable HTML',

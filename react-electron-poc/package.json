@@ -188,7 +188,7 @@
   },
   "build": {
     "productName": "react-electron-poc",
-    "appId": "io.tjcouch-sil.react-electron-bolierplate",
+    "appId": "io.tjcouch-sil.react-electron-poc",
     "asar": true,
     "asarUnpack": "**\\*.{node,dll}",
     "files": [
@@ -260,7 +260,8 @@
   "electronmon": {
     "patterns": [
       "!**/**",
-      "src/main/*"
+      "src/main/*",
+      "src/shared/**"
     ],
     "logLevel": "quiet"
   }
