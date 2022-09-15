@@ -122,6 +122,22 @@ app.on('window-all-closed', () => {
     }
 });
 
+/** Runs the method after the set delay time */
+function delayPromise<T>(
+    callback: (
+        resolve: (value: T | PromiseLike<T>) => void,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        reject: (reason?: any) => void,
+    ) => void,
+    ms?: number | undefined,
+): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+        setTimeout(() => {
+            callback(resolve, reject);
+        }, ms);
+    });
+}
+
 /**
  * Gets the text of a file asynchronously. Delays 1ms or more if desired
  * @param filePath Path to file from assets
@@ -129,18 +145,16 @@ app.on('window-all-closed', () => {
  * @returns promise that resolves to the file text after delay ms
  */
 async function getFileText(filePath: string, delay = 0): Promise<string> {
-    return new Promise<string>((resolve, reject) => {
-        setTimeout(() => {
-            const start = performance.now();
-            fs.readFile(getAssetPath(filePath), 'utf8', (err, data) => {
-                if (err) reject(err.message);
-                else resolve(data);
-                console.log(
-                    `Loading ${filePath} took ${performance.now() - start} ms`,
-                );
-            });
-        }, delay);
-    });
+    return delayPromise<string>((resolve, reject) => {
+        const start = performance.now();
+        fs.readFile(getAssetPath(filePath), 'utf8', (err, data) => {
+            if (err) reject(err.message);
+            else resolve(data);
+            console.log(
+                `Loading ${filePath} took ${performance.now() - start} ms`,
+            );
+        });
+    }, delay);
 }
 
 async function getFilesText(filePaths: string[], delay = 0): Promise<string[]> {
@@ -149,8 +163,10 @@ async function getFilesText(filePaths: string[], delay = 0): Promise<string[]> {
     );
 }
 
-/** Simulating how long it may take Paratext to load and serve the data */
+/** Simulating how long it may take Paratext to load and serve the Scriptures */
 const getScriptureDelay = 75;
+/** Simulating how long it may take Paratext to serve the resource info */
+const getResourceInfoDelay = 20;
 
 /**
  * Get the Scripture for a certain project for a whole book.
@@ -214,11 +230,42 @@ async function handleGetScriptureStyle(
 async function handleGetResourceInfo(
     _event: IpcMainInvokeEvent,
     shortName: string,
-): Promise<ResourceInfo> {}
+): Promise<ResourceInfo> {
+    return delayPromise<ResourceInfo>((resolve) => {
+        resolve({
+            shortName,
+            editable: shortName.startsWith('z'),
+        });
+    }, getResourceInfoDelay);
+}
 
 async function handleGetAllResourceInfo(
-    _event: IpcMainInvokeEvent,
-): Promise<ResourceInfo[]> {}
+): Promise<ResourceInfo[]> {
+    return delayPromise<ResourceInfo[]>((resolve, reject) => {
+        const start = performance.now();
+        fs.readdir(
+            getAssetPath('testScripture'),
+            { withFileTypes: true },
+            (err, dirents) => {
+                if (err) reject(err.message);
+                else
+                    resolve(
+                        dirents
+                            .filter((dirent) => dirent.isDirectory())
+                            .map((dirent) => ({
+                                shortName: dirent.name,
+                                editable: dirent.name.startsWith('z'),
+                            })),
+                    );
+                console.log(
+                    `Getting all resource info took ${
+                        performance.now() - start
+                    } ms`,
+                );
+            },
+        );
+    }, getResourceInfoDelay);
+}
 
 /** Map from ipc channel to handler function */
 const ipcHandlers: {

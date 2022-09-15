@@ -4,10 +4,39 @@ import '@node_modules/dockview/dist/styles/dockview.css';
 import { DockViewPanels, PanelFactory } from '@components/panels/Panels';
 import { useCallback } from 'react';
 import { TextPanelProps } from '@components/panels/TextPanels/TextPanel';
-import { getScriptureHtml } from '@services/ScriptureService';
+import {
+    getAllResourceInfo,
+    getResourceInfo,
+    getScriptureHtml,
+} from '@services/ScriptureService';
 
 const Layout = () => {
     const onReady = useCallback((event: DockviewReadyEvent) => {
+        // Test resource info api
+        getAllResourceInfo()
+            .then((allResourceInfo) =>
+                console.log(
+                    `All Resource Info:\n${allResourceInfo
+                        .map(
+                            (resourceInfo) =>
+                                `\tResource: ${resourceInfo.shortName}${
+                                    resourceInfo.editable ? ' editable' : ''
+                                }`,
+                        )
+                        .join('\n')}`,
+                ),
+            )
+            .catch((r) => console.log(r));
+        getResourceInfo('zzz6')
+            .then((resourceInfo) =>
+                console.log(
+                    `Resource: ${resourceInfo.shortName}${
+                        resourceInfo.editable ? ' editable' : ''
+                    }`,
+                ),
+            )
+            .catch((r) => console.log(r));
+
         const panelFactory = new PanelFactory(event);
         /* const erb = panelFactory.addPanel('Erb', undefined, {
             title: 'ERB',
