@@ -13,6 +13,7 @@ import fs from 'fs';
 import { app, BrowserWindow, shell, IpcMainInvokeEvent } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
+import { ResourceInfo, ScriptureContent } from '@shared/data/ScriptureTypes';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import { ipcMain } from './electron-extensions';
@@ -121,6 +122,22 @@ app.on('window-all-closed', () => {
     }
 });
 
+/** Runs the method after the set delay time */
+function delayPromise<T>(
+    callback: (
+        resolve: (value: T | PromiseLike<T>) => void,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        reject: (reason?: any) => void,
+    ) => void,
+    ms?: number | undefined,
+): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+        setTimeout(() => {
+            callback(resolve, reject);
+        }, ms);
+    });
+}
+
 /**
  * Gets the text of a file asynchronously. Delays 1ms or more if desired
  * @param filePath Path to file from assets
@@ -128,61 +145,76 @@ app.on('window-all-closed', () => {
  * @returns promise that resolves to the file text after delay ms
  */
 async function getFileText(filePath: string, delay = 0): Promise<string> {
-    return new Promise<string>((resolve, reject) => {
-        setTimeout(() => {
-            const start = performance.now();
-            fs.readFile(getAssetPath(filePath), 'utf8', (err, data) => {
-                if (err) reject(err.message);
-                else resolve(data);
-                console.log(
-                    `Loading ${filePath} took ${performance.now() - start} ms`,
-                );
-            });
-        }, delay);
-    });
+    return delayPromise<string>((resolve, reject) => {
+        const start = performance.now();
+        fs.readFile(getAssetPath(filePath), 'utf8', (err, data) => {
+            if (err) reject(err.message);
+            else resolve(data);
+            console.log(
+                `Loading ${filePath} took ${performance.now() - start} ms`,
+            );
+        });
+    }, delay);
 }
 
-const getScriptureDelay = 50;
+async function getFilesText(filePaths: string[], delay = 0): Promise<string[]> {
+    return Promise.all(
+        filePaths.map((filePath) => getFileText(filePath, delay)),
+    );
+}
+
+/** Simulating how long it may take Paratext to load and serve the Scriptures */
+const getScriptureDelay = 75;
+/** Simulating how long it may take Paratext to serve the resource info */
+const getResourceInfoDelay = 20;
 
 /**
- * Get the Scripture for a certain project at a certain chapter. These test files are from breakpointing at ViewUsfmXhtmlConverter.cs at the return on UsfmToXhtml.
+ * Get the Scripture for a certain project for a whole book.
+ * The json files are Slate JSON files
+ * The USX test files are from breakpointing at ViewUsfmXhtmlConverter.cs at the return on UsfmToXhtml.
+ * The HTML test files are from breakpointing at ViewUsfmXhtmlConverter.cs at the return on UsfmToXhtml.
  * Should return data for ingesting and displaying.
  * Waits for 50 milliseconds before doing anything to simulate getting from file, converting, etc
  * @param _event
  * @param shortName
  * @param bookNum
- * @param chapter
+ * @param fileExtension
  * @returns Data for ingesting and displaying
  */
-async function handleGetScripture(
+async function handleGetScriptureBook(
     _event: IpcMainInvokeEvent,
+    fileExtension: string,
     shortName: string,
     bookNum: number,
-    chapter = -1,
-): Promise<string> {
-    return getFileText(
-        `testScripture/${shortName}/${bookNum}-${chapter}.usx`,
+): Promise<(ScriptureContent | string)[]> {
+    return getFilesText(
+        [`testScripture/${shortName}/${bookNum}.${fileExtension}`],
         getScriptureDelay,
     );
 }
 
 /**
- * Get the Scripture for a certain project at a certain chapter. These test files are from breakpointing at ViewUsfmXhtmlConverter.cs at the return on UsfmToXhtml.
+ * Get the Scripture for a certain project at a certain chapter.
+ * The json files are Slate JSON files
+ * The USX test files are from breakpointing at ViewUsfmXhtmlConverter.cs at the return on UsfmToXhtml.
+ * The HTML test files are from breakpointing at ViewUsfmXhtmlConverter.cs at the return on UsfmToXhtml.
+ * Should return data for ingesting and displaying.
  * Waits for 50 milliseconds before doing anything to simulate getting from file, converting, etc
  * @param _event
  * @param shortName
  * @param bookNum
- * @param chapter
- * @returns Final HTML that Paratext renders in its WebView
+ * @param fileExtension
+ * @returns Data for ingesting and displaying
  */
-async function handleGetScriptureHtml(
+async function handleGetScriptureChapter(
     _event: IpcMainInvokeEvent,
+    fileExtension: string,
     shortName: string,
     bookNum: number,
-    chapter = -1,
-): Promise<string> {
+    chapter: number,
+): Promise<ScriptureContent | string> {
     return getFileText(
-        `testScripture/${shortName}/${bookNum}-${chapter}.html`,
+        `testScripture/${shortName}/${bookNum}-${chapter}.${fileExtension}`,
         getScriptureDelay,
     );
 }
@@ -195,18 +227,99 @@ async function handleGetScriptureStyle(
     return getFileText(`testScripture/${shortName}/styles.css`);
 }
 
+async function handleGetResourceInfo(
+    _event: IpcMainInvokeEvent,
+    shortName: string,
+): Promise<ResourceInfo> {
+    return delayPromise<ResourceInfo>((resolve) => {
+        resolve({
+            shortName,
+            editable: shortName.startsWith('z'),
+        });
+    }, getResourceInfoDelay);
+}
+
+async function handleGetAllResourceInfo(
+): Promise<ResourceInfo[]> {
+    return delayPromise<ResourceInfo[]>((resolve, reject) => {
+        const start = performance.now();
+        fs.readdir(
+            getAssetPath('testScripture'),
+            { withFileTypes: true },
+            (err, dirents) => {
+                if (err) reject(err.message);
+                else
+                    resolve(
+                        dirents
+                            .filter((dirent) => dirent.isDirectory())
+                            .map((dirent) => ({
+                                shortName: dirent.name,
+                                editable: dirent.name.startsWith('z'),
+                            })),
+                    );
+                console.log(
+                    `Getting all resource info took ${
+                        performance.now() - start
+                    } ms`,
+                );
+            },
+        );
+    }, getResourceInfoDelay);
+}
+
+/** Map from ipc channel to handler function */
+const ipcHandlers: {
+    [ipcHandle: string]: (
+        _event: IpcMainInvokeEvent,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ...args: any[]
+    ) => // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    Promise<any>;
+} = {
+    'ipc-scripture:getScriptureBook': (
+        event,
+        shortName: string,
+        bookNum: number,
+    ) => handleGetScriptureBook(event, 'json', shortName, bookNum),
+    'ipc-scripture:getScriptureChapter': (
+        event,
+        shortName: string,
+        bookNum: number,
+        chapter: number,
+    ) => handleGetScriptureChapter(event, 'json', shortName, bookNum, chapter),
+    'ipc-scripture:getScriptureBookRaw': (
+        event,
+        shortName: string,
+        bookNum: number,
+    ) => handleGetScriptureBook(event, 'usx', shortName, bookNum),
+    'ipc-scripture:getScriptureChapterRaw': (
+        event,
+        shortName: string,
+        bookNum: number,
+        chapter: number,
+    ) => handleGetScriptureChapter(event, 'usx', shortName, bookNum, chapter),
+    'ipc-scripture:getScriptureBookHtml': (
+        event,
+        shortName: string,
+        bookNum: number,
+    ) => handleGetScriptureBook(event, 'html', shortName, bookNum),
+    'ipc-scripture:getScriptureChapterHtml': (
+        event,
+        shortName: string,
+        bookNum: number,
+        chapter: number,
+    ) => handleGetScriptureChapter(event, 'html', shortName, bookNum, chapter),
+    'ipc-scripture:getScriptureStyle': handleGetScriptureStyle,
+    'ipc-scripture:getResourceInfo': handleGetResourceInfo,
+    'ipc-scripture:getAllResourceInfo': handleGetAllResourceInfo,
+};
+
 app.enableSandbox();
 app.whenReady()
     .then(() => {
-        // TODO: consider making an object for these or an interface or something
-        ipcMain.handle('ipc-scripture:getScripture', handleGetScripture);
-        ipcMain.handle(
-            'ipc-scripture:getScriptureHtml',
-            handleGetScriptureHtml,
-        );
-        ipcMain.handle(
-            'ipc-scripture:getScriptureStyle',
-            handleGetScriptureStyle,
+        // Set up ipc handlers
+        Object.keys(ipcHandlers).forEach((ipcHandle) =>
+            ipcMain.handle(ipcHandle, ipcHandlers[ipcHandle]),
         );
 
         ipcMain.on('ipc-test:example', async (event, arg) => {

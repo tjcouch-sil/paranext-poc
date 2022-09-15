@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
+import { ResourceInfo, ScriptureContent } from '@shared/data/ScriptureTypes';
 
 /**
  * Whitelisted channel names through which the main and renderer processes can communicate.
@@ -13,30 +14,72 @@ export type IpcChannel = typeof ipcChannels[number];
 
 contextBridge.exposeInMainWorld('electronAPI', {
     scripture: {
-        getScripture: (
+        getScriptureBook: (
             shortName: string,
             bookNum: number,
-            chapter = -1,
-        ): Promise<string> =>
+        ): Promise<ScriptureContent[]> =>
             ipcRenderer.invoke(
-                'ipc-scripture:getScripture',
+                'ipc-scripture:getScriptureBook',
+                shortName,
+                bookNum,
+            ),
+        getScriptureChapter: (
+            shortName: string,
+            bookNum: number,
+            chapter: number,
+        ): Promise<ScriptureContent> =>
+            ipcRenderer.invoke(
+                'ipc-scripture:getScriptureChapter',
                 shortName,
                 bookNum,
                 chapter,
             ),
-        getScriptureHtml: (
+        getScriptureBookRaw: (
             shortName: string,
             bookNum: number,
-            chapter = -1,
+        ): Promise<string[]> =>
+            ipcRenderer.invoke(
+                'ipc-scripture:getScriptureBookRaw',
+                shortName,
+                bookNum,
+            ),
+        getScriptureChapterRaw: (
+            shortName: string,
+            bookNum: number,
+            chapter: number,
         ): Promise<string> =>
             ipcRenderer.invoke(
-                'ipc-scripture:getScriptureHtml',
+                'ipc-scripture:getScriptureChapterRaw',
+                shortName,
+                bookNum,
+                chapter,
+            ),
+        getScriptureBookHtml: (
+            shortName: string,
+            bookNum: number,
+        ): Promise<string[]> =>
+            ipcRenderer.invoke(
+                'ipc-scripture:getScriptureBookHtml',
+                shortName,
+                bookNum,
+            ),
+        getScriptureChapterHtml: (
+            shortName: string,
+            bookNum: number,
+            chapter: number,
+        ): Promise<string> =>
+            ipcRenderer.invoke(
+                'ipc-scripture:getScriptureChapterHtml',
                 shortName,
                 bookNum,
                 chapter,
             ),
         getScriptureStyle: (shortName: string): Promise<string> =>
             ipcRenderer.invoke('ipc-scripture:getScriptureStyle', shortName),
+        getResourceInfo: (shortName: string): Promise<ResourceInfo> =>
+            ipcRenderer.invoke('ipc-scripture:getResourceInfo', shortName),
+        getAllResourceInfo: (): Promise<ResourceInfo[]> =>
+            ipcRenderer.invoke('ipc-scripture:getAllResourceInfo'),
     },
 });
 

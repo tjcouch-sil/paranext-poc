@@ -15,6 +15,7 @@
       "@components/*": ["./renderer/components/*"],
       "@services/*": ["./renderer/services/*"],
       "@util/*": ["./renderer/util/*"],
+      "@shared/*": ["./shared/*"],
       "@node_modules/*": ["../node_modules/*"],
       "@assets/*": ["../assets/*"],
     },

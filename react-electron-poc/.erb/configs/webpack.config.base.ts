@@ -45,6 +45,7 @@ const configuration: webpack.Configuration = {
       '@components': webpackPaths.componentsPath,
       '@services': webpackPaths.servicesPath,
       '@util': webpackPaths.utilPath,
+      '@shared': webpackPaths.srcSharedPath,
       '@node_modules': webpackPaths.nodeModulesPath,
       '@assets': webpackPaths.assetsPath,
     }

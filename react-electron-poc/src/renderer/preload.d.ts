@@ -1,20 +1,40 @@
 import { IpcChannel } from 'main/preload';
+import { ResourceInfo, ScriptureContent } from '@shared/data/ScriptureTypes';
 
 declare global {
     interface Window {
         electronAPI: {
             scripture: {
-                getScripture(
+                getScriptureBook(
                     shortName: string,
                     bookNum: number,
-                    chapter?: number,
+                ): Promise<ScriptureContent[]>;
+                getScriptureChapter(
+                    shortName: string,
+                    bookNum: number,
+                    chapter: number,
+                ): Promise<ScriptureContent>;
+                getScriptureBookRaw(
+                    shortName: string,
+                    bookNum: number,
+                ): Promise<string[]>;
+                getScriptureChapterRaw(
+                    shortName: string,
+                    bookNum: number,
+                    chapter: number,
                 ): Promise<string>;
-                getScriptureHtml(
+                getScriptureBookHtml(
                     shortName: string,
                     bookNum: number,
-                    chapter?: number,
+                ): Promise<string[]>;
+                getScriptureChapterHtml(
+                    shortName: string,
+                    bookNum: number,
+                    chapter: number,
                 ): Promise<string>;
                 getScriptureStyle(shortName: string): Promise<string>;
+                getResourceInfo(shortName: string): Promise<ResourceInfo>;
+                getAllResourceInfo(): Promise<ResourceInfo[]>;
             };
         };
         electron: {

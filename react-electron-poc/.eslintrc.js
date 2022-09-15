@@ -8,7 +8,7 @@ module.exports = {
         'react/react-in-jsx-scope': 'off',
 
         // TJ's rules
-        indent: ['warn', 4],
+        indent: 'off',
         'react/jsx-indent': ['warn', 4],
         'react/jsx-indent-props': ['warn', 4],
         'comma-dangle': ['error', 'always-multiline'],
