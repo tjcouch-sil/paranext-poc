@@ -2,29 +2,40 @@ import {
     getScriptureStyle,
     getScriptureHtml,
 } from '@services/ScriptureService';
+import {
+    ResourceInfo,
+    ScriptureChapter,
+    ScriptureReference,
+} from '@shared/data/ScriptureTypes';
 import { useEffect, useState } from 'react';
 import useStyle from 'renderer/hooks/useStyle';
 import './TextPanel.css';
 
-export interface ScriptureTextPanelProps {
-    shortName: string;
-    book: number;
-    chapter: number;
-    verse: number;
-}
+export interface ScriptureTextPanelProps
+    extends ScriptureReference,
+        ResourceInfo {}
 
 export const ScriptureTextPanel = ({
     shortName,
+    editable,
     book,
     chapter,
     verse,
 }: ScriptureTextPanelProps) => {
-    const [scrHtml, setScrHtml] = useState<string | undefined>(undefined);
+    const [scrChapters, setScrChapters] = useState<
+        ScriptureChapter[] | undefined
+    >(undefined);
 
     const [scrStyle, setScrStyle] = useState<string>('');
     useEffect(() => {
-        // eslint-disable-next-line promise/catch-or-return
-        getScriptureStyle(shortName).then((s) => setScrStyle(s));
+        // TODO: Fix RTL scripture style sheets
+        getScriptureStyle(shortName)
+            .then((s) => {
+                if (shortName !== 'OHEB' && shortName !== 'zzz1')
+                    setScrStyle(s);
+                return undefined;
+            })
+            .catch((r) => console.log(r));
     }, [shortName]);
 
     useStyle(scrStyle);
@@ -39,23 +50,32 @@ export const ScriptureTextPanel = ({
                     book,
                     chapter,
                 );
-                if (scriptureRefIsCurrent) setScrHtml(scriptureHtml);
+                if (scriptureRefIsCurrent) setScrChapters(scriptureHtml);
             })();
         }
 
         return () => {
             scriptureRefIsCurrent = false;
-            setScrHtml(undefined);
+            setScrChapters(undefined);
         };
     }, [shortName, book, chapter]);
 
-    const display = scrHtml || `Loading${shortName ? ` ${shortName}` : ''}...`;
+    const display = scrChapters || [
+        { chapter: -1, contents: `Loading ${shortName}...` },
+    ];
 
     return (
-        <div
-            className="text-panel"
-            // eslint-disable-next-line react/no-danger
-            dangerouslySetInnerHTML={{ __html: display }}
-        />
+        <div className="text-panel">
+            {display.map((scrChapter) => (
+                <div
+                    // TODO: Add chapter number to the index passed in
+                    key={scrChapter.chapter}
+                    // eslint-disable-next-line react/no-danger
+                    dangerouslySetInnerHTML={{
+                        __html: scrChapter.contents as string,
+                    }}
+                />
+            ))}
+        </div>
     );
 };

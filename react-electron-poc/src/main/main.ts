@@ -13,7 +13,12 @@ import fs from 'fs';
 import { app, BrowserWindow, shell, IpcMainInvokeEvent } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
-import { ResourceInfo, ScriptureContent } from '@shared/data/ScriptureTypes';
+import {
+    ResourceInfo,
+    ScriptureChapter,
+    ScriptureChapterString,
+    ScriptureContent,
+} from '@shared/data/ScriptureTypes';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import { ipcMain } from './electron-extensions';
@@ -186,10 +191,16 @@ async function handleGetScriptureBook(
     fileExtension: string,
     shortName: string,
     bookNum: number,
-): Promise<(ScriptureContent | string)[]> {
+): Promise<ScriptureChapter[]> {
+    // TODO: If we want to implement this, parse file and split out into actual chapters
     return getFilesText(
         [`testScripture/${shortName}/${bookNum}.${fileExtension}`],
         getScriptureDelay,
+    ).then((filesContents) =>
+        filesContents.map((fileContents, ind) => ({
+            chapter: ind,
+            contents: fileContents,
+        })),
     );
 }
 
@@ -212,11 +223,14 @@ async function handleGetScriptureChapter(
     shortName: string,
     bookNum: number,
     chapter: number,
-): Promise<ScriptureContent | string> {
+): Promise<ScriptureChapter> {
     return getFileText(
         `testScripture/${shortName}/${bookNum}-${chapter}.${fileExtension}`,
         getScriptureDelay,
-    );
+    ).then((fileContents) => ({
+        chapter,
+        contents: fileContents,
+    }));
 }
 
 /** These test files are from breakpointing at UsfmSinglePaneControl.cs at the line that gets Css in LoadUsfm. */
@@ -239,8 +253,7 @@ async function handleGetResourceInfo(
     }, getResourceInfoDelay);
 }
 
-async function handleGetAllResourceInfo(
-): Promise<ResourceInfo[]> {
+async function handleGetAllResourceInfo(): Promise<ResourceInfo[]> {
     return delayPromise<ResourceInfo[]>((resolve, reject) => {
         const start = performance.now();
         fs.readdir(

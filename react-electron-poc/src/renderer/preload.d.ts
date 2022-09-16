@@ -1,5 +1,9 @@
 import { IpcChannel } from 'main/preload';
-import { ResourceInfo, ScriptureContent } from '@shared/data/ScriptureTypes';
+import {
+    ResourceInfo,
+    ScriptureChapterContent,
+    ScriptureChapterString,
+} from '@shared/data/ScriptureTypes';
 
 declare global {
     interface Window {
@@ -8,30 +12,30 @@ declare global {
                 getScriptureBook(
                     shortName: string,
                     bookNum: number,
-                ): Promise<ScriptureContent[]>;
+                ): Promise<ScriptureChapterContent[]>;
                 getScriptureChapter(
                     shortName: string,
                     bookNum: number,
                     chapter: number,
-                ): Promise<ScriptureContent>;
+                ): Promise<ScriptureChapterContent>;
                 getScriptureBookRaw(
                     shortName: string,
                     bookNum: number,
-                ): Promise<string[]>;
+                ): Promise<ScriptureChapterString[]>;
                 getScriptureChapterRaw(
                     shortName: string,
                     bookNum: number,
                     chapter: number,
-                ): Promise<string>;
+                ): Promise<ScriptureChapterString>;
                 getScriptureBookHtml(
                     shortName: string,
                     bookNum: number,
-                ): Promise<string[]>;
+                ): Promise<ScriptureChapterString[]>;
                 getScriptureChapterHtml(
                     shortName: string,
                     bookNum: number,
                     chapter: number,
-                ): Promise<string>;
+                ): Promise<ScriptureChapterString>;
                 getScriptureStyle(shortName: string): Promise<string>;
                 getResourceInfo(shortName: string): Promise<ResourceInfo>;
                 getAllResourceInfo(): Promise<ResourceInfo[]>;

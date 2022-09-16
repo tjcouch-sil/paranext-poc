@@ -1,4 +1,8 @@
-import { ResourceInfo, ScriptureContent } from '@shared/data/ScriptureTypes';
+import {
+    ResourceInfo,
+    ScriptureChapterContent,
+    ScriptureChapterString,
+} from '@shared/data/ScriptureTypes';
 
 /**
  * Gets the specified Scripture chapter in the specified book from the specified project in Slate JSON
@@ -11,7 +15,7 @@ export const getScripture = async (
     shortName: string,
     bookNum: number,
     chapter = -1,
-): Promise<ScriptureContent[]> => {
+): Promise<ScriptureChapterContent[]> => {
     return chapter >= 0
         ? window.electronAPI.scripture
               .getScriptureChapter(shortName, bookNum, chapter)
@@ -30,7 +34,7 @@ export const getScriptureRaw = async (
     shortName: string,
     bookNum: number,
     chapter = -1,
-): Promise<string[]> => {
+): Promise<ScriptureChapterString[]> => {
     return chapter >= 0
         ? window.electronAPI.scripture
               .getScriptureChapterRaw(shortName, bookNum, chapter)
@@ -49,7 +53,7 @@ export const getScriptureHtml = async (
     shortName: string,
     bookNum: number,
     chapter = -1,
-): Promise<string[]> => {
+): Promise<ScriptureChapterString[]> => {
     return chapter >= 0
         ? window.electronAPI.scripture
               .getScriptureChapterHtml(shortName, bookNum, chapter)
