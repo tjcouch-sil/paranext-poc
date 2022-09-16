@@ -7,7 +7,9 @@ import {
     ScriptureChapter,
     ScriptureReference,
 } from '@shared/data/ScriptureTypes';
-import { useEffect, useState } from 'react';
+import { isValidValue } from '@util/Util';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import usePromise from 'renderer/hooks/usePromise';
 import useStyle from 'renderer/hooks/useStyle';
 import './TextPanel.css';
 
@@ -22,51 +24,31 @@ export const ScriptureTextPanel = ({
     chapter,
     verse,
 }: ScriptureTextPanelProps) => {
-    const [scrChapters, setScrChapters] = useState<
-        ScriptureChapter[] | undefined
-    >(undefined);
+    useStyle(
+        useCallback(async () => {
+            // TODO: Fix RTL scripture style sheets
+            if (!shortName) return undefined;
+            const style = await getScriptureStyle(shortName);
+            return shortName !== 'OHEB' && shortName !== 'zzz1'
+                ? style
+                : undefined;
+        }, [shortName]),
+    );
 
-    const [scrStyle, setScrStyle] = useState<string>('');
-    useEffect(() => {
-        // TODO: Fix RTL scripture style sheets
-        getScriptureStyle(shortName)
-            .then((s) => {
-                if (shortName !== 'OHEB' && shortName !== 'zzz1')
-                    setScrStyle(s);
-                return undefined;
-            })
-            .catch((r) => console.log(r));
-    }, [shortName]);
-
-    useStyle(scrStyle);
-
-    useEffect(() => {
-        let scriptureRefIsCurrent = false;
-        if (shortName && book) {
-            scriptureRefIsCurrent = true;
-            (async () => {
-                const scriptureHtml = await getScriptureHtml(
-                    shortName,
-                    book,
-                    chapter,
-                );
-                if (scriptureRefIsCurrent) setScrChapters(scriptureHtml);
-            })();
-        }
-
-        return () => {
-            scriptureRefIsCurrent = false;
-            setScrChapters(undefined);
-        };
-    }, [shortName, book, chapter]);
-
-    const display = scrChapters || [
-        { chapter: -1, contents: `Loading ${shortName}...` },
-    ];
+    const [scrChapters] = usePromise<ScriptureChapter[]>(
+        useCallback(async () => {
+            if (!shortName || !isValidValue(book) || !isValidValue(chapter))
+                return null;
+            return getScriptureHtml(shortName, book, chapter);
+        }, [shortName, book, chapter]),
+        useState<ScriptureChapter[]>([
+            { chapter: -1, contents: `Loading ${shortName}...` },
+        ])[0],
+    );
 
     return (
         <div className="text-panel">
-            {display.map((scrChapter) => (
+            {scrChapters.map((scrChapter) => (
                 <div
                     // TODO: Add chapter number to the index passed in
                     key={scrChapter.chapter}

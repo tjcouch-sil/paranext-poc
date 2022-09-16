@@ -1,5 +1,9 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
-import { ResourceInfo, ScriptureChapter, ScriptureChapterContent, ScriptureChapterString } from '@shared/data/ScriptureTypes';
+import {
+    ResourceInfo,
+    ScriptureChapterContent,
+    ScriptureChapterString,
+} from '@shared/data/ScriptureTypes';
 
 /**
  * Whitelisted channel names through which the main and renderer processes can communicate.

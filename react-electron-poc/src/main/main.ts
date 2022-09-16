@@ -13,12 +13,7 @@ import fs from 'fs';
 import { app, BrowserWindow, shell, IpcMainInvokeEvent } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
-import {
-    ResourceInfo,
-    ScriptureChapter,
-    ScriptureChapterString,
-    ScriptureContent,
-} from '@shared/data/ScriptureTypes';
+import { ResourceInfo, ScriptureChapter } from '@shared/data/ScriptureTypes';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import { ipcMain } from './electron-extensions';
@@ -43,6 +38,7 @@ const isDebug =
 
 if (isDebug) {
     require('electron-debug')();
+    console.log('Debug start!');
 }
 
 const installExtensions = async () => {
