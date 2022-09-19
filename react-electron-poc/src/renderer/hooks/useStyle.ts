@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react';
  *      WARNING: MUST BE WRAPPED IN A useCallback. The reference must not be updated every render
  */
 export default (promiseFactoryCallback: () => Promise<string | undefined>) => {
+    // TODO: Consider doing the useCallback in here and enabling react-hooks/exhaustive-deps on this hook https://github.com/facebook/react/tree/main/packages/eslint-plugin-react-hooks#advanced-configuration
     const stylePrev = useRef<string | undefined>(undefined);
     useEffect(() => {
         let promiseIsCurrent = true;

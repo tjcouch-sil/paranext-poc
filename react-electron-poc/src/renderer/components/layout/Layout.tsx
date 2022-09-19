@@ -1,21 +1,39 @@
 import './Layout.css';
-import { DockviewReact, DockviewReadyEvent } from 'dockview';
+import { DockviewApi, DockviewReact, DockviewReadyEvent } from 'dockview';
 import '@node_modules/dockview/dist/styles/dockview.css';
 import { DockViewPanels, PanelFactory } from '@components/panels/Panels';
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
     getAllResourceInfo,
     getResourceInfo,
 } from '@services/ScriptureService';
 import { ScriptureTextPanelProps } from '@components/panels/TextPanels/ScriptureTextPanel';
 import { ScriptureReference } from '@shared/data/ScriptureTypes';
+import ScrRefSelector from '@components/ScrRefSelector';
 
 const Layout = () => {
+    const dockviewApi = useRef<DockviewApi | undefined>(undefined);
+
     const [scrRef, setScrRef] = useState<ScriptureReference>({
         book: 19,
         chapter: 119,
         verse: 1,
     });
+
+    const updateScrRef = useCallback((newScrRef: ScriptureReference) => {
+        setScrRef(newScrRef);
+
+        dockviewApi.current?.panels.forEach((panel) =>
+            panel.update({
+                params: {
+                    params: {
+                        ...panel.params,
+                        ...newScrRef,
+                    },
+                },
+            }),
+        );
+    }, []);
 
     const onReady = useCallback(
         (event: DockviewReadyEvent) => {
@@ -44,20 +62,22 @@ const Layout = () => {
                 )
                 .catch((r) => console.log(r));
 
+            dockviewApi.current = event.api;
+
             const panelFactory = new PanelFactory(event);
             /* const erb = panelFactory.addPanel('Erb', undefined, {
-            title: 'ERB',
-        }); */
+                title: 'ERB',
+            }); */
             /* const textPanel = panelFactory.addPanel(
-            'TextPanel',
-            {
-                placeholderText: 'Loading zzz6 Psalm 119 USX',
-                textPromise: getScripture('zzz6', 19, 119),
-            } as TextPanelProps,
-            {
-                title: 'zzz6: Psalm 119 USX',
-            },
-        ); */
+                'TextPanel',
+                {
+                    placeholderText: 'Loading zzz6 Psalm 119 USX',
+                    textPromise: getScripture('zzz6', 19, 119),
+                } as TextPanelProps,
+                {
+                    title: 'zzz6: Psalm 119 USX',
+                },
+            ); */
             const csbPanel = panelFactory.addPanel(
                 'ScriptureTextPanel',
                 {
@@ -114,7 +134,7 @@ const Layout = () => {
                     },
                 },
             );
-            panelFactory.addPanel(
+            const zzz1Panel = panelFactory.addPanel(
                 'ScriptureTextPanel',
                 {
                     shortName: 'zzz1',
@@ -129,30 +149,21 @@ const Layout = () => {
                     },
                 },
             );
-
-            event.api.getPanel(csbPanel.id)?.focus();
-
-            // TODO: Figure out how to resize panels or do anything with them really
-            /* setTimeout(
-            () =>
-                textPanel.api.setSize({
-                    width: textPanel.api.width,
-                    height: 100,
-                }),
-            1000,
-        ); */
         },
         [scrRef],
     );
 
     return (
-        <div className="layout">
-            <DockviewReact
-                className="dockview-theme-abyss"
-                onReady={onReady}
-                components={DockViewPanels}
-            />
-        </div>
+        <>
+            <ScrRefSelector scrRef={scrRef} handleSubmit={updateScrRef} />
+            <div className="layout">
+                <DockviewReact
+                    className="dockview-theme-abyss"
+                    onReady={onReady}
+                    components={DockViewPanels}
+                />
+            </div>
+        </>
     );
 };
 export default Layout;

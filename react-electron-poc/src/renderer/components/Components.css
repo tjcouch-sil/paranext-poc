@@ -1,0 +1,14 @@
+.scrref-form {
+    padding: 5px;
+    background-color: #1c1c2a;
+}
+
+.scrref-input {
+    width: 120px;
+}
+
+.scrref-button {
+    padding: 5px 10px;
+    margin: 2px 5px;
+    font-size: 11pt;
+}
