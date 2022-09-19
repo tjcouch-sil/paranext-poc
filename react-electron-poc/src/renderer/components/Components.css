@@ -1,14 +1,84 @@
 .scrref-form {
-    padding: 5px;
+    padding: 7px;
     background-color: #1c1c2a;
 }
 
-.scrref-input {
-    width: 120px;
+.scrref-form button {
+    font-size: 11pt;
 }
 
-.scrref-button {
+.scrref-form .selector-area {
+    color: white;
+}
+
+.scrref-form .selector-area span {
+    margin: 0px 5px;
+}
+
+.scrref-form .selector-area .change-btn {
+    padding: 2px 1px;
+    border-right: 1px solid #505070;
+    border-top: 1px solid #505070;
+    border-bottom: 1px solid #505070;
+    border-radius: 0px 5px 5px 0px;
+    background-color: #505070;
+    color: #1c1c2a;
+    box-sizing: border-box;
+}
+
+.scrref-form .selector-area .change-btn.left {
+    border-radius: 5px 0px 0px 5px;
+    border-left: 1px solid #505070;
+    border-right: 0px;
+}
+
+.scrref-form .selector-area .splitter {
+    margin: 0px;
+    width: 1px;
+    display: inline-block;
+    box-sizing: border-box;
+}
+
+.scrref-form .selector-area .splitter.changed {
+    border-right: 1px solid #505070;
+    display: inline;
+}
+
+.scrref-form input {
+    width: 120px;
+    margin: 4px;
+    padding: 4px;
+    border-radius: 5px;
+    transition: all ease-in 0.1s;
+}
+
+.scrref-form input:focus,
+.scrref-form input:hover,
+.scrref-form input.changed {
+    background-color: #505070;
+    color: white;
+}
+
+.scrref-form .enter-button {
     padding: 5px 10px;
-    margin: 2px 5px;
-    font-size: 11pt;
+    background-color: #505070;
+    color: white;
+}
+
+.scrref-form input,
+.scrref-form .enter-button:disabled,
+.scrref-form .selector-area .change-btn:disabled {
+    background-color: #1c1c2a;
+    color: #505070;
+}
+
+.scrref-form input,
+.scrref-form .enter-button:disabled {
+    border: 1px solid #505070;
+}
+
+.scrref-form .selector-area .change-btn:hover:enabled,
+.scrref-form .enter-button:hover:enabled {
+    background-color: #8a8aac;
+    color: white;
 }

@@ -1,7 +1,8 @@
 import { ScriptureReference } from '@shared/data/ScriptureTypes';
+import { isString } from './Util';
 
 const scrBookNames: string[][] = [
-    ['ERROR'],
+    ['ERR', 'ERROR'],
     ['GEN', 'Genesis'],
     ['EXO', 'Exodus'],
     ['LEV', 'Leviticus'],
@@ -96,6 +97,32 @@ export const getBookLongNameFromNum = (bookNum: number): string => {
     ][1];
 };
 
+export const offsetBook = (
+    scrRef: ScriptureReference,
+    offset: number,
+): ScriptureReference => ({
+    book: Math.max(
+        firstScrBookNum,
+        Math.min(scrRef.book + offset, lastScrBookNum),
+    ),
+    chapter: 1,
+    verse: 1,
+});
+
+export const offsetChapter = (
+    scrRef: ScriptureReference,
+    offset: number,
+): ScriptureReference => ({
+    ...scrRef,
+    chapter: scrRef.chapter + offset,
+    verse: 1,
+});
+
+export const offsetVerse = (
+    scrRef: ScriptureReference,
+    offset: number,
+): ScriptureReference => ({ ...scrRef, verse: scrRef.verse + offset });
+
 const regexpScrRef = /([^ ]+) ([^:]+):(.+)/;
 export const getScrRefFromText = (refText: string): ScriptureReference => {
     if (!refText) return { book: -1, chapter: -1, verse: -1 };
@@ -113,3 +140,22 @@ export const getTextFromScrRef = (scrRef: ScriptureReference): string =>
     `${getBookLongNameFromNum(scrRef.book)} ${scrRef.chapter}${
         scrRef.verse >= 0 ? `:${scrRef.verse}` : ''
     }`;
+
+export const areScrRefsEqual = (
+    scrRef1: ScriptureReference | string,
+    scrRef2: ScriptureReference | string,
+): boolean => {
+    if (scrRef1 === scrRef2) return true;
+
+    const scrRef1Final: ScriptureReference = isString(scrRef1)
+        ? getScrRefFromText(scrRef1 as string)
+        : (scrRef1 as ScriptureReference);
+    const scrRef2Final: ScriptureReference = isString(scrRef2)
+        ? getScrRefFromText(scrRef2 as string)
+        : (scrRef2 as ScriptureReference);
+    return (
+        scrRef1Final.book === scrRef2Final.book &&
+        scrRef1Final.chapter === scrRef2Final.chapter &&
+        scrRef1Final.verse === scrRef2Final.verse
+    );
+};

@@ -189,15 +189,20 @@ async function handleGetScriptureBook(
     bookNum: number,
 ): Promise<ScriptureChapter[]> {
     // TODO: If we want to implement this, parse file and split out into actual chapters
-    return getFilesText(
-        [`testScripture/${shortName}/${bookNum}.${fileExtension}`],
-        getScriptureDelay,
-    ).then((filesContents) =>
-        filesContents.map((fileContents, ind) => ({
-            chapter: ind,
-            contents: fileContents,
-        })),
-    );
+    try {
+        return await getFilesText(
+            [`testScripture/${shortName}/${bookNum}.${fileExtension}`],
+            getScriptureDelay,
+        ).then((filesContents) =>
+            filesContents.map((fileContents, ind) => ({
+                chapter: ind,
+                contents: fileContents,
+            })),
+        );
+    } catch (e) {
+        console.log(e);
+        throw new Error(`No data for ${shortName} ${bookNum}`);
+    }
 }
 
 /**
@@ -220,13 +225,18 @@ async function handleGetScriptureChapter(
     bookNum: number,
     chapter: number,
 ): Promise<ScriptureChapter> {
-    return getFileText(
-        `testScripture/${shortName}/${bookNum}-${chapter}.${fileExtension}`,
-        getScriptureDelay,
-    ).then((fileContents) => ({
-        chapter,
-        contents: fileContents,
-    }));
+    try {
+        return await getFileText(
+            `testScripture/${shortName}/${bookNum}-${chapter}.${fileExtension}`,
+            getScriptureDelay,
+        ).then((fileContents) => ({
+            chapter,
+            contents: fileContents,
+        }));
+    } catch (e) {
+        console.log(e);
+        throw new Error(`No data for ${shortName} ${bookNum} ${chapter}`);
+    }
 }
 
 /** These test files are from breakpointing at UsfmSinglePaneControl.cs at the line that gets Css in LoadUsfm. */

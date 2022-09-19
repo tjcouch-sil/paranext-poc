@@ -3,6 +3,7 @@ import {
     ScriptureChapterContent,
     ScriptureChapterString,
 } from '@shared/data/ScriptureTypes';
+import { getTextFromScrRef } from '@util/ScriptureUtil';
 
 /**
  * Gets the specified Scripture chapter in the specified book from the specified project in Slate JSON
@@ -16,11 +17,28 @@ export const getScripture = async (
     bookNum: number,
     chapter = -1,
 ): Promise<ScriptureChapterContent[]> => {
-    return chapter >= 0
-        ? window.electronAPI.scripture
-              .getScriptureChapter(shortName, bookNum, chapter)
-              .then((result) => [result])
-        : window.electronAPI.scripture.getScriptureBook(shortName, bookNum);
+    try {
+        return chapter >= 0
+            ? await window.electronAPI.scripture
+                  .getScriptureChapter(shortName, bookNum, chapter)
+                  .then((result) => [result])
+            : await window.electronAPI.scripture.getScriptureBook(
+                  shortName,
+                  bookNum,
+              );
+    } catch (e) {
+        console.log(e);
+        return [
+            {
+                chapter,
+                contents: {
+                    text: `Could not get contents of ${shortName} ${getTextFromScrRef(
+                        { book: bookNum, chapter, verse: -1 },
+                    )}`,
+                },
+            },
+        ];
+    }
 };
 
 /**
@@ -35,11 +53,26 @@ export const getScriptureRaw = async (
     bookNum: number,
     chapter = -1,
 ): Promise<ScriptureChapterString[]> => {
-    return chapter >= 0
-        ? window.electronAPI.scripture
-              .getScriptureChapterRaw(shortName, bookNum, chapter)
-              .then((result) => [result])
-        : window.electronAPI.scripture.getScriptureBookRaw(shortName, bookNum);
+    try {
+        return chapter >= 0
+            ? await window.electronAPI.scripture
+                  .getScriptureChapterRaw(shortName, bookNum, chapter)
+                  .then((result) => [result])
+            : await window.electronAPI.scripture.getScriptureBookRaw(
+                  shortName,
+                  bookNum,
+              );
+    } catch (e) {
+        console.log(e);
+        return [
+            {
+                chapter,
+                contents: `Could not get contents of ${shortName} ${getTextFromScrRef(
+                    { book: bookNum, chapter, verse: -1 },
+                )}`,
+            },
+        ];
+    }
 };
 
 /**
@@ -54,11 +87,26 @@ export const getScriptureHtml = async (
     bookNum: number,
     chapter = -1,
 ): Promise<ScriptureChapterString[]> => {
-    return chapter >= 0
-        ? window.electronAPI.scripture
-              .getScriptureChapterHtml(shortName, bookNum, chapter)
-              .then((result) => [result])
-        : window.electronAPI.scripture.getScriptureBookHtml(shortName, bookNum);
+    try {
+        return chapter >= 0
+            ? await window.electronAPI.scripture
+                  .getScriptureChapterHtml(shortName, bookNum, chapter)
+                  .then((result) => [result])
+            : await window.electronAPI.scripture.getScriptureBookHtml(
+                  shortName,
+                  bookNum,
+              );
+    } catch (e) {
+        console.log(e);
+        return [
+            {
+                chapter,
+                contents: `Could not get contents of ${shortName} ${getTextFromScrRef(
+                    { book: bookNum, chapter, verse: -1 },
+                )}`,
+            },
+        ];
+    }
 };
 
 /**
