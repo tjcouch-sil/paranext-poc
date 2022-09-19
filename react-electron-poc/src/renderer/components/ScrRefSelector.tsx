@@ -1,4 +1,5 @@
 import { ScriptureReference } from '@shared/data/ScriptureTypes';
+import { getTextFromScrRef, getScrRefFromText } from '@util/ScriptureUtil';
 import React, { useCallback, useEffect, useState } from 'react';
 import './Components.css';
 
@@ -8,26 +9,9 @@ export interface ScrRefSelectorProps {
     handleSubmit: (scrRef: ScriptureReference) => void;
 }
 
-// TODO: Move to util
-const regexpScrRef = /([^ ]+) ([^:]+):(.+)/;
-const getRefFromText = (refText: string): ScriptureReference => {
-    if (!refText) return { book: -1, chapter: -1, verse: -1 };
-    const scrRefMatch = refText.match(regexpScrRef);
-    if (!scrRefMatch || scrRefMatch.length < 4)
-        return { book: -1, chapter: -1, verse: -1 };
-    return {
-        book: parseInt(scrRefMatch[1], 10),
-        chapter: parseInt(scrRefMatch[2], 10),
-        verse: parseInt(scrRefMatch[3], 10),
-    };
-};
-
-const getTextFromRef = (scrRef: ScriptureReference): string =>
-    `${scrRef.book} ${scrRef.chapter}:${scrRef.verse}`;
-
 export default ({ scrRef, handleSubmit }: ScrRefSelectorProps) => {
     const [currentRefText, setCurrentRefText] = useState<string>(
-        getTextFromRef(scrRef),
+        getTextFromScrRef(scrRef),
     );
 
     const handleChange = useCallback(
@@ -38,7 +22,7 @@ export default ({ scrRef, handleSubmit }: ScrRefSelectorProps) => {
     );
 
     useEffect(() => {
-        setCurrentRefText(getTextFromRef(scrRef));
+        setCurrentRefText(getTextFromScrRef(scrRef));
     }, [scrRef]);
 
     return (
@@ -46,10 +30,15 @@ export default ({ scrRef, handleSubmit }: ScrRefSelectorProps) => {
             className="scrref-form"
             onSubmit={(e: React.FormEvent) => {
                 e.preventDefault();
-                handleSubmit(getRefFromText(currentRefText));
+                handleSubmit(getScrRefFromText(currentRefText));
             }}
         >
-            <input type="text" className="scrref-input" value={currentRefText} onChange={handleChange} />
+            <input
+                type="text"
+                className="scrref-input"
+                value={currentRefText}
+                onChange={handleChange}
+            />
             <button type="submit" className="scrref-button">
                 Go!
             </button>

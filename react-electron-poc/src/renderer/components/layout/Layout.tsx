@@ -1,7 +1,7 @@
 import './Layout.css';
-import { DockviewApi, DockviewReact, DockviewReadyEvent } from 'dockview';
+import { DockviewReact, DockviewReadyEvent } from 'dockview';
 import '@node_modules/dockview/dist/styles/dockview.css';
-import { DockViewPanels, PanelFactory } from '@components/panels/Panels';
+import { DockViewPanels } from '@components/panels/Panels';
 import { useCallback, useRef, useState } from 'react';
 import {
     getAllResourceInfo,
@@ -10,9 +10,10 @@ import {
 import { ScriptureTextPanelProps } from '@components/panels/TextPanels/ScriptureTextPanel';
 import { ScriptureReference } from '@shared/data/ScriptureTypes';
 import ScrRefSelector from '@components/ScrRefSelector';
+import { PanelManager } from '@components/panels/PanelManager';
 
 const Layout = () => {
-    const dockviewApi = useRef<DockviewApi | undefined>(undefined);
+    const panelManager = useRef<PanelManager | undefined>(undefined);
 
     const [scrRef, setScrRef] = useState<ScriptureReference>({
         book: 19,
@@ -23,16 +24,7 @@ const Layout = () => {
     const updateScrRef = useCallback((newScrRef: ScriptureReference) => {
         setScrRef(newScrRef);
 
-        dockviewApi.current?.panels.forEach((panel) =>
-            panel.update({
-                params: {
-                    params: {
-                        ...panel.params,
-                        ...newScrRef,
-                    },
-                },
-            }),
-        );
+        panelManager.current?.updateScrRef(newScrRef);
     }, []);
 
     const onReady = useCallback(
@@ -62,9 +54,7 @@ const Layout = () => {
                 )
                 .catch((r) => console.log(r));
 
-            dockviewApi.current = event.api;
-
-            const panelFactory = new PanelFactory(event);
+            panelManager.current = new PanelManager(event);
             /* const erb = panelFactory.addPanel('Erb', undefined, {
                 title: 'ERB',
             }); */
@@ -78,18 +68,15 @@ const Layout = () => {
                     title: 'zzz6: Psalm 119 USX',
                 },
             ); */
-            const csbPanel = panelFactory.addPanel(
+            const csbPanel = panelManager.current.addPanel(
                 'ScriptureTextPanel',
                 {
                     shortName: 'CSB',
                     editable: false,
                     ...scrRef,
                 } as ScriptureTextPanelProps,
-                {
-                    title: 'CSB: Psalm 119 HTML',
-                },
             );
-            const ohebPanel = panelFactory.addPanel(
+            const ohebPanel = panelManager.current.addPanel(
                 'ScriptureTextPanel',
                 {
                     shortName: 'OHEB',
@@ -97,14 +84,13 @@ const Layout = () => {
                     ...scrRef,
                 } as ScriptureTextPanelProps,
                 {
-                    title: 'OHEB: Psalm 119 HTML',
                     position: {
                         direction: 'right',
                         referencePanel: csbPanel.id,
                     },
                 },
             );
-            panelFactory.addPanel(
+            panelManager.current.addPanel(
                 'ScriptureTextPanel',
                 {
                     shortName: 'zzz6',
@@ -112,14 +98,13 @@ const Layout = () => {
                     ...scrRef,
                 } as ScriptureTextPanelProps,
                 {
-                    title: 'zzz6: Psalm 119 Editable HTML',
                     position: {
                         direction: 'below',
                         referencePanel: csbPanel.id,
                     },
                 },
             );
-            panelFactory.addPanel(
+            panelManager.current.addPanel(
                 'ScriptureTextPanel',
                 {
                     shortName: 'NIV84',
@@ -127,14 +112,13 @@ const Layout = () => {
                     ...scrRef,
                 } as ScriptureTextPanelProps,
                 {
-                    title: 'NIV84: Psalm 119 HTML',
                     position: {
                         direction: 'below',
                         referencePanel: ohebPanel.id,
                     },
                 },
             );
-            const zzz1Panel = panelFactory.addPanel(
+            panelManager.current.addPanel(
                 'ScriptureTextPanel',
                 {
                     shortName: 'zzz1',
@@ -142,7 +126,6 @@ const Layout = () => {
                     ...scrRef,
                 } as ScriptureTextPanelProps,
                 {
-                    title: 'zzz1: Psalm 119 Editable HTML',
                     position: {
                         direction: 'below',
                         referencePanel: ohebPanel.id,
