@@ -34,7 +34,7 @@ export const getScripture = async (
                 contents: {
                     text: `Could not get contents of ${shortName} ${getTextFromScrRef(
                         { book: bookNum, chapter, verse: -1 },
-                    )}`,
+                    )}.`,
                 },
             },
         ];
@@ -69,7 +69,7 @@ export const getScriptureRaw = async (
                 chapter,
                 contents: `Could not get contents of ${shortName} ${getTextFromScrRef(
                     { book: bookNum, chapter, verse: -1 },
-                )}`,
+                )}.`,
             },
         ];
     }
@@ -103,7 +103,7 @@ export const getScriptureHtml = async (
                 chapter,
                 contents: `Could not get contents of ${shortName} ${getTextFromScrRef(
                     { book: bookNum, chapter, verse: -1 },
-                )}`,
+                )}.`,
             },
         ];
     }

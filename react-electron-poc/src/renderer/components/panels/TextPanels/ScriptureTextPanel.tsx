@@ -7,8 +7,10 @@ import {
     ScriptureChapter,
     ScriptureReference,
 } from '@shared/data/ScriptureTypes';
+import { getTextFromScrRef } from '@util/ScriptureUtil';
 import { isValidValue } from '@util/Util';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import ContentEditable, { ContentEditableEvent } from 'react-contenteditable';
 import usePromise from 'renderer/hooks/usePromise';
 import useStyle from 'renderer/hooks/useStyle';
 import './TextPanel.css';
@@ -42,22 +44,67 @@ export const ScriptureTextPanel = ({
             return getScriptureHtml(shortName, book, chapter);
         }, [shortName, book, chapter]),
         useState<ScriptureChapter[]>([
-            { chapter: -1, contents: `Loading ${shortName}...` },
+            {
+                chapter: -1,
+                contents: `Loading ${shortName} ${getTextFromScrRef({
+                    book,
+                    chapter,
+                    verse: -1,
+                })}...`,
+            },
         ])[0],
     );
 
+    const editableScrChapters = useRef<ScriptureChapter[]>([
+        {
+            chapter: -1,
+            contents: `Loading ${shortName} ${getTextFromScrRef({
+                book,
+                chapter,
+                verse: -1,
+            })}...`,
+        },
+    ]);
+    const [, setForceRefresh] = useState<number>(0);
+    const forceRefresh = useCallback(
+        () => setForceRefresh((value) => value + 1),
+        [setForceRefresh],
+    );
+
+    useEffect(() => {
+        editableScrChapters.current = scrChapters;
+        forceRefresh();
+    }, [scrChapters, forceRefresh]);
+
+    const handleChange = (evt: ContentEditableEvent, editedChapter: number) => {
+        const editedChapterInd = editableScrChapters.current.findIndex(
+            (scrChapter) => scrChapter.chapter === editedChapter,
+        );
+        editableScrChapters.current[editedChapterInd] = {
+            ...editableScrChapters.current[editedChapterInd],
+            contents: evt.target.value,
+        };
+    };
+
     return (
         <div className="text-panel">
-            {scrChapters.map((scrChapter) => (
-                <div
-                    // TODO: Add chapter number to the index passed in
-                    key={scrChapter.chapter}
-                    // eslint-disable-next-line react/no-danger
-                    dangerouslySetInnerHTML={{
-                        __html: scrChapter.contents as string,
-                    }}
-                />
-            ))}
+            {editable
+                ? editableScrChapters.current.map((scrChapter) => (
+                      <ContentEditable
+                          className="text-panel"
+                          html={scrChapter.contents as string}
+                          onChange={(e) => handleChange(e, scrChapter.chapter)}
+                      />
+                  ))
+                : scrChapters.map((scrChapter) => (
+                      <div
+                          key={scrChapter.chapter}
+                          // eslint-disable-next-line react/no-danger
+                          dangerouslySetInnerHTML={{
+                              __html: scrChapter.contents as string,
+                          }}
+                      />
+                  ))}
         </div>
     );
 };
