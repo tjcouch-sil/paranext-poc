@@ -118,7 +118,7 @@ const Layout = () => {
                     },
                 },
             );
-            panelManager.current.addPanel(
+            const zzz1Panel = panelManager.current.addPanel(
                 'ScriptureTextPanel',
                 {
                     shortName: 'zzz1',
@@ -129,6 +129,21 @@ const Layout = () => {
                     position: {
                         direction: 'below',
                         referencePanel: ohebPanel.id,
+                    },
+                },
+            );
+            panelManager.current.addPanel(
+                'ScriptureTextPanel',
+                {
+                    shortName: 'zzz6',
+                    editable: true,
+                    isSlate: false,
+                    ...scrRef,
+                } as ScriptureTextPanelProps,
+                {
+                    position: {
+                        direction: 'within',
+                        referencePanel: zzz1Panel.id,
                     },
                 },
             );

@@ -21,7 +21,9 @@ export const getScripture = async (
         return chapter >= 0
             ? await window.electronAPI.scripture
                   .getScriptureChapter(shortName, bookNum, chapter)
-                  .then((result) => [result])
+                  .then((result) => [
+                      { ...result, contents: JSON.parse(result.contents) },
+                  ])
             : await window.electronAPI.scripture.getScriptureBook(
                   shortName,
                   bookNum,
@@ -31,11 +33,13 @@ export const getScripture = async (
         return [
             {
                 chapter,
-                contents: {
-                    text: `Could not get contents of ${shortName} ${getTextFromScrRef(
-                        { book: bookNum, chapter, verse: -1 },
-                    )}.`,
-                },
+                contents: [
+                    {
+                        text: `Could not get contents of ${shortName} ${getTextFromScrRef(
+                            { book: bookNum, chapter, verse: -1 },
+                        )}.`,
+                    },
+                ],
             },
         ];
     }
