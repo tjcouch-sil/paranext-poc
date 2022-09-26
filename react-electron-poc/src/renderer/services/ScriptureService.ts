@@ -22,7 +22,12 @@ export const getScripture = async (
             ? await window.electronAPI.scripture
                   .getScriptureChapter(shortName, bookNum, chapter)
                   .then((result) => [
-                      { ...result, contents: JSON.parse(result.contents) },
+                      {
+                          ...result,
+                          contents: JSON.parse(
+                              result.contents as unknown as string, // Parsing from string, but it's nice to know getScripture intends to send json of known type
+                          ),
+                      },
                   ])
             : await window.electronAPI.scripture.getScriptureBook(
                   shortName,

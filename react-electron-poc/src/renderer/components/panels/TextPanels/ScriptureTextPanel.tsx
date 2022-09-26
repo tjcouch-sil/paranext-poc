@@ -14,6 +14,7 @@ import {
     createElement,
     FunctionComponent,
     PropsWithChildren,
+    ReactNode,
     useCallback,
     useEffect,
     useRef,
@@ -23,7 +24,14 @@ import ContentEditable, { ContentEditableEvent } from 'react-contenteditable';
 import usePromise from 'renderer/hooks/usePromise';
 import useStyle from 'renderer/hooks/useStyle';
 import './TextPanel.css';
-import { createEditor, BaseEditor, Descendant, NodeEntry, Node } from 'slate';
+import {
+    createEditor,
+    BaseEditor,
+    NodeEntry,
+    Node,
+    Range,
+    Transforms,
+} from 'slate';
 import {
     Slate,
     Editable,
@@ -53,10 +61,23 @@ type MyRenderElementProps<T> = PropsWithChildren<
     } & Omit<RenderElementProps, 'element' | 'children'>
 >;
 
-type CustomElementProps = {
-    style: string;
-    children: CustomElement[];
+/** Base element props. All elements should have a style */
+type StyleProps = {
+    style?: string;
 };
+
+type MarkerProps = {
+    closingMarker?: boolean;
+} & StyleProps;
+
+type CustomElementProps = {
+    children: CustomElement[];
+} & StyleProps;
+
+export type InlineElementProps = {
+    endSpace?: boolean;
+    closingMarker?: boolean;
+} & MyRenderElementProps<CustomElementProps>;
 
 export type VerseElementProps = {
     type: 'verse';
@@ -64,6 +85,10 @@ export type VerseElementProps = {
 
 export type ParaElementProps = {
     type: 'para';
+} & CustomElementProps;
+
+export type CharElementProps = {
+    type: 'char';
 } & CustomElementProps;
 
 export type ChapterElementProps = {
@@ -79,14 +104,13 @@ export type EditorElementProps = {
 export type CustomElement =
     | VerseElementProps
     | ParaElementProps
+    | CharElementProps
     | ChapterElementProps
     | EditorElementProps;
 
-type FormattedText = { text: string; bold?: true };
+type FormattedText = { text: string } & MarkerProps;
 
 type CustomText = FormattedText;
-
-type CustomDescendant = CustomElement | CustomText;
 
 declare module 'slate' {
     interface CustomTypes {
@@ -97,6 +121,16 @@ declare module 'slate' {
 }
 
 // Slate components
+
+/* Renders markers' \marker text with the marker style */
+const Marker = ({ style, closingMarker = false }: MarkerProps) => {
+    return (
+        <span className="marker" contentEditable={false}>
+            {`\\${style}${closingMarker ? '' : ' '}`}
+        </span>
+    );
+};
+
 /** Prefix added to every marker name for its css class name */
 const MARKER_CLASS_PREFIX = 'usfm_';
 
@@ -107,6 +141,7 @@ const BlockElement = ({
     children,
 }: MyRenderElementProps<CustomElementProps>) => (
     <div className={`${MARKER_CLASS_PREFIX}${style}`} {...attributes}>
+        <Marker style={style} />
         {children}
     </div>
 );
@@ -116,32 +151,45 @@ const InlineElement = ({
     element: { style },
     attributes,
     children,
-}: MyRenderElementProps<CustomElementProps>) => (
+    endSpace = false,
+    closingMarker = false,
+}: InlineElementProps) => (
     <span className={`${MARKER_CLASS_PREFIX}${style}`} {...attributes}>
+        <Marker style={style} />
         {children}
+        {endSpace ? ' ' : undefined}
+        {closingMarker ? (
+            <Marker style={`${style}*`} closingMarker />
+        ) : undefined}
     </span>
 );
 
 const VerseElement = (props: MyRenderElementProps<VerseElementProps>) => (
-    <InlineElement {...props} />
+    <InlineElement {...props} endSpace />
 );
 
-/* Renders a complete block of text */
+/** Renders a complete block of text with an open marker at the start */
 const ParaElement = (props: MyRenderElementProps<ParaElementProps>) => (
     <BlockElement {...props} />
 );
 
-/* Renders a chapter number */
+/** Renders inline text with closed markers around it */
+const CharElement = (props: MyRenderElementProps<CharElementProps>) => (
+    <InlineElement {...props} closingMarker />
+);
+
+/** Renders a chapter number */
 const ChapterElement = (props: MyRenderElementProps<ChapterElementProps>) => (
     <BlockElement {...props} />
 );
 
+/** Overall chapter editor element */
 const EditorElement = ({
-    element: { chapter },
+    element: { number },
     attributes,
     children,
 }: MyRenderElementProps<EditorElementProps>) => (
-    <div className="usfm" id={`editor-chapter-${chapter}`} {...attributes}>
+    <div className="usfm" id={`editor-chapter-${number}`} {...attributes}>
         {children}
     </div>
 );
@@ -150,24 +198,13 @@ const EditorElement = ({
 const EditorElements = {
     verse: VerseElement,
     para: ParaElement,
+    char: CharElement,
     chapter: ChapterElement,
     editor: EditorElement,
 };
 
 /** List of all inline elements */
-const InlineElements = ['verse'];
-
-/* Renders markers' \marker text with the marker style */
-const MarkerDecoration = ({
-    attributes,
-    children,
-}: MyRenderElementProps<MarkerElementProps>) => {
-    return (
-        <span className="marker" {...attributes}>
-            {children}
-        </span>
-    );
-};
+const InlineElements = ['verse', 'char'];
 
 const DefaultElement = ({ attributes, children }: RenderElementProps) => {
     return <p {...attributes}>{children}</p>;
@@ -193,7 +230,7 @@ const withScrMarkers = (editor: CustomEditor): CustomEditor => {
     };
 
     return editor;
-}
+};
 
 export interface ScriptureTextPanelProps
     extends ScriptureReference,
@@ -286,8 +323,10 @@ export const ScriptureTextPanel = ({
     const renderElement = useCallback(
         (props: MyRenderElementProps<CustomElement>): JSX.Element => {
             return createElement(
-                EditorElements[props.element.type] as FunctionComponent,
-                props,
+                (EditorElements[props.element.type] ||
+                    DefaultElement) as FunctionComponent,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                props as any,
             );
             /* switch (props.element.type) {
                 case 'para':
