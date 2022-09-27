@@ -1,12 +1,6 @@
-import { getScriptureStyle, getScripture } from '@services/ScriptureService';
-import {
-    ResourceInfo,
-    ScriptureChapter,
-    ScriptureChapterContent,
-    ScriptureReference,
-} from '@shared/data/ScriptureTypes';
-import { getTextFromScrRef } from '@util/ScriptureUtil';
-import { isString, isValidValue } from '@util/Util';
+import { getScripture } from '@services/ScriptureService';
+import { ScriptureChapterContent } from '@shared/data/ScriptureTypes';
+import { isString } from '@util/Util';
 import {
     createElement,
     FunctionComponent,
@@ -15,8 +9,6 @@ import {
     useEffect,
     useState,
 } from 'react';
-import usePromise from 'renderer/hooks/usePromise';
-import useStyle from 'renderer/hooks/useStyle';
 import './TextPanel.css';
 import { createEditor, BaseEditor, NodeEntry, Node, Transforms } from 'slate';
 import {

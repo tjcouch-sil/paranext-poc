@@ -3,7 +3,7 @@ import { getTextFromScrRef } from '@util/ScriptureUtil';
 import { newGuid } from '@util/Util';
 import { DockviewReadyEvent, AddPanelOptions } from 'dockview';
 import { PanelType } from './Panels';
-import { ScriptureTextPanelProps } from './TextPanels/ScriptureTextPanel';
+import { ScriptureTextPanelHOCProps } from './TextPanels/ScriptureTextPanelHOC';
 
 export interface PanelInfo {
     id: string;
@@ -31,7 +31,7 @@ export class PanelManager {
         if (panelInfo.title || panelInfo.title === '') return panelInfo.title;
 
         if (panelInfo.type.startsWith('ScriptureTextPanel')) {
-            const scrPanelProps = panelProps as ScriptureTextPanelProps;
+            const scrPanelProps = panelProps as ScriptureTextPanelHOCProps;
             return `${scrPanelProps.shortName}: ${getTextFromScrRef({
                 book: scrPanelProps.book,
                 chapter: scrPanelProps.chapter,

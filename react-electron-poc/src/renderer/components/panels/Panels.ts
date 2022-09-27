@@ -4,7 +4,7 @@ import { Erb } from './Erb/Erb';
 import { TextPanel } from './TextPanels/TextPanel';
 import { HtmlTextPanel } from './TextPanels/HtmlTextPanel';
 import { EditableHtmlTextPanel } from './TextPanels/EditableHtmlTextPanel';
-import { ScriptureTextPanel } from './TextPanels/ScriptureTextPanel';
+import { ScriptureTextPanelHtml } from './TextPanels/ScriptureTextPanelHtml';
 import { ScriptureTextPanelSlate } from './TextPanels/ScriptureTextPanelSlate';
 
 // TODO: Consider doing something a bit different with this https://stackoverflow.com/questions/29722270/is-it-possible-to-import-modules-from-all-files-in-a-directory-using-a-wildcard
@@ -14,7 +14,7 @@ export const Panels = {
     TextPanel,
     HtmlTextPanel,
     EditableHtmlTextPanel,
-    ScriptureTextPanel,
+    ScriptureTextPanelHtml,
     ScriptureTextPanelSlate,
 };
 export default Panels;

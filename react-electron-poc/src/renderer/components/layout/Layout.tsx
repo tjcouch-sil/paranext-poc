@@ -7,7 +7,7 @@ import {
     getAllResourceInfo,
     getResourceInfo,
 } from '@services/ScriptureService';
-import { ScriptureTextPanelProps } from '@components/panels/TextPanels/ScriptureTextPanel';
+import { ScriptureTextPanelHtmlProps } from '@components/panels/TextPanels/ScriptureTextPanelHtml';
 import { ScriptureReference } from '@shared/data/ScriptureTypes';
 import ScrRefSelector from '@components/ScrRefSelector';
 import { PanelManager } from '@components/panels/PanelManager';
@@ -69,20 +69,20 @@ const Layout = () => {
                 },
             ); */
             const csbPanel = panelManager.current.addPanel(
-                'ScriptureTextPanel',
+                'ScriptureTextPanelHtml',
                 {
                     shortName: 'CSB',
                     editable: false,
                     ...scrRef,
-                } as ScriptureTextPanelProps,
+                } as ScriptureTextPanelHtmlProps,
             );
             const ohebPanel = panelManager.current.addPanel(
-                'ScriptureTextPanel',
+                'ScriptureTextPanelHtml',
                 {
                     shortName: 'OHEB',
                     editable: false,
                     ...scrRef,
-                } as ScriptureTextPanelProps,
+                } as ScriptureTextPanelHtmlProps,
                 {
                     position: {
                         direction: 'right',
@@ -96,7 +96,7 @@ const Layout = () => {
                     shortName: 'zzz6',
                     editable: true,
                     ...scrRef,
-                } as ScriptureTextPanelProps,
+                } as ScriptureTextPanelHtmlProps,
                 {
                     position: {
                         direction: 'below',
@@ -105,12 +105,12 @@ const Layout = () => {
                 },
             );
             panelManager.current.addPanel(
-                'ScriptureTextPanel',
+                'ScriptureTextPanelHtml',
                 {
                     shortName: 'NIV84',
                     editable: false,
                     ...scrRef,
-                } as ScriptureTextPanelProps,
+                } as ScriptureTextPanelHtmlProps,
                 {
                     position: {
                         direction: 'below',
@@ -119,12 +119,12 @@ const Layout = () => {
                 },
             );
             const zzz1Panel = panelManager.current.addPanel(
-                'ScriptureTextPanel',
+                'ScriptureTextPanelHtml',
                 {
                     shortName: 'zzz1',
                     editable: true,
                     ...scrRef,
-                } as ScriptureTextPanelProps,
+                } as ScriptureTextPanelHtmlProps,
                 {
                     position: {
                         direction: 'below',
@@ -133,12 +133,12 @@ const Layout = () => {
                 },
             );
             panelManager.current.addPanel(
-                'ScriptureTextPanel',
+                'ScriptureTextPanelHtml',
                 {
                     shortName: 'zzz6',
                     editable: true,
                     ...scrRef,
-                } as ScriptureTextPanelProps,
+                } as ScriptureTextPanelHtmlProps,
                 {
                     position: {
                         direction: 'within',

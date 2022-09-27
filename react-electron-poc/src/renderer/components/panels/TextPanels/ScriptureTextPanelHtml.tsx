@@ -1,33 +1,24 @@
+import { getScriptureHtml } from '@services/ScriptureService';
 import {
-    getScriptureStyle,
-    getScriptureHtml,
-} from '@services/ScriptureService';
-import {
-    ResourceInfo,
     ScriptureChapter,
     ScriptureChapterString,
-    ScriptureReference,
 } from '@shared/data/ScriptureTypes';
-import { getTextFromScrRef } from '@util/ScriptureUtil';
-import { isValidValue } from '@util/Util';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ContentEditable, { ContentEditableEvent } from 'react-contenteditable';
-import usePromise from 'renderer/hooks/usePromise';
-import useStyle from 'renderer/hooks/useStyle';
 import {
     ScriptureTextPanelHOC,
     ScriptureTextPanelHOCProps,
 } from './ScriptureTextPanelHOC';
 import './TextPanel.css';
 
-export interface ScriptureTextPanelProps extends ScriptureTextPanelHOCProps {
+export interface ScriptureTextPanelHtmlProps extends ScriptureTextPanelHOCProps {
     scrChapters: ScriptureChapterString[];
 }
 
 /** The function to use to get the Scripture chapter content to display */
 const getScrChapter = getScriptureHtml;
 
-export const ScriptureTextPanel = ScriptureTextPanelHOC(
+export const ScriptureTextPanelHtml = ScriptureTextPanelHOC(
     ({
         shortName,
         editable,
@@ -35,7 +26,7 @@ export const ScriptureTextPanel = ScriptureTextPanelHOC(
         chapter,
         verse,
         scrChapters,
-    }: ScriptureTextPanelProps) => {
+    }: ScriptureTextPanelHtmlProps) => {
         // Make a ref for the Scripture that works with react-content-editable
         const editableScrChapters = useRef<ScriptureChapter[]>([
             {
