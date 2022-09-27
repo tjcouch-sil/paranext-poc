@@ -3,12 +3,20 @@ body {
 }
 
 #root {
-    width: 100vw;
     height: 100vh;
 }
 
 .layout {
     height: 100%;
+    /* TODO: Figure out restoring after maximizing */
+    /* display: flex;
+    flex-direction: column; */
+}
+
+.layout .layout-dock {
+    /* TODO: Figure out restoring after maximizing */
+    /* flex-grow: 1; */
+    height: calc(100% - 47px);
 }
 
 .groupview.active-group > .tabs-and-actions-container {

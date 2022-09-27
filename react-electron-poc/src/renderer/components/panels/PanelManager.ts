@@ -30,13 +30,15 @@ export class PanelManager {
             throw new Error('generatePanelTitle: panelInfo undefined!');
         if (panelInfo.title || panelInfo.title === '') return panelInfo.title;
 
-        if (panelInfo.type === 'ScriptureTextPanel') {
+        if (panelInfo.type.startsWith('ScriptureTextPanel')) {
             const scrPanelProps = panelProps as ScriptureTextPanelProps;
             return `${scrPanelProps.shortName}: ${getTextFromScrRef({
                 book: scrPanelProps.book,
                 chapter: scrPanelProps.chapter,
                 verse: -1,
-            })}${scrPanelProps.editable ? ' Editable' : ''}`;
+            })}${scrPanelProps.editable ? ' Editable' : ''}${
+                panelInfo.type === 'ScriptureTextPanelSlate' ? ' Slate' : ''
+            }`;
         }
         return panelInfo.type;
     }

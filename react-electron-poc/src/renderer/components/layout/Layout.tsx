@@ -91,7 +91,7 @@ const Layout = () => {
                 },
             );
             panelManager.current.addPanel(
-                'ScriptureTextPanel',
+                'ScriptureTextPanelSlate',
                 {
                     shortName: 'zzz6',
                     editable: true,
@@ -137,7 +137,6 @@ const Layout = () => {
                 {
                     shortName: 'zzz6',
                     editable: true,
-                    isSlate: false,
                     ...scrRef,
                 } as ScriptureTextPanelProps,
                 {
@@ -152,16 +151,16 @@ const Layout = () => {
     );
 
     return (
-        <>
+        <div className="layout">
             <ScrRefSelector scrRef={scrRef} handleSubmit={updateScrRef} />
-            <div className="layout">
+            <div className="layout-dock">
                 <DockviewReact
                     className="dockview-theme-abyss"
                     onReady={onReady}
                     components={DockViewPanels}
                 />
             </div>
-        </>
+        </div>
     );
 };
 export default Layout;
