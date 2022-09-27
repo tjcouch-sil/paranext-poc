@@ -8,15 +8,15 @@ body {
 
 .layout {
     height: 100%;
-    /* TODO: Figure out restoring after maximizing */
-    /* display: flex;
-    flex-direction: column; */
+    display: flex;
+    flex-direction: column;
 }
 
 .layout .layout-dock {
-    /* TODO: Figure out restoring after maximizing */
-    /* flex-grow: 1; */
-    height: calc(100% - 47px);
+    flex-grow: 1;
+    /* Workaround for restoring from maximized leaving the dockview at maximized height.
+       See https://github.com/mathuo/dockview/issues/158#issuecomment-1260007967 for more info */
+    overflow: hidden;
 }
 
 .groupview.active-group > .tabs-and-actions-container {
