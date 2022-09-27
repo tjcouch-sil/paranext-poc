@@ -2,6 +2,7 @@ import { getScriptureStyle, getScripture } from '@services/ScriptureService';
 import {
     ResourceInfo,
     ScriptureChapter,
+    ScriptureChapterContent,
     ScriptureReference,
 } from '@shared/data/ScriptureTypes';
 import { getTextFromScrRef } from '@util/ScriptureUtil';
@@ -25,6 +26,10 @@ import {
     ReactEditor,
     RenderElementProps,
 } from 'slate-react';
+import {
+    ScriptureTextPanelHOC,
+    ScriptureTextPanelHOCProps,
+} from './ScriptureTextPanelHOC';
 
 // Slate types
 type CustomEditor = BaseEditor & ReactEditor;
@@ -218,115 +223,81 @@ const withScrMarkers = (editor: CustomEditor): CustomEditor => {
     return editor;
 };
 
-export interface ScriptureTextPanelProps
-    extends ScriptureReference,
-        ResourceInfo {}
+export interface ScriptureTextPanelProps extends ScriptureTextPanelHOCProps {
+    scrChapters: ScriptureChapterContent[];
+}
 
-export const ScriptureTextPanelSlate = ({
-    shortName,
-    editable,
-    book,
-    chapter,
-    verse,
-}: ScriptureTextPanelProps) => {
-    // Pull in the project's stylesheet
-    useStyle(
-        useCallback(async () => {
-            // TODO: Fix RTL scripture style sheets
-            if (!shortName) return undefined;
-            const style = await getScriptureStyle(shortName);
-            return shortName !== 'OHEB' && shortName !== 'zzz1'
-                ? style
-                : undefined;
-        }, [shortName]),
-    );
+/** The function to use to get the Scripture chapter content to display */
+const getScrChapter = getScripture;
 
-    // Get the project's contents
-    const [scrChapters] = usePromise<ScriptureChapter[]>(
-        useCallback(async () => {
-            if (!shortName || !isValidValue(book) || !isValidValue(chapter))
-                return null;
-            return getScripture(shortName, book, chapter);
-        }, [shortName, book, chapter]),
-        useState<ScriptureChapter[]>([
-            {
-                chapter: -1,
-                contents: `Loading ${shortName} ${getTextFromScrRef({
-                    book,
-                    chapter,
-                    verse: -1,
-                })}...`,
+export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
+    ({
+        shortName,
+        editable,
+        book,
+        chapter,
+        verse,
+        scrChapters,
+    }: ScriptureTextPanelProps) => {
+        // Slate editor
+        const [editor] = useState<CustomEditor>(() =>
+            withScrMarkers(withScrInlines(withReact(createEditor()))),
+        );
+
+        // Render our components for this project
+        const renderElement = useCallback(
+            (props: MyRenderElementProps<CustomElement>): JSX.Element => {
+                return createElement(
+                    (EditorElements[props.element.type] ||
+                        DefaultElement) as FunctionComponent,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    props as any,
+                );
             },
-        ])[0],
-    );
+            [],
+        );
 
-    // Slate editor
-    const [editor] = useState<CustomEditor>(() =>
-        withScrMarkers(withScrInlines(withReact(createEditor()))),
-    );
+        // When we get new Scripture project contents, update slate
+        useEffect(() => {
+            if (scrChapters && scrChapters.length > 0) {
+                // TODO: Save the verse...? Maybe if book/chapter was not changed?
 
-    // Render our components for this project
-    const renderElement = useCallback(
-        (props: MyRenderElementProps<CustomElement>): JSX.Element => {
-            return createElement(
-                (EditorElements[props.element.type] ||
-                    DefaultElement) as FunctionComponent,
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                props as any,
-            );
-            /* switch (props.element.type) {
-                case 'para':
-                    return (
-                        <MarkerElement
-                            {...(props as MyRenderElementProps<MarkerElementProps>)}
-                        />
-                    );
-                case 'chapter':
-                    return (
-                        <ChapterElement
-                            {...(props as MyRenderElementProps<ChapterElementProps>)}
-                        />
-                    );
-                default:
-                    return (
-                        <DefaultElement {...(props as RenderElementProps)} />
-                    );
-            } */
-        },
-        [],
-    );
+                // Unselect
+                Transforms.deselect(editor);
 
-    // When we get new Scripture project contents, update slate
-    useEffect(() => {
-        if (scrChapters && scrChapters.length > 0) {
-            // TODO: Save the verse...? Maybe if book/chapter was not changed?
+                // Replace the editor's contents
+                editor.children = scrChapters.map(
+                    (scrChapter) =>
+                        ({
+                            type: 'editor',
+                            number: scrChapter.chapter.toString(),
+                            children: isString(scrChapter.contents)
+                                ? [
+                                      {
+                                          // TODO: When loading, the contents come as a string. Consider how to improve the loading value in ScriptureTextPanelHOC
+                                          text: scrChapter.contents as unknown as string,
+                                      } as CustomText,
+                                  ]
+                                : (scrChapter.contents as CustomElement[]),
+                        } as EditorElementProps),
+                );
 
-            // Unselect
-            Transforms.deselect(editor);
+                // TODO: Update cursor to new ScrRef
 
-            // Replace the editor's contents
-            editor.children = scrChapters.map(
-                (scrChapter) =>
-                    ({
-                        type: 'editor',
-                        number: scrChapter.chapter.toString(),
-                        children: isString(scrChapter.contents)
-                            ? [{ text: scrChapter.contents } as CustomText]
-                            : (scrChapter.contents as CustomElement[]),
-                    } as EditorElementProps),
-            );
+                editor.onChange();
+            }
+        }, [scrChapters, editor]);
 
-            // TODO: Update cursor to new ScrRef
-
-            editor.onChange();
-        }
-    }, [scrChapters, editor]);
-
-    return (
-        <div className="text-panel">
-            <Slate editor={editor} value={[{ text: 'Loading' }]}>
-                <Editable readOnly={!editable} renderElement={renderElement} />
-            </Slate>
-        </div>
-    );
-};
+        return (
+            <div className="text-panel">
+                <Slate editor={editor} value={[{ text: 'Loading' }]}>
+                    <Editable
+                        readOnly={!editable}
+                        renderElement={renderElement}
+                    />
+                </Slate>
+            </div>
+        );
+    },
+    getScrChapter,
+);
