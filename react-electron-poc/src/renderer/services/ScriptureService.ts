@@ -1,4 +1,4 @@
-import {
+﻿import {
     ResourceInfo,
     ScriptureChapterContent,
     ScriptureChapterString,
@@ -90,7 +90,7 @@ export const getScriptureRaw = async (
  * @param bookNum number of book to get
  * @param chapter number of chapter to get. Defaults to -1 meaning the whole book
  * @returns Promise with specified chapter or book if chapter not specified
- */
+
 export const getScriptureHtml = async (
     shortName: string,
     bookNum: number,
@@ -117,6 +117,38 @@ export const getScriptureHtml = async (
         ];
     }
 };
+ */
+
+/**
+ * Gets the specified Scripture chapter in the specified book from the specified project in HTML
+ * @param shortName the short name of the project
+ * @param bookNum number of book to get
+ * @param chapter number of chapter to get. Defaults to -1 meaning the whole book
+ * @returns Promise with specified chapter or book if chapter not specified
+ */
+export const getScriptureHtml = async (
+    shortName: string,
+    bookNumber: number,
+    chapterNumber = -1,
+): Promise<string> => {
+    return fetch(
+        `http://localhost:5122/api/scriptureText/GetScriptureText/${shortName}/${bookNumber}/${chapterNumber}`,
+        {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+            },
+        },
+    )
+        .then((response) => response.json())
+        .catch((error) =>
+            console.error(
+                `Unable to get the ${shortName} project to display.`,
+                error,
+            ),
+        );
+};
 
 /**
  * Gets the specified Scripture stylesheeet from the specified project
@@ -132,10 +164,29 @@ export const getScriptureStyle = async (shortName: string): Promise<string> => {
  * @param shortName the short name of the project
  * @returns Promise with ResourceInfo for the specified resource
  */
-export const getResourceInfo = async (
-    shortName: string,
-): Promise<ResourceInfo> => {
-    return window.electronAPI.scripture.getResourceInfo(shortName);
+/**
+ * Gets information about the resource such as whether or not it is editable
+ * @param shortName the short name of the resource
+ * @returns Promise with info about the specified resource
+ */
+export const getResourceInfo = async (shortName: string): Promise<string> => {
+    return fetch(
+        `http://localhost:5122/api/resource/GetResourceInfo/${shortName}`,
+        {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+            },
+        },
+    )
+        .then((response) => response.json())
+        .catch((error) =>
+            console.error(
+                `Unable to get the ${shortName} resource info to display.`,
+                error,
+            ),
+        );
 };
 
 /**
@@ -143,7 +194,20 @@ export const getResourceInfo = async (
  * @returns Promise with array of ResourceInfo for all resources
  */
 export const getAllResourceInfo = async (): Promise<ResourceInfo[]> => {
-    return window.electronAPI.scripture.getAllResourceInfo();
+    return fetch(`http://localhost:5122/api/resource/GetAllResourceInfo`, {
+        method: 'GET',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+        },
+    })
+        .then((response) => response.json())
+        .catch((error) =>
+            console.error(
+                `Unable to get the all of the resource infos to display.`,
+                error,
+            ),
+        );
 };
 
 /**
