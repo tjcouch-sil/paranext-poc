@@ -1,12 +1,10 @@
-import './Layout.css';
+﻿import './Layout.css';
 import { DockviewReact, DockviewReadyEvent } from 'dockview';
 import '@node_modules/dockview/dist/styles/dockview.css';
 import { DockViewPanels } from '@components/panels/Panels';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-    getAllResourceInfo,
-    getResourceInfo,
-} from '@services/ScriptureService';
+import { getScripture, getScriptureHtml, getResourceInfo,
+getAllResourceInfo, } from '@services/ScriptureService';
 import { ResourceInfo, ScriptureReference } from '@shared/data/ScriptureTypes';
 import ScrRefSelector from '@components/ScrRefSelector';
 import {
