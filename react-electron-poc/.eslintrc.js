@@ -9,7 +9,6 @@ module.exports = {
 
         // TJ's rules
         indent: 'off',
-        'react/jsx-indent': ['warn', 4],
         'react/jsx-indent-props': ['warn', 4],
         'comma-dangle': ['error', 'always-multiline'],
         'prettier/prettier': ['warn', { tabWidth: 4, trailingComma: 'all' }],

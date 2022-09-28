@@ -13,7 +13,7 @@ import fs from 'fs';
 import { app, BrowserWindow, shell, IpcMainInvokeEvent } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
-import { ResourceInfo, ScriptureContent } from '@shared/data/ScriptureTypes';
+import { ResourceInfo, ScriptureChapter } from '@shared/data/ScriptureTypes';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import { ipcMain } from './electron-extensions';
@@ -38,6 +38,7 @@ const isDebug =
 
 if (isDebug) {
     require('electron-debug')();
+    console.log('Debug start!');
 }
 
 const installExtensions = async () => {
@@ -186,11 +187,22 @@ async function handleGetScriptureBook(
     fileExtension: string,
     shortName: string,
     bookNum: number,
-): Promise<(ScriptureContent | string)[]> {
-    return getFilesText(
-        [`testScripture/${shortName}/${bookNum}.${fileExtension}`],
-        getScriptureDelay,
-    );
+): Promise<ScriptureChapter[]> {
+    // TODO: If we want to implement this, parse file and split out into actual chapters
+    try {
+        return await getFilesText(
+            [`testScripture/${shortName}/${bookNum}.${fileExtension}`],
+            getScriptureDelay,
+        ).then((filesContents) =>
+            filesContents.map((fileContents, ind) => ({
+                chapter: ind,
+                contents: fileContents,
+            })),
+        );
+    } catch (e) {
+        console.log(e);
+        throw new Error(`No data for ${shortName} ${bookNum}`);
+    }
 }
 
 /**
@@ -212,11 +224,19 @@ async function handleGetScriptureChapter(
     shortName: string,
     bookNum: number,
     chapter: number,
-): Promise<ScriptureContent | string> {
-    return getFileText(
-        `testScripture/${shortName}/${bookNum}-${chapter}.${fileExtension}`,
-        getScriptureDelay,
-    );
+): Promise<ScriptureChapter> {
+    try {
+        return await getFileText(
+            `testScripture/${shortName}/${bookNum}-${chapter}.${fileExtension}`,
+            getScriptureDelay,
+        ).then((fileContents) => ({
+            chapter,
+            contents: fileContents,
+        }));
+    } catch (e) {
+        console.log(e);
+        throw new Error(`No data for ${shortName} ${bookNum} ${chapter}`);
+    }
 }
 
 /** These test files are from breakpointing at UsfmSinglePaneControl.cs at the line that gets Css in LoadUsfm. */
@@ -239,8 +259,7 @@ async function handleGetResourceInfo(
     }, getResourceInfoDelay);
 }
 
-async function handleGetAllResourceInfo(
-): Promise<ResourceInfo[]> {
+async function handleGetAllResourceInfo(): Promise<ResourceInfo[]> {
     return delayPromise<ResourceInfo[]>((resolve, reject) => {
         const start = performance.now();
         fs.readdir(

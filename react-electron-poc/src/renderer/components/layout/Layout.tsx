@@ -1,154 +1,152 @@
 import './Layout.css';
 import { DockviewReact, DockviewReadyEvent } from 'dockview';
 import '@node_modules/dockview/dist/styles/dockview.css';
-import { DockViewPanels, PanelFactory } from '@components/panels/Panels';
-import { useCallback } from 'react';
-import { TextPanelProps } from '@components/panels/TextPanels/TextPanel';
+import { DockViewPanels } from '@components/panels/Panels';
+import { useCallback, useRef, useState } from 'react';
 import {
     getAllResourceInfo,
     getResourceInfo,
-    getScriptureHtml,
 } from '@services/ScriptureService';
+import { ScriptureTextPanelProps } from '@components/panels/TextPanels/ScriptureTextPanel';
+import { ScriptureReference } from '@shared/data/ScriptureTypes';
+import ScrRefSelector from '@components/ScrRefSelector';
+import { PanelManager } from '@components/panels/PanelManager';
 
 const Layout = () => {
-    const onReady = useCallback((event: DockviewReadyEvent) => {
-        // Test resource info api
-        getAllResourceInfo()
-            .then((allResourceInfo) =>
-                console.log(
-                    `All Resource Info:\n${allResourceInfo
-                        .map(
-                            (resourceInfo) =>
-                                `\tResource: ${resourceInfo.shortName}${
-                                    resourceInfo.editable ? ' editable' : ''
-                                }`,
-                        )
-                        .join('\n')}`,
-                ),
-            )
-            .catch((r) => console.log(r));
-        getResourceInfo('zzz6')
-            .then((resourceInfo) =>
-                console.log(
-                    `Resource: ${resourceInfo.shortName}${
-                        resourceInfo.editable ? ' editable' : ''
-                    }`,
-                ),
-            )
-            .catch((r) => console.log(r));
+    const panelManager = useRef<PanelManager | undefined>(undefined);
 
-        const panelFactory = new PanelFactory(event);
-        /* const erb = panelFactory.addPanel('Erb', undefined, {
-            title: 'ERB',
-        }); */
-        /* const textPanel = panelFactory.addPanel(
-            'TextPanel',
-            {
-                placeholderText: 'Loading zzz6 Psalm 119 USX',
-                textPromise: getScripture('zzz6', 19, 119),
-            } as TextPanelProps,
-            {
-                title: 'zzz6: Psalm 119 USX',
-            },
-        ); */
-        const htmlTextPanel = panelFactory.addPanel(
-            'HtmlTextPanel',
-            {
-                placeholderText: 'Loading CSB Psalm 119 HTML',
-                textPromise: getScriptureHtml('CSB', 19, 119).then(
-                    (result) => result[0],
-                ),
-            } as TextPanelProps,
-            {
-                title: 'CSB: Psalm 119 HTML',
-            },
-        );
-        const htmlTextPanelOHEB = panelFactory.addPanel(
-            'HtmlTextPanel',
-            {
-                placeholderText: 'Loading OHEB Psalm 119 HTML',
-                textPromise: getScriptureHtml('OHEB', 19, 119).then(
-                    (result) => result[0],
-                ),
-            } as TextPanelProps,
-            {
-                title: 'OHEB: Psalm 119 HTML',
-                position: {
-                    direction: 'right',
-                    referencePanel: htmlTextPanel.id,
-                },
-            },
-        );
-        const editableHtmlTextPanel = panelFactory.addPanel(
-            'EditableHtmlTextPanel',
-            {
-                placeholderText: 'Loading zzz6 Psalm 119 Editable HTML',
-                textPromise: getScriptureHtml('zzz6', 19, 119).then(
-                    (result) => result[0],
-                ),
-            } as TextPanelProps,
-            {
-                title: 'zzz6: Psalm 119 Editable HTML',
-                position: {
-                    direction: 'below',
-                    referencePanel: htmlTextPanel.id,
-                },
-            },
-        );
-        panelFactory.addPanel(
-            'HtmlTextPanel',
-            {
-                placeholderText: 'Loading NIV84 Psalm 119 HTML',
-                textPromise: getScriptureHtml('NIV84', 19, 119).then(
-                    (result) => result[0],
-                ),
-            } as TextPanelProps,
-            {
-                title: 'NIV84: Psalm 119 HTML',
-                position: {
-                    direction: 'below',
-                    referencePanel: htmlTextPanelOHEB.id,
-                },
-            },
-        );
-        panelFactory.addPanel(
-            'EditableHtmlTextPanel',
-            {
-                placeholderText: 'Loading zzz1 Psalm 119 Editable HTML',
-                textPromise: getScriptureHtml('zzz1', 19, 119).then(
-                    (result) => result[0],
-                ),
-            } as TextPanelProps,
-            {
-                title: 'zzz1: Psalm 119 Editable HTML',
-                position: {
-                    direction: 'below',
-                    referencePanel: htmlTextPanelOHEB.id,
-                },
-            },
-        );
+    const [scrRef, setScrRef] = useState<ScriptureReference>({
+        book: 19,
+        chapter: 119,
+        verse: 1,
+    });
 
-        event.api.getPanel(htmlTextPanel.id)?.focus();
+    const updateScrRef = useCallback((newScrRef: ScriptureReference) => {
+        setScrRef(newScrRef);
 
-        // TODO: Figure out how to resize panels or do anything with them really
-        /* setTimeout(
-            () =>
-                textPanel.api.setSize({
-                    width: textPanel.api.width,
-                    height: 100,
-                }),
-            1000,
-        ); */
+        panelManager.current?.updateScrRef(newScrRef);
     }, []);
 
+    const onReady = useCallback(
+        (event: DockviewReadyEvent) => {
+            // Test resource info api
+            getAllResourceInfo()
+                .then((allResourceInfo) =>
+                    console.log(
+                        `All Resource Info:\n${allResourceInfo
+                            .map(
+                                (resourceInfo) =>
+                                    `\tResource: ${resourceInfo.shortName}${
+                                        resourceInfo.editable ? ' editable' : ''
+                                    }`,
+                            )
+                            .join('\n')}`,
+                    ),
+                )
+                .catch((r) => console.log(r));
+            getResourceInfo('zzz6')
+                .then((resourceInfo) =>
+                    console.log(
+                        `Resource: ${resourceInfo.shortName}${
+                            resourceInfo.editable ? ' editable' : ''
+                        }`,
+                    ),
+                )
+                .catch((r) => console.log(r));
+
+            panelManager.current = new PanelManager(event);
+            /* const erb = panelFactory.addPanel('Erb', undefined, {
+                title: 'ERB',
+            }); */
+            /* const textPanel = panelFactory.addPanel(
+                'TextPanel',
+                {
+                    placeholderText: 'Loading zzz6 Psalm 119 USX',
+                    textPromise: getScripture('zzz6', 19, 119),
+                } as TextPanelProps,
+                {
+                    title: 'zzz6: Psalm 119 USX',
+                },
+            ); */
+            const csbPanel = panelManager.current.addPanel(
+                'ScriptureTextPanel',
+                {
+                    shortName: 'CSB',
+                    editable: false,
+                    ...scrRef,
+                } as ScriptureTextPanelProps,
+            );
+            const ohebPanel = panelManager.current.addPanel(
+                'ScriptureTextPanel',
+                {
+                    shortName: 'OHEB',
+                    editable: false,
+                    ...scrRef,
+                } as ScriptureTextPanelProps,
+                {
+                    position: {
+                        direction: 'right',
+                        referencePanel: csbPanel.id,
+                    },
+                },
+            );
+            panelManager.current.addPanel(
+                'ScriptureTextPanel',
+                {
+                    shortName: 'zzz6',
+                    editable: true,
+                    ...scrRef,
+                } as ScriptureTextPanelProps,
+                {
+                    position: {
+                        direction: 'below',
+                        referencePanel: csbPanel.id,
+                    },
+                },
+            );
+            panelManager.current.addPanel(
+                'ScriptureTextPanel',
+                {
+                    shortName: 'NIV84',
+                    editable: false,
+                    ...scrRef,
+                } as ScriptureTextPanelProps,
+                {
+                    position: {
+                        direction: 'below',
+                        referencePanel: ohebPanel.id,
+                    },
+                },
+            );
+            panelManager.current.addPanel(
+                'ScriptureTextPanel',
+                {
+                    shortName: 'zzz1',
+                    editable: true,
+                    ...scrRef,
+                } as ScriptureTextPanelProps,
+                {
+                    position: {
+                        direction: 'below',
+                        referencePanel: ohebPanel.id,
+                    },
+                },
+            );
+        },
+        [scrRef],
+    );
+
     return (
-        <div className="layout">
-            <DockviewReact
-                className="dockview-theme-abyss"
-                onReady={onReady}
-                components={DockViewPanels}
-            />
-        </div>
+        <>
+            <ScrRefSelector scrRef={scrRef} handleSubmit={updateScrRef} />
+            <div className="layout">
+                <DockviewReact
+                    className="dockview-theme-abyss"
+                    onReady={onReady}
+                    components={DockViewPanels}
+                />
+            </div>
+        </>
     );
 };
 export default Layout;

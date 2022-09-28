@@ -1,5 +1,9 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
-import { ResourceInfo, ScriptureContent } from '@shared/data/ScriptureTypes';
+import {
+    ResourceInfo,
+    ScriptureChapterContent,
+    ScriptureChapterString,
+} from '@shared/data/ScriptureTypes';
 
 /**
  * Whitelisted channel names through which the main and renderer processes can communicate.
@@ -17,7 +21,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         getScriptureBook: (
             shortName: string,
             bookNum: number,
-        ): Promise<ScriptureContent[]> =>
+        ): Promise<ScriptureChapterContent[]> =>
             ipcRenderer.invoke(
                 'ipc-scripture:getScriptureBook',
                 shortName,
@@ -27,7 +31,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
             shortName: string,
             bookNum: number,
             chapter: number,
-        ): Promise<ScriptureContent> =>
+        ): Promise<ScriptureChapterContent> =>
             ipcRenderer.invoke(
                 'ipc-scripture:getScriptureChapter',
                 shortName,
@@ -37,7 +41,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         getScriptureBookRaw: (
             shortName: string,
             bookNum: number,
-        ): Promise<string[]> =>
+        ): Promise<ScriptureChapterString[]> =>
             ipcRenderer.invoke(
                 'ipc-scripture:getScriptureBookRaw',
                 shortName,
@@ -47,7 +51,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
             shortName: string,
             bookNum: number,
             chapter: number,
-        ): Promise<string> =>
+        ): Promise<ScriptureChapterString> =>
             ipcRenderer.invoke(
                 'ipc-scripture:getScriptureChapterRaw',
                 shortName,
@@ -57,7 +61,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         getScriptureBookHtml: (
             shortName: string,
             bookNum: number,
-        ): Promise<string[]> =>
+        ): Promise<ScriptureChapterString[]> =>
             ipcRenderer.invoke(
                 'ipc-scripture:getScriptureBookHtml',
                 shortName,
@@ -67,7 +71,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
             shortName: string,
             bookNum: number,
             chapter: number,
-        ): Promise<string> =>
+        ): Promise<ScriptureChapterString> =>
             ipcRenderer.invoke(
                 'ipc-scripture:getScriptureChapterHtml',
                 shortName,

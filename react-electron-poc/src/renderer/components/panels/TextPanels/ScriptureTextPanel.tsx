@@ -2,60 +2,109 @@ import {
     getScriptureStyle,
     getScriptureHtml,
 } from '@services/ScriptureService';
-import { useEffect, useState } from 'react';
+import {
+    ResourceInfo,
+    ScriptureChapter,
+    ScriptureReference,
+} from '@shared/data/ScriptureTypes';
+import { getTextFromScrRef } from '@util/ScriptureUtil';
+import { isValidValue } from '@util/Util';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import ContentEditable, { ContentEditableEvent } from 'react-contenteditable';
+import usePromise from 'renderer/hooks/usePromise';
 import useStyle from 'renderer/hooks/useStyle';
 import './TextPanel.css';
 
-export interface ScriptureTextPanelProps {
-    shortName: string;
-    book: number;
-    chapter: number;
-    verse: number;
-}
+export interface ScriptureTextPanelProps
+    extends ScriptureReference,
+        ResourceInfo {}
 
 export const ScriptureTextPanel = ({
     shortName,
+    editable,
     book,
     chapter,
     verse,
 }: ScriptureTextPanelProps) => {
-    const [scrHtml, setScrHtml] = useState<string | undefined>(undefined);
+    useStyle(
+        useCallback(async () => {
+            // TODO: Fix RTL scripture style sheets
+            if (!shortName) return undefined;
+            const style = await getScriptureStyle(shortName);
+            return shortName !== 'OHEB' && shortName !== 'zzz1'
+                ? style
+                : undefined;
+        }, [shortName]),
+    );
 
-    const [scrStyle, setScrStyle] = useState<string>('');
-    useEffect(() => {
-        // eslint-disable-next-line promise/catch-or-return
-        getScriptureStyle(shortName).then((s) => setScrStyle(s));
-    }, [shortName]);
-
-    useStyle(scrStyle);
-
-    useEffect(() => {
-        let scriptureRefIsCurrent = false;
-        if (shortName && book) {
-            scriptureRefIsCurrent = true;
-            (async () => {
-                const scriptureHtml = await getScriptureHtml(
-                    shortName,
+    const [scrChapters] = usePromise<ScriptureChapter[]>(
+        useCallback(async () => {
+            if (!shortName || !isValidValue(book) || !isValidValue(chapter))
+                return null;
+            return getScriptureHtml(shortName, book, chapter);
+        }, [shortName, book, chapter]),
+        useState<ScriptureChapter[]>([
+            {
+                chapter: -1,
+                contents: `Loading ${shortName} ${getTextFromScrRef({
                     book,
                     chapter,
-                );
-                if (scriptureRefIsCurrent) setScrHtml(scriptureHtml);
-            })();
-        }
+                    verse: -1,
+                })}...`,
+            },
+        ])[0],
+    );
 
-        return () => {
-            scriptureRefIsCurrent = false;
-            setScrHtml(undefined);
+    const editableScrChapters = useRef<ScriptureChapter[]>([
+        {
+            chapter: -1,
+            contents: `Loading ${shortName} ${getTextFromScrRef({
+                book,
+                chapter,
+                verse: -1,
+            })}...`,
+        },
+    ]);
+    const [, setForceRefresh] = useState<number>(0);
+    const forceRefresh = useCallback(
+        () => setForceRefresh((value) => value + 1),
+        [setForceRefresh],
+    );
+
+    useEffect(() => {
+        editableScrChapters.current = scrChapters;
+        forceRefresh();
+    }, [scrChapters, forceRefresh]);
+
+    const handleChange = (evt: ContentEditableEvent, editedChapter: number) => {
+        const editedChapterInd = editableScrChapters.current.findIndex(
+            (scrChapter) => scrChapter.chapter === editedChapter,
+        );
+        editableScrChapters.current[editedChapterInd] = {
+            ...editableScrChapters.current[editedChapterInd],
+            contents: evt.target.value,
         };
-    }, [shortName, book, chapter]);
-
-    const display = scrHtml || `Loading${shortName ? ` ${shortName}` : ''}...`;
+    };
 
     return (
-        <div
-            className="text-panel"
-            // eslint-disable-next-line react/no-danger
-            dangerouslySetInnerHTML={{ __html: display }}
-        />
+        <div className="text-panel">
+            {editable
+                ? editableScrChapters.current.map((scrChapter) => (
+                      <ContentEditable
+                          className="text-panel"
+                          html={scrChapter.contents as string}
+                          onChange={(e) => handleChange(e, scrChapter.chapter)}
+                      />
+                  ))
+                : scrChapters.map((scrChapter) => (
+                      <div
+                          key={scrChapter.chapter}
+                          // eslint-disable-next-line react/no-danger
+                          dangerouslySetInnerHTML={{
+                              __html: scrChapter.contents as string,
+                          }}
+                      />
+                  ))}
+        </div>
     );
 };
