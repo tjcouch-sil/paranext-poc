@@ -140,7 +140,7 @@ const InlineElement = ({
     <span className={`${MARKER_CLASS_PREFIX}${style}`} {...attributes}>
         <Marker style={style} />
         {children}
-        {endSpace ? ' ' : undefined}
+        {endSpace ? <span contentEditable={false}>&nbsp;</span> : undefined}
         {closingMarker ? (
             <Marker style={`${style}*`} closingMarker />
         ) : undefined}
