@@ -11,7 +11,8 @@ import {
 } from './ScriptureTextPanelHOC';
 import './TextPanel.css';
 
-export interface ScriptureTextPanelHtmlProps extends ScriptureTextPanelHOCProps {
+export interface ScriptureTextPanelHtmlProps
+    extends ScriptureTextPanelHOCProps {
     scrChapters: ScriptureChapterString[];
 }
 
@@ -66,7 +67,6 @@ export const ScriptureTextPanelHtml = ScriptureTextPanelHOC(
                 {editable
                     ? editableScrChapters.current.map((scrChapter) => (
                           <ContentEditable
-                              className="text-panel"
                               html={scrChapter.contents as string}
                               onChange={(e) =>
                                   handleChange(e, scrChapter.chapter)

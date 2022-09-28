@@ -46,7 +46,7 @@ export function ScriptureTextPanelHOC<T extends ScriptureTextPanelHOCProps>(
             useCallback(async () => {
                 if (!shortName || !isValidValue(book) || !isValidValue(chapter))
                     return null;
-                return getScrChapter(shortName, book, chapter);
+                return getScrChapter(shortName, book, -1);
             }, [shortName, book, chapter]),
             useState<ScriptureChapter[]>([
                 {

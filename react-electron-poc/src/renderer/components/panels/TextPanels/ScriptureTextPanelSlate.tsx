@@ -10,7 +10,18 @@ import {
     useState,
 } from 'react';
 import './TextPanel.css';
-import { createEditor, BaseEditor, NodeEntry, Node, Transforms } from 'slate';
+import {
+    createEditor,
+    BaseEditor,
+    NodeEntry,
+    Node,
+    Transforms,
+    Element,
+    Text,
+    Editor,
+    Point,
+    Range,
+} from 'slate';
 import {
     Slate,
     Editable,
@@ -203,13 +214,76 @@ const withScrInlines = (editor: CustomEditor): CustomEditor => {
 };
 
 const withScrMarkers = (editor: CustomEditor): CustomEditor => {
-    const { normalizeNode } = editor;
+    const { normalizeNode, deleteBackward } = editor;
 
     editor.normalizeNode = (entry: NodeEntry<Node>): void => {
         const [node, path] = entry;
 
-        // Make sure the marker-based elements all have markers
+        // TODO: Figure out how to make sure there is a spot to navigate between markers like \q \v
+        /* if (Element.isElement(node)) {
+            const firstChild = Node.child(node, 0);
+            if (firstChild && Element.isElement(firstChild)) {
+                Transforms.insertText(editor, '', { at: path.concat(0) });
+            }
+        } */
+
         normalizeNode(entry);
+    };
+
+    editor.deleteBackward = (...args) => {
+        const { selection } = editor;
+
+        // Delete in-line markers
+        if (selection && Range.isCollapsed(selection)) {
+            // Get the selection if it is an inline element
+            const [match] = Editor.nodes(editor, {
+                match: (n) =>
+                    !Editor.isEditor(n) &&
+                    Element.isElement(n) &&
+                    editor.isInline(n),
+            });
+
+            if (match) {
+                const [, path] = match;
+                const start = Editor.start(editor, path);
+
+                // If the cursor is at the start of the inline element, remove the element
+                if (Point.equals(selection.anchor, start)) {
+                    Transforms.unwrapNodes(editor, { at: path });
+                    return;
+                }
+            }
+        }
+
+        deleteBackward(...args);
+    };
+
+    editor.deleteForward = (...args) => {
+        const { selection } = editor;
+
+        // Delete in-line markers
+        if (selection && Range.isCollapsed(selection)) {
+            // Get the selection if it is an inline element
+            const [match] = Editor.nodes(editor, {
+                match: (n) =>
+                    !Editor.isEditor(n) &&
+                    Element.isElement(n) &&
+                    editor.isInline(n),
+            });
+
+            if (match) {
+                const [, path] = match;
+                const end = Editor.end(editor, path);
+
+                // If the cursor is at the end of the inline element, remove the element
+                if (Point.equals(selection.anchor, end)) {
+                    Transforms.unwrapNodes(editor, { at: path });
+                    return;
+                }
+            }
+        }
+
+        deleteBackward(...args);
     };
 
     return editor;

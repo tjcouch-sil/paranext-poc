@@ -18,21 +18,21 @@ export const getScripture = async (
     chapter = -1,
 ): Promise<ScriptureChapterContent[]> => {
     try {
-        return chapter >= 0
-            ? await window.electronAPI.scripture
-                  .getScriptureChapter(shortName, bookNum, chapter)
-                  .then((result) => [
-                      {
-                          ...result,
-                          contents: JSON.parse(
-                              result.contents as unknown as string, // Parsing from string, but it's nice to know getScripture intends to send json of known type
-                          ),
-                      },
-                  ])
-            : await window.electronAPI.scripture.getScriptureBook(
-                  shortName,
-                  bookNum,
-              );
+        const scrChapterContents =
+            chapter >= 0
+                ? await window.electronAPI.scripture
+                      .getScriptureChapter(shortName, bookNum, chapter)
+                      .then((result) => [result])
+                : await window.electronAPI.scripture.getScriptureBook(
+                      shortName,
+                      bookNum,
+                  );
+        return scrChapterContents.map((scrChapterContent) => ({
+            ...scrChapterContent,
+            contents: JSON.parse(
+                scrChapterContent.contents as unknown as string, // Parsing from string, but it's nice to know getScripture intends to send json of known type
+            ),
+        }));
     } catch (e) {
         console.log(e);
         return [
