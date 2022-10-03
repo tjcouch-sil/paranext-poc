@@ -3,7 +3,11 @@ import {
     ScriptureChapter,
     ScriptureChapterString,
 } from '@shared/data/ScriptureTypes';
-import { parseChapter, parseVerse } from '@util/ScriptureUtil';
+import {
+    getTextFromScrRef,
+    parseChapter,
+    parseVerse,
+} from '@util/ScriptureUtil';
 import { isValidValue } from '@util/Util';
 import { EventHandler, useCallback, useEffect, useRef, useState } from 'react';
 import ContentEditable, { ContentEditableEvent } from 'react-contenteditable';
@@ -91,31 +95,17 @@ export const ScriptureTextPanelHtml = ScriptureTextPanelHOC(
 
                 // Step up the node tree via previous siblings then parents all the way up until we find a chapter and verse
                 while (node && node !== editorRef.current) {
-                    if (node instanceof Element) {
-                        if (selectedVerse <= 0 && node.className === 'usfm_v') {
-                            // It's a verse, so try to parse its text and use that as the verse
-                            const textParts = node.textContent?.split(' ');
-                            if (textParts) {
-                                const verseText =
-                                    textParts[textParts.length - 1];
-                                const verseNum = parseVerse(verseText);
-                                if (isValidValue(verseNum)) {
-                                    selectedVerse = verseNum;
-                                }
-                            }
-                        } else if (
-                            selectedChapter < 0 &&
-                            node.className === 'usfm_c'
-                        ) {
-                            // It's a chapter, so try to parse its text and use that as the chapter
-                            const textParts = node.textContent?.split(' ');
-                            if (textParts) {
-                                const chapterText =
-                                    textParts[textParts.length - 1];
-                                const chapterNum = parseChapter(chapterText);
-                                if (isValidValue(chapterNum)) {
-                                    selectedChapter = chapterNum;
-                                }
+                    if (node instanceof Element && node.id) {
+                        const idMatch = node.id.match(regexpChapterVerseId);
+                        if (idMatch && idMatch.length >= 2) {
+                            const verseNum = parseVerse(idMatch[2]);
+                            const chapterNum = parseChapter(idMatch[1]);
+                            if (
+                                isValidValue(verseNum) &&
+                                isValidValue(chapterNum)
+                            ) {
+                                selectedVerse = verseNum;
+                                selectedChapter = chapterNum;
                             }
                         }
                     }
@@ -180,19 +170,19 @@ export const ScriptureTextPanelHtml = ScriptureTextPanelHOC(
                     if (editorElement) break;
 
                     // Get the chapter element within the current usfm element
-                    const chapterElements =
-                        usfmElements[i].getElementsByClassName('usfm_c');
-                    for (let j = 0; j < chapterElements.length; j++) {
+                    const currChapterElement =
+                        usfmElements[i].querySelector('.usfm_c');
+                    if (currChapterElement) {
                         // Check if this usfm element is the right one for this chapter
                         const idMatch =
-                            chapterElements[j].id.match(regexpChapterVerseId);
+                            currChapterElement.id.match(regexpChapterVerseId);
                         if (
                             idMatch &&
                             idMatch.length >= 2 &&
                             parseChapter(idMatch[1]) === chapter
                         ) {
                             editorElement = usfmElements[i];
-                            chapterElement = chapterElements[j];
+                            chapterElement = currChapterElement;
                             break;
                         }
                     }
@@ -200,34 +190,20 @@ export const ScriptureTextPanelHtml = ScriptureTextPanelHOC(
 
                 if (editorElement) {
                     // Get the element for the specified verse
-                    let verseElement: Element | undefined;
+                    let verseElement: Element | undefined | null;
 
                     // If the verse we're trying to scroll to is 0, scroll to the chapter
                     if (verse <= 0) {
                         verseElement = chapterElement;
                     } else {
-                        // Get all the verse elements for this chapter
-                        const verseElements =
-                            editorElement.getElementsByClassName('usfm_v');
-                        for (let i = 0; i < verseElements.length; i++) {
-                            // Check if this verse element is the right one for this verse
-                            const idMatch =
-                                verseElements[i].id.match(regexpChapterVerseId);
-                            if (
-                                idMatch &&
-                                idMatch.length >= 3 &&
-                                parseVerse(idMatch[2]) === verse
-                            ) {
-                                verseElement = verseElements[i];
-                                break;
-                            }
-                        }
+                        verseElement = editorElement.querySelector(
+                            `#cv${chapter}_${verse}`,
+                        );
                     }
 
                     if (verseElement)
                         verseElement.scrollIntoView({
                             block: 'center',
-                            behavior: 'smooth',
                         });
                 }
             }
@@ -250,11 +226,21 @@ export const ScriptureTextPanelHtml = ScriptureTextPanelHOC(
                       ))
                     : scrChapters.map((scrChapter) => (
                           <div
+                              // The following line was removed to match Paratext. Uncomment to make a cursor show up for keyboard navigation
+                              // contentEditable
                               key={scrChapter.chapter}
                               // eslint-disable-next-line react/no-danger
                               dangerouslySetInnerHTML={{
                                   __html: scrChapter.contents as string,
                               }}
+                              onClick={tryUpdateScrRef}
+                              onKeyDown={onKeyDown}
+                              role="textbox"
+                              tabIndex={0}
+                              aria-label={`Scripture Text Panel for ${shortName} ${getTextFromScrRef(
+                                  { book, chapter, verse },
+                              )}`}
+                              onBeforeInput={(e) => e.preventDefault()}
                           />
                       ))}
             </div>

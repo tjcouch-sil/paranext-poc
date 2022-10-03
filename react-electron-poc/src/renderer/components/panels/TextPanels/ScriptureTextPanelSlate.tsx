@@ -500,7 +500,6 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
 
                             verseDomElement.scrollIntoView({
                                 block: 'center',
-                                behavior: 'smooth',
                             });
                         } catch (e) {
                             console.warn(
