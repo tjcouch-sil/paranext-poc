@@ -11,24 +11,36 @@ import { ScriptureTextPanelHtmlProps } from '@components/panels/TextPanels/Scrip
 import { ScriptureReference } from '@shared/data/ScriptureTypes';
 import ScrRefSelector from '@components/ScrRefSelector';
 import { PanelManager } from '@components/panels/PanelManager';
+import { getSetting, setSetting } from '@services/SettingsService';
+
+/** Key for saving scrRef setting */
+const scrRefSettingKey = 'scrRef';
+/** Key for saving browseBook setting */
+const browseBookSettingKey = 'browseBook';
 
 const Layout = () => {
     const panelManager = useRef<PanelManager | undefined>(undefined);
 
-    const [scrRef, setScrRef] = useState<ScriptureReference>({
-        book: 19,
-        chapter: 119,
-        verse: 1,
-    });
+    const [scrRef, setScrRef] = useState<ScriptureReference>(
+        getSetting<ScriptureReference>(scrRefSettingKey) || {
+            book: 19,
+            chapter: 119,
+            verse: 1,
+        },
+    );
     const updateScrRef = useCallback((newScrRef: ScriptureReference) => {
         setScrRef(newScrRef);
+        setSetting(scrRefSettingKey, newScrRef);
 
         panelManager.current?.updateScrRef(newScrRef);
     }, []);
 
-    const [browseBook, setBrowseBook] = useState<boolean>(false);
+    const [browseBook, setBrowseBook] = useState<boolean>(
+        getSetting<boolean>(browseBookSettingKey) || false,
+    );
     const updateBrowseBook = useCallback((newBrowseBook: boolean) => {
         setBrowseBook(newBrowseBook);
+        setSetting(browseBookSettingKey, newBrowseBook);
 
         panelManager.current?.updateBrowseBook(newBrowseBook);
     }, []);
@@ -81,6 +93,7 @@ const Layout = () => {
                     editable: false,
                     ...scrRef,
                     updateScrRef,
+                    browseBook,
                 } as ScriptureTextPanelHtmlProps,
             );
             const ohebPanel = panelManager.current.addPanel(
@@ -90,6 +103,7 @@ const Layout = () => {
                     editable: false,
                     ...scrRef,
                     updateScrRef,
+                    browseBook,
                 } as ScriptureTextPanelHtmlProps,
                 {
                     position: {
@@ -105,6 +119,7 @@ const Layout = () => {
                     editable: true,
                     ...scrRef,
                     updateScrRef,
+                    browseBook,
                 } as ScriptureTextPanelHtmlProps,
                 {
                     position: {
@@ -120,6 +135,7 @@ const Layout = () => {
                     editable: false,
                     ...scrRef,
                     updateScrRef,
+                    browseBook,
                 } as ScriptureTextPanelHtmlProps,
                 {
                     position: {
@@ -135,6 +151,7 @@ const Layout = () => {
                     editable: true,
                     ...scrRef,
                     updateScrRef,
+                    browseBook,
                 } as ScriptureTextPanelHtmlProps,
                 {
                     position: {
@@ -150,6 +167,7 @@ const Layout = () => {
                     editable: true,
                     ...scrRef,
                     updateScrRef,
+                    browseBook,
                 } as ScriptureTextPanelHtmlProps,
                 {
                     position: {
