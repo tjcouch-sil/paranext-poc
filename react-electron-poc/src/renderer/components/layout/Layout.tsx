@@ -20,11 +20,17 @@ const Layout = () => {
         chapter: 119,
         verse: 1,
     });
-
     const updateScrRef = useCallback((newScrRef: ScriptureReference) => {
         setScrRef(newScrRef);
 
         panelManager.current?.updateScrRef(newScrRef);
+    }, []);
+
+    const [browseBook, setBrowseBook] = useState<boolean>(false);
+    const updateBrowseBook = useCallback((newBrowseBook: boolean) => {
+        setBrowseBook(newBrowseBook);
+
+        panelManager.current?.updateBrowseBook(newBrowseBook);
     }, []);
 
     const onReady = useCallback(
@@ -74,6 +80,7 @@ const Layout = () => {
                     shortName: 'CSB',
                     editable: false,
                     ...scrRef,
+                    updateScrRef,
                 } as ScriptureTextPanelHtmlProps,
             );
             const ohebPanel = panelManager.current.addPanel(
@@ -82,6 +89,7 @@ const Layout = () => {
                     shortName: 'OHEB',
                     editable: false,
                     ...scrRef,
+                    updateScrRef,
                 } as ScriptureTextPanelHtmlProps,
                 {
                     position: {
@@ -96,6 +104,7 @@ const Layout = () => {
                     shortName: 'zzz6',
                     editable: true,
                     ...scrRef,
+                    updateScrRef,
                 } as ScriptureTextPanelHtmlProps,
                 {
                     position: {
@@ -110,6 +119,7 @@ const Layout = () => {
                     shortName: 'NIV84',
                     editable: false,
                     ...scrRef,
+                    updateScrRef,
                 } as ScriptureTextPanelHtmlProps,
                 {
                     position: {
@@ -124,6 +134,7 @@ const Layout = () => {
                     shortName: 'zzz1',
                     editable: true,
                     ...scrRef,
+                    updateScrRef,
                 } as ScriptureTextPanelHtmlProps,
                 {
                     position: {
@@ -138,6 +149,7 @@ const Layout = () => {
                     shortName: 'zzz6',
                     editable: true,
                     ...scrRef,
+                    updateScrRef,
                 } as ScriptureTextPanelHtmlProps,
                 {
                     position: {
@@ -147,12 +159,24 @@ const Layout = () => {
                 },
             );
         },
-        [scrRef],
+        [scrRef, updateScrRef],
     );
 
     return (
         <div className="layout">
-            <ScrRefSelector scrRef={scrRef} handleSubmit={updateScrRef} />
+            <div className="layout-bar">
+                <ScrRefSelector scrRef={scrRef} handleSubmit={updateScrRef} />
+                <span className="layout-checkbox">
+                    Edit whole book
+                    <input
+                        type="checkbox"
+                        checked={browseBook}
+                        onChange={(event) =>
+                            updateBrowseBook(event.target.checked)
+                        }
+                    />
+                </span>
+            </div>
             <div className="layout-dock">
                 <DockviewReact
                     className="dockview-theme-abyss"

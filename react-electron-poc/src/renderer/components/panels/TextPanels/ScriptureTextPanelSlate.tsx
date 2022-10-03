@@ -1,12 +1,13 @@
 import { getScripture } from '@services/ScriptureService';
 import { ScriptureChapterContent } from '@shared/data/ScriptureTypes';
-import { isString } from '@util/Util';
+import { isString, isValidValue } from '@util/Util';
 import {
     createElement,
     FunctionComponent,
     PropsWithChildren,
     useCallback,
     useEffect,
+    useRef,
     useState,
 } from 'react';
 import './TextPanel.css';
@@ -21,6 +22,7 @@ import {
     Editor,
     Point,
     Range,
+    Path,
 } from 'slate';
 import {
     Slate,
@@ -33,6 +35,11 @@ import {
     ScriptureTextPanelHOC,
     ScriptureTextPanelHOCProps,
 } from './ScriptureTextPanelHOC';
+import {
+    getTextFromScrRef,
+    parseChapter,
+    parseVerse,
+} from '@util/ScriptureUtil';
 
 // Slate types
 type CustomEditor = BaseEditor & ReactEditor;
@@ -40,6 +47,8 @@ type CustomEditor = BaseEditor & ReactEditor;
 // Types of components:
 //      Element - contiguous, semantic elements in the document
 //          - Ex: Marker Element (in-line) that contains a line and is formatted appropriately
+//          - Note: You cannot have block elements as siblings of inline elements or text.
+//          - Note: You cannot have children of inline elements other than text, it seems.
 //      Text - non-contiguous, character-level formatting
 //      Decoration - computed at render-time based on the content itself
 //          - helpful for dynamic formatting like syntax highlighting or search keywords, where changes to the content (or some external data) has the potential to change the formatting
@@ -188,17 +197,21 @@ const EditorElement = ({
     </div>
 );
 
-/** All available elements for use in slate editor */
-const EditorElements = {
-    verse: VerseElement,
-    para: ParaElement,
-    char: CharElement,
-    chapter: ChapterElement,
-    editor: EditorElement,
-};
+interface ElementInfo {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    component: (props: MyRenderElementProps<any>) => JSX.Element;
+    inline?: boolean;
+    validStyles?: string[];
+}
 
-/** List of all inline elements */
-const InlineElements = ['verse', 'char'];
+/** All available elements for use in slate editor */
+const EditorElements: { [type: string]: ElementInfo } = {
+    verse: { component: VerseElement, inline: true, validStyles: ['v'] },
+    para: { component: ParaElement, validStyles: ['p', 'q', 'q2'] },
+    char: { component: CharElement, inline: true, validStyles: ['nd'] },
+    chapter: { component: ChapterElement, validStyles: ['c'] },
+    editor: { component: EditorElement },
+};
 
 const DefaultElement = ({ attributes, children }: RenderElementProps) => {
     return <p {...attributes}>{children}</p>;
@@ -208,16 +221,16 @@ const withScrInlines = (editor: CustomEditor): CustomEditor => {
     const { isInline } = editor;
 
     editor.isInline = (element: CustomElement): boolean =>
-        InlineElements.includes(element.type) || isInline(element);
+        EditorElements[element.type]?.inline || isInline(element);
 
     return editor;
 };
 
 const withScrMarkers = (editor: CustomEditor): CustomEditor => {
-    const { normalizeNode, deleteBackward } = editor;
+    const { normalizeNode, deleteBackward, deleteForward, onChange } = editor;
 
     editor.normalizeNode = (entry: NodeEntry<Node>): void => {
-        const [node, path] = entry;
+        // const [node, path] = entry;
 
         // TODO: Figure out how to make sure there is a spot to navigate between markers like \q \v
         /* if (Element.isElement(node)) {
@@ -235,7 +248,7 @@ const withScrMarkers = (editor: CustomEditor): CustomEditor => {
 
         // Delete in-line markers
         if (selection && Range.isCollapsed(selection)) {
-            // Get the selection if it is an inline element
+            // Get the inline element in the path of the selection
             const [match] = Editor.nodes(editor, {
                 match: (n) =>
                     !Editor.isEditor(n) &&
@@ -263,7 +276,7 @@ const withScrMarkers = (editor: CustomEditor): CustomEditor => {
 
         // Delete in-line markers
         if (selection && Range.isCollapsed(selection)) {
-            // Get the selection if it is an inline element
+            // Get the inline element in the path of the selection
             const [match] = Editor.nodes(editor, {
                 match: (n) =>
                     !Editor.isEditor(n) &&
@@ -283,7 +296,7 @@ const withScrMarkers = (editor: CustomEditor): CustomEditor => {
             }
         }
 
-        deleteBackward(...args);
+        deleteForward(...args);
     };
 
     return editor;
@@ -304,8 +317,10 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
         chapter,
         verse,
         scrChapters,
+        updateScrRef,
     }: ScriptureTextPanelProps) => {
         // Slate editor
+        // TODO: Put in a useEffect listening for scrChapters and create editors for the number of chapters
         const [editor] = useState<CustomEditor>(() =>
             withScrMarkers(withScrInlines(withReact(createEditor()))),
         );
@@ -314,7 +329,7 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
         const renderElement = useCallback(
             (props: MyRenderElementProps<CustomElement>): JSX.Element => {
                 return createElement(
-                    (EditorElements[props.element.type] ||
+                    (EditorElements[props.element.type].component ||
                         DefaultElement) as FunctionComponent,
                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     props as any,
@@ -323,10 +338,88 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
             [],
         );
 
+        /**
+         * Whether or not the upcoming scrRef update is form this text panel.
+         * TODO: Not a great way to determine this - should be improved in the future
+         * */
+        const didIUpdateScrRef = useRef(false);
+
+        const onSelect = useCallback(() => {
+            // TODO: For some reason, the onSelect callback doesn't always have the most up-to-date editor.selection.
+            // As such, I added a setTimeout, which is gross. Please fix this hacky setTimeout
+            // One possible solution would be to listen for mouse clicks and arrow key events and see if editor.selection is updated by then.
+            // Or use onChange and keep track of selection vs previous selection if selection is updated.
+            // Or try useSlateSelection hook again
+            setTimeout(() => {
+                if (editor.selection) {
+                    // Set reference to the current verse
+                    // We must be in a chapter
+                    let selectedChapter = -1;
+                    // Intro material should show as verse 0, so allow 0
+                    let selectedVerse = 0;
+
+                    // Get the selected node
+                    let nodeEntry: NodeEntry<Node> | undefined = Editor.node(
+                        editor,
+                        editor.selection.anchor,
+                    );
+
+                    // Step up the node tree via previous siblings then parents all the way up until we find a chapter and verse
+                    while (nodeEntry && !Editor.isEditor(nodeEntry[0])) {
+                        const [node, path] = nodeEntry as NodeEntry<Node>;
+                        if (Element.isElement(node)) {
+                            if (selectedVerse <= 0 && node.type === 'verse') {
+                                // It's a verse, so try to parse its text and use that as the verse
+                                const verseText = Node.string(node);
+                                const verseNum = parseVerse(verseText);
+                                if (isValidValue(verseNum)) {
+                                    selectedVerse = verseNum;
+                                }
+                            } else if (
+                                selectedChapter < 0 &&
+                                node.type === 'chapter'
+                            ) {
+                                // It's a chapter, so try to parse its text and use that as the chapter
+                                const chapterText = Node.string(node);
+                                const chapterNum = parseChapter(chapterText);
+                                if (isValidValue(chapterNum)) {
+                                    selectedChapter = chapterNum;
+                                }
+                            }
+                        }
+
+                        if (selectedChapter >= 0) {
+                            // We got our results! Done
+                            break;
+                        } else if (Path.hasPrevious(path)) {
+                            // This node has a previous sibling. Get the lowest node of the previous sibling and try again
+                            nodeEntry = Editor.last(
+                                editor,
+                                Path.previous(path),
+                            );
+                        } else {
+                            // This is the first node of its siblings, so get the parent and try again
+                            nodeEntry = Editor.parent(editor, path);
+                        }
+                    }
+
+                    // If we found verse info, set the selection
+                    if (selectedChapter > 0) {
+                        updateScrRef({
+                            book,
+                            chapter: selectedChapter,
+                            verse: selectedVerse,
+                        });
+                        didIUpdateScrRef.current = true;
+                    }
+                }
+            }, 1);
+        }, [editor, updateScrRef, book]);
+
         // When we get new Scripture project contents, update slate
         useEffect(() => {
             if (scrChapters && scrChapters.length > 0) {
-                // TODO: Save the verse...? Maybe if book/chapter was not changed?
+                // TODO: Save the selection
 
                 // Unselect
                 Transforms.deselect(editor);
@@ -348,11 +441,82 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
                         } as EditorElementProps),
                 );
 
-                // TODO: Update cursor to new ScrRef
+                // TODO: May need to call Editor.normalize, potentially with option { force: true }
+                // Editor.normalize(editor);
+
+                // TODO: Restore cursor to new ScrRef
 
                 editor.onChange();
             }
-        }, [scrChapters, editor]);
+        }, [editor, scrChapters]);
+
+        // When the scrRef changes, scroll to view
+        useEffect(() => {
+            // TODO: Determine if this window should scroll by computing if the verse element is visible instead of using hacky didIUpdateScrRef
+            if (!didIUpdateScrRef.current) {
+                // Get the node for the specified chapter editor
+                const [editorNodeEntry] = Editor.nodes(editor, {
+                    at: [],
+                    match: (n) =>
+                        !Editor.isEditor(n) &&
+                        Element.isElement(n) &&
+                        n.type === 'editor' &&
+                        parseChapter(n.number) === chapter,
+                    /* n.type === 'chapter' &&
+                        parseChapter(Node.string(n)) === chapter, */
+                });
+                if (editorNodeEntry) {
+                    const [, editorNodePath] = editorNodeEntry;
+
+                    // Make a match function that matches on the chapter node if verse 0 or the verse node otherwise
+                    const matchVerseNode =
+                        verse > 0
+                            ? (n: Node) =>
+                                  Element.isElement(n) &&
+                                  n.type === 'verse' &&
+                                  parseVerse(Node.string(n)) === verse
+                            : (n: Node) =>
+                                  Element.isElement(n) &&
+                                  n.type === 'chapter' &&
+                                  parseChapter(Node.string(n)) === chapter;
+
+                    // Get the node for the specified verse
+                    const [verseNodeEntry] = Editor.nodes(editor, {
+                        at: [
+                            editorNodePath,
+                            Editor.last(editor, editorNodePath)[1],
+                        ],
+                        match: matchVerseNode,
+                    });
+                    if (verseNodeEntry) {
+                        const [verseNode] = verseNodeEntry;
+
+                        try {
+                            // Get the dom element for this verse marker and scroll to it
+                            const verseDomElement = ReactEditor.toDOMNode(
+                                editor,
+                                verseNode,
+                            );
+
+                            verseDomElement.scrollIntoView({
+                                block: 'center',
+                                behavior: 'smooth',
+                            });
+                        } catch (e) {
+                            console.warn(
+                                `Not able to scroll to ${getTextFromScrRef({
+                                    book,
+                                    chapter,
+                                    verse,
+                                })}`,
+                            );
+                            console.warn(e);
+                        }
+                    }
+                }
+            }
+            didIUpdateScrRef.current = false;
+        }, [editor, book, chapter, verse]);
 
         return (
             <div className="text-panel">
@@ -360,6 +524,7 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
                     <Editable
                         readOnly={!editable}
                         renderElement={renderElement}
+                        onSelect={onSelect}
                     />
                 </Slate>
             </div>

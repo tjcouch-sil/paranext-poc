@@ -1,5 +1,5 @@
 import { ScriptureReference } from '@shared/data/ScriptureTypes';
-import { isString } from './Util';
+import { isString, isValidValue } from './Util';
 
 const scrBookNames: string[][] = [
     ['ERR', 'ERROR'],
@@ -122,6 +122,18 @@ export const offsetVerse = (
     scrRef: ScriptureReference,
     offset: number,
 ): ScriptureReference => ({ ...scrRef, verse: scrRef.verse + offset });
+
+/** Parse a verse number from a string */
+export const parseVerse = (verseText: string): number | undefined => {
+    const verseNum = parseInt(verseText, 10);
+    return isValidValue(verseNum) ? verseNum : undefined;
+};
+
+/** Parse a chapter number from a string */
+export const parseChapter = (chapterText: string): number | undefined => {
+    // For now, this is the same as parseVerse. Maybe there could be other constraints in the future
+    return parseVerse(chapterText);
+};
 
 const regexpScrRef = /([^ ]+) ([^:]+):(.+)/;
 export const getScrRefFromText = (refText: string): ScriptureReference => {

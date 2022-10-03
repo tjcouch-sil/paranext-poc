@@ -245,21 +245,6 @@ async function handleGetScriptureBook(
             },
         );
     }, getScriptureDelay);
-
-    try {
-        return await getFilesText(
-            [`testScripture/${shortName}/${bookNum}.${fileExtension}`],
-            getScriptureDelay,
-        ).then((filesContents) =>
-            filesContents.map((fileContents, ind) => ({
-                chapter: ind,
-                contents: fileContents,
-            })),
-        );
-    } catch (e) {
-        console.log(e);
-        throw new Error(`No data for ${shortName} ${bookNum}`);
-    }
 }
 
 /**

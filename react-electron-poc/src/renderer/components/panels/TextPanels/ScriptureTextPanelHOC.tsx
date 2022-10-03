@@ -6,7 +6,13 @@ import {
 } from '@shared/data/ScriptureTypes';
 import { getTextFromScrRef } from '@util/ScriptureUtil';
 import { isValidValue } from '@util/Util';
-import { ComponentType, PropsWithChildren, useCallback, useState } from 'react';
+import {
+    ComponentType,
+    memo,
+    PropsWithChildren,
+    useCallback,
+    useState,
+} from 'react';
 import usePromise from 'renderer/hooks/usePromise';
 import useStyle from 'renderer/hooks/useStyle';
 
@@ -16,6 +22,8 @@ export interface ScriptureTextPanelHOCProps
         ResourceInfo,
         PropsWithChildren {
     scrChapters: ScriptureChapter[];
+    updateScrRef: (newScrRef: ScriptureReference) => void;
+    browseBook?: boolean;
 }
 
 export function ScriptureTextPanelHOC<T extends ScriptureTextPanelHOCProps>(
@@ -26,8 +34,8 @@ export function ScriptureTextPanelHOC<T extends ScriptureTextPanelHOCProps>(
         chapter?: number,
     ) => Promise<ScriptureChapter[]>,
 ) {
-    return function ScriptureTextPanel(props: T) {
-        const { shortName, book, chapter, children } = props;
+    return memo(function ScriptureTextPanel(props: T) {
+        const { shortName, book, chapter, children, browseBook } = props;
 
         // Pull in the project's stylesheet
         useStyle(
@@ -41,13 +49,19 @@ export function ScriptureTextPanelHOC<T extends ScriptureTextPanelHOCProps>(
             }, [shortName]),
         );
 
+        const getMyScrBook = useCallback(async () => {
+            if (!shortName || !isValidValue(book)) return null;
+            return getScrChapter(shortName, book, -1);
+        }, [shortName, book]);
+        const getMyScrChapter = useCallback(async () => {
+            if (!shortName || !isValidValue(book) || !isValidValue(chapter))
+                return null;
+            return getScrChapter(shortName, book, chapter);
+        }, [shortName, book, chapter]);
+
         // Get the project's contents
         const [scrChapters] = usePromise<ScriptureChapter[]>(
-            useCallback(async () => {
-                if (!shortName || !isValidValue(book) || !isValidValue(chapter))
-                    return null;
-                return getScrChapter(shortName, book, -1);
-            }, [shortName, book, chapter]),
+            browseBook ? getMyScrBook : getMyScrChapter,
             useState<ScriptureChapter[]>([
                 {
                     chapter: -1,
@@ -66,5 +80,5 @@ export function ScriptureTextPanelHOC<T extends ScriptureTextPanelHOCProps>(
                 {children}
             </WrappedComponent>
         );
-    };
+    });
 }
