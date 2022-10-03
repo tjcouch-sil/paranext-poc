@@ -81,6 +81,7 @@ export const ScriptureTextPanelHtml = ScriptureTextPanelHOC(
          * */
         const didIUpdateScrRef = useRef(false);
 
+        /** Look for the selection's current BCV and update the ScrRef to it */
         const tryUpdateScrRef = () => {
             const windowSel = window.getSelection();
             if (windowSel && windowSel.rangeCount > 0) {
@@ -159,56 +160,63 @@ export const ScriptureTextPanelHtml = ScriptureTextPanelHOC(
         useEffect(() => {
             // TODO: Determine if this window should scroll by computing if the verse element is visible instead of using hacky didIUpdateScrRef
             if (!didIUpdateScrRef.current && editorRef.current) {
-                // Get the node for the specified chapter editor
-                let editorElement: Element | undefined;
-                let chapterElement: Element | undefined;
-                // Get all the usfm elements (full chapters)
-                const usfmElements =
-                    editorRef.current.getElementsByClassName('usfm');
-                for (let i = 0; i < usfmElements.length; i++) {
-                    // If we already found our chapter, we're done
-                    if (editorElement) break;
+                // TODO: Find a better way to wait for the DOM to load before scrolling and hopefully remove scrChapters from dependencies. Ex: Go between Psalm 118:15 and Psalm 119:150
+                setTimeout(() => {
+                    // Get the node for the specified chapter editor
+                    let editorElement: Element | undefined;
+                    let chapterElement: Element | undefined;
+                    // Get all the usfm elements (full chapters)
+                    if (editorRef.current) {
+                        const usfmElements =
+                            editorRef.current.getElementsByClassName('usfm');
+                        for (let i = 0; i < usfmElements.length; i++) {
+                            // If we already found our chapter, we're done
+                            if (editorElement) break;
 
-                    // Get the chapter element within the current usfm element
-                    const currChapterElement =
-                        usfmElements[i].querySelector('.usfm_c');
-                    if (currChapterElement) {
-                        // Check if this usfm element is the right one for this chapter
-                        const idMatch =
-                            currChapterElement.id.match(regexpChapterVerseId);
-                        if (
-                            idMatch &&
-                            idMatch.length >= 2 &&
-                            parseChapter(idMatch[1]) === chapter
-                        ) {
-                            editorElement = usfmElements[i];
-                            chapterElement = currChapterElement;
-                            break;
+                            // Get the chapter element within the current usfm element
+                            const currChapterElement =
+                                usfmElements[i].querySelector('.usfm_c');
+                            if (currChapterElement) {
+                                // Check if this usfm element is the right one for this chapter
+                                const idMatch =
+                                    currChapterElement.id.match(
+                                        regexpChapterVerseId,
+                                    );
+                                if (
+                                    idMatch &&
+                                    idMatch.length >= 2 &&
+                                    parseChapter(idMatch[1]) === chapter
+                                ) {
+                                    editorElement = usfmElements[i];
+                                    chapterElement = currChapterElement;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (editorElement) {
+                            // Get the element for the specified verse
+                            let verseElement: Element | undefined | null;
+
+                            // If the verse we're trying to scroll to is 0, scroll to the chapter
+                            if (verse <= 0) {
+                                verseElement = chapterElement;
+                            } else {
+                                verseElement = editorElement.querySelector(
+                                    `#cv${chapter}_${verse}`,
+                                );
+                            }
+
+                            if (verseElement)
+                                verseElement.scrollIntoView({
+                                    block: 'center',
+                                });
                         }
                     }
-                }
-
-                if (editorElement) {
-                    // Get the element for the specified verse
-                    let verseElement: Element | undefined | null;
-
-                    // If the verse we're trying to scroll to is 0, scroll to the chapter
-                    if (verse <= 0) {
-                        verseElement = chapterElement;
-                    } else {
-                        verseElement = editorElement.querySelector(
-                            `#cv${chapter}_${verse}`,
-                        );
-                    }
-
-                    if (verseElement)
-                        verseElement.scrollIntoView({
-                            block: 'center',
-                        });
-                }
+                }, 1);
             }
             didIUpdateScrRef.current = false;
-        }, [book, chapter, verse]);
+        }, [scrChapters, book, chapter, verse]);
 
         return (
             <div ref={editorRef} className="text-panel">

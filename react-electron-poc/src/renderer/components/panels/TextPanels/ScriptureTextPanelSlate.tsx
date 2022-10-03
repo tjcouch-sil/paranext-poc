@@ -454,68 +454,71 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
         useEffect(() => {
             // TODO: Determine if this window should scroll by computing if the verse element is visible instead of using hacky didIUpdateScrRef
             if (!didIUpdateScrRef.current) {
-                // Get the node for the specified chapter editor
-                const [editorNodeEntry] = Editor.nodes(editor, {
-                    at: [],
-                    match: (n) =>
-                        !Editor.isEditor(n) &&
-                        Element.isElement(n) &&
-                        n.type === 'editor' &&
-                        parseChapter(n.number) === chapter,
-                    /* n.type === 'chapter' &&
-                        parseChapter(Node.string(n)) === chapter, */
-                });
-                if (editorNodeEntry) {
-                    const [, editorNodePath] = editorNodeEntry;
-
-                    // Make a match function that matches on the chapter node if verse 0 or the verse node otherwise
-                    const matchVerseNode =
-                        verse > 0
-                            ? (n: Node) =>
-                                  Element.isElement(n) &&
-                                  n.type === 'verse' &&
-                                  parseVerse(Node.string(n)) === verse
-                            : (n: Node) =>
-                                  Element.isElement(n) &&
-                                  n.type === 'chapter' &&
-                                  parseChapter(Node.string(n)) === chapter;
-
-                    // Get the node for the specified verse
-                    const [verseNodeEntry] = Editor.nodes(editor, {
-                        at: [
-                            editorNodePath,
-                            Editor.last(editor, editorNodePath)[1],
-                        ],
-                        match: matchVerseNode,
+                // TODO: Find a better way to wait for the DOM to load before scrolling and hopefully remove scrChapters from dependencies. Ex: Go between Psalm 118:15 and Psalm 119:150
+                setTimeout(() => {
+                    // Get the node for the specified chapter editor
+                    const [editorNodeEntry] = Editor.nodes(editor, {
+                        at: [],
+                        match: (n) =>
+                            !Editor.isEditor(n) &&
+                            Element.isElement(n) &&
+                            n.type === 'editor' &&
+                            parseChapter(n.number) === chapter,
+                        /* n.type === 'chapter' &&
+                            parseChapter(Node.string(n)) === chapter, */
                     });
-                    if (verseNodeEntry) {
-                        const [verseNode] = verseNodeEntry;
+                    if (editorNodeEntry) {
+                        const [, editorNodePath] = editorNodeEntry;
 
-                        try {
-                            // Get the dom element for this verse marker and scroll to it
-                            const verseDomElement = ReactEditor.toDOMNode(
-                                editor,
-                                verseNode,
-                            );
+                        // Make a match function that matches on the chapter node if verse 0 or the verse node otherwise
+                        const matchVerseNode =
+                            verse > 0
+                                ? (n: Node) =>
+                                      Element.isElement(n) &&
+                                      n.type === 'verse' &&
+                                      parseVerse(Node.string(n)) === verse
+                                : (n: Node) =>
+                                      Element.isElement(n) &&
+                                      n.type === 'chapter' &&
+                                      parseChapter(Node.string(n)) === chapter;
 
-                            verseDomElement.scrollIntoView({
-                                block: 'center',
-                            });
-                        } catch (e) {
-                            console.warn(
-                                `Not able to scroll to ${getTextFromScrRef({
-                                    book,
-                                    chapter,
-                                    verse,
-                                })}`,
-                            );
-                            console.warn(e);
+                        // Get the node for the specified verse
+                        const [verseNodeEntry] = Editor.nodes(editor, {
+                            at: [
+                                editorNodePath,
+                                Editor.last(editor, editorNodePath)[1],
+                            ],
+                            match: matchVerseNode,
+                        });
+                        if (verseNodeEntry) {
+                            const [verseNode] = verseNodeEntry;
+
+                            try {
+                                // Get the dom element for this verse marker and scroll to it
+                                const verseDomElement = ReactEditor.toDOMNode(
+                                    editor,
+                                    verseNode,
+                                );
+
+                                verseDomElement.scrollIntoView({
+                                    block: 'center',
+                                });
+                            } catch (e) {
+                                console.warn(
+                                    `Not able to scroll to ${getTextFromScrRef({
+                                        book,
+                                        chapter,
+                                        verse,
+                                    })}`,
+                                );
+                                console.warn(e);
+                            }
                         }
                     }
-                }
+                }, 1);
             }
             didIUpdateScrRef.current = false;
-        }, [editor, book, chapter, verse]);
+        }, [editor, scrChapters, book, chapter, verse]);
 
         return (
             <div className="text-panel">
