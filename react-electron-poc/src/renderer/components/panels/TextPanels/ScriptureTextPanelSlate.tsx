@@ -576,6 +576,7 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
         verse,
         scrChapters,
         updateScrRef,
+        onFocus,
     }: ScriptureTextPanelProps) => {
         // Slate editor
         // TODO: Put in a useEffect listening for scrChapters and create editors for the number of chapters
@@ -779,7 +780,7 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
         }, [editor, scrChapters, book, chapter, verse]);
 
         return (
-            <div className="text-panel">
+            <div className="text-panel" onFocus={onFocus}>
                 <Slate editor={editor} value={[{ text: 'Loading' }]}>
                     <Editable
                         readOnly={!editable}

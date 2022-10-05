@@ -191,7 +191,6 @@ async function handleGetScriptureBook(
     shortName: string,
     bookNum: number,
 ): Promise<ScriptureChapter[]> {
-    // TODO: If we want to implement this, parse file and split out into actual chapters
     return delayPromise<ScriptureChapter[]>((resolve, reject) => {
         fs.readdir(
             getAssetPath(`testScripture/${shortName}`),
@@ -228,9 +227,10 @@ async function handleGetScriptureBook(
                                 (fileContents, i) =>
                                     ({
                                         chapter: parseInt(
+                                            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                                             scrFilePaths[i].match(
                                                 regexpScrFileName,
-                                            )[2],
+                                            )![2],
                                             10,
                                         ),
                                         contents: fileContents,
@@ -328,6 +328,15 @@ async function handleGetAllResourceInfo(): Promise<ResourceInfo[]> {
     }, getResourceInfoDelay);
 }
 
+let activeResource: string | undefined;
+async function handleSetActiveResource(
+    _event: IpcMainInvokeEvent,
+    shortName: string,
+): Promise<void> {
+    activeResource = shortName;
+    console.log('Set active resource: ', activeResource);
+}
+
 /** Map from ipc channel to handler function */
 const ipcHandlers: {
     [ipcHandle: string]: (
@@ -373,6 +382,7 @@ const ipcHandlers: {
     'ipc-scripture:getScriptureStyle': handleGetScriptureStyle,
     'ipc-scripture:getResourceInfo': handleGetResourceInfo,
     'ipc-scripture:getAllResourceInfo': handleGetAllResourceInfo,
+    'ipc-scripture:setActiveResource': handleSetActiveResource,
 };
 
 app.enableSandbox();

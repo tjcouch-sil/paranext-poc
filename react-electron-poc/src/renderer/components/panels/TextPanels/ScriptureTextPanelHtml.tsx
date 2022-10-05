@@ -37,6 +37,7 @@ export const ScriptureTextPanelHtml = ScriptureTextPanelHOC(
         verse,
         scrChapters,
         updateScrRef,
+        onFocus,
     }: ScriptureTextPanelHtmlProps) => {
         /** Ref for the top-level editor div */
         const editorRef = useRef<HTMLDivElement>(null);
@@ -219,7 +220,7 @@ export const ScriptureTextPanelHtml = ScriptureTextPanelHOC(
         }, [scrChapters, book, chapter, verse]);
 
         return (
-            <div ref={editorRef} className="text-panel">
+            <div ref={editorRef} className="text-panel" onFocus={onFocus}>
                 {editable
                     ? editableScrChapters.current.map((scrChapter) => (
                           <ContentEditable

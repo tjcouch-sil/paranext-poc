@@ -7,8 +7,10 @@
     font-size: 11pt;
 }
 
-.scrref-form .selector-area {
+.scrref-form .selector-area,
+.scrref-form .input-area {
     color: white;
+    display: inline-block;
 }
 
 .scrref-form .selector-area span {
