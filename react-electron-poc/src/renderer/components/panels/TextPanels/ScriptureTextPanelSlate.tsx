@@ -74,7 +74,7 @@ type MarkerProps = {
 } & StyleProps;
 
 type CustomElementProps = {
-    children: CustomElement[];
+    children: CustomDescendant[];
 } & StyleProps;
 
 export type InlineElementProps = {
@@ -101,7 +101,7 @@ export type ChapterElementProps = {
 export type EditorElementProps = {
     type: 'editor';
     number: string;
-    children: CustomElement[];
+    children: CustomDescendant[];
 };
 
 export type CustomElement =
@@ -114,6 +114,8 @@ export type CustomElement =
 type FormattedText = { text: string } & MarkerProps;
 
 type CustomText = FormattedText;
+
+export type CustomDescendant = CustomElement | CustomText;
 
 declare module 'slate' {
     interface CustomTypes {
@@ -197,19 +199,52 @@ const EditorElement = ({
     </div>
 );
 
+/** Characteristics of a marker style */
+interface StyleInfo {
+    /** The USFM marker name that corresponds to a CSS class selector */
+    style: string;
+    /** Whether this marker style can be closed (e.g. \nd and \nd*). In-line styles only. */
+    canClose?: boolean;
+    /** Whether this marker style only applies to the word following it (e.g. \v 2). In-line styles only. */
+    oneWord?: boolean;
+}
+
+/** Characteristics of a Slate element */
 interface ElementInfo {
+    /** The React component to use to render this Slate element */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     component: (props: MyRenderElementProps<any>) => JSX.Element;
+    /** Whether the element should be considered within one line or should be a block of text */
     inline?: boolean;
-    validStyles?: string[];
+    /** Marker styles for this element. All marker styles should be unique. There should not be a marker style repeated between two elements. */
+    validStyles?: StyleInfo[];
 }
 
 /** All available elements for use in slate editor */
 const EditorElements: { [type: string]: ElementInfo } = {
-    verse: { component: VerseElement, inline: true, validStyles: ['v'] },
-    para: { component: ParaElement, validStyles: ['p', 'q', 'q2'] },
-    char: { component: CharElement, inline: true, validStyles: ['nd'] },
-    chapter: { component: ChapterElement, validStyles: ['c'] },
+    verse: {
+        component: VerseElement,
+        inline: true,
+        validStyles: [{ style: 'v', oneWord: true }],
+    },
+    para: {
+        component: ParaElement,
+        validStyles: [
+            { style: 'p' },
+            { style: 'q' },
+            { style: 'q2' },
+            { style: 'b' },
+        ],
+    },
+    char: {
+        component: CharElement,
+        inline: true,
+        validStyles: [{ style: 'nd', canClose: true }],
+    },
+    chapter: {
+        component: ChapterElement,
+        validStyles: [{ style: 'c' }],
+    },
     editor: { component: EditorElement },
 };
 
@@ -227,7 +262,7 @@ const withScrInlines = (editor: CustomEditor): CustomEditor => {
 };
 
 const withScrMarkers = (editor: CustomEditor): CustomEditor => {
-    const { normalizeNode, deleteBackward, deleteForward, onChange } = editor;
+    const { normalizeNode, deleteBackward, deleteForward, insertText } = editor;
 
     editor.normalizeNode = (entry: NodeEntry<Node>): void => {
         // const [node, path] = entry;
@@ -249,7 +284,7 @@ const withScrMarkers = (editor: CustomEditor): CustomEditor => {
         // Delete in-line markers
         if (selection && Range.isCollapsed(selection)) {
             // Get the inline element in the path of the selection
-            const [match] = Editor.nodes(editor, {
+            const match = Editor.above(editor, {
                 match: (n) =>
                     !Editor.isEditor(n) &&
                     Element.isElement(n) &&
@@ -277,7 +312,7 @@ const withScrMarkers = (editor: CustomEditor): CustomEditor => {
         // Delete in-line markers
         if (selection && Range.isCollapsed(selection)) {
             // Get the inline element in the path of the selection
-            const [match] = Editor.nodes(editor, {
+            const match = Editor.above(editor, {
                 match: (n) =>
                     !Editor.isEditor(n) &&
                     Element.isElement(n) &&
@@ -297,6 +332,229 @@ const withScrMarkers = (editor: CustomEditor): CustomEditor => {
         }
 
         deleteForward(...args);
+    };
+
+    editor.insertText = (text) => {
+        const { selection } = editor;
+
+        // Insert markers like \nd
+        // TODO: Scan through the text, replace all markers, and insert rest of the text instead of only working on space
+        if (text.endsWith(' ') && selection && Range.isCollapsed(selection)) {
+            // Determine if we inserted a marker
+            const [selectedNode, selectedPath] = Editor.node(
+                editor,
+                selection.anchor,
+            );
+            if (Text.isText(selectedNode)) {
+                // Figure out if the text before the offset has a backslash
+                const backslashOffset = selectedNode.text.lastIndexOf(
+                    '\\',
+                    selection.anchor.offset,
+                );
+
+                if (backslashOffset >= 0) {
+                    // Get the full marker text - backslash to space
+                    const markerText = selectedNode.text
+                        .substring(backslashOffset + 1, selection.anchor.offset)
+                        .toLowerCase();
+                    // Determine if it is a closing marker style
+                    const isClosingMarker = markerText.endsWith('*');
+                    // Get the marker style
+                    const markerStyle = isClosingMarker
+                        ? markerText.substring(0, markerText.length - 1)
+                        : markerText;
+
+                    let markerStyleInfo: StyleInfo | undefined;
+
+                    // Get the element associated with the marker style
+                    const editorElementEntry = Object.entries(
+                        EditorElements,
+                    ).find(([, elementInfo]) => {
+                        markerStyleInfo = elementInfo.validStyles?.find(
+                            (styleInfo) => styleInfo.style === markerStyle,
+                        );
+                        return markerStyleInfo;
+                    });
+
+                    // Make sure we have a marker we can place - valid marker style, can close
+                    if (
+                        editorElementEntry &&
+                        (!isClosingMarker || markerStyleInfo?.canClose)
+                    ) {
+                        /** The type for the new wrapping element for our marker */
+                        const [elementType, elementInfo] = editorElementEntry;
+
+                        const backslashPoint: Point = {
+                            path: selection.anchor.path,
+                            offset: backslashOffset,
+                        };
+
+                        // Get a range from before the backslash to the current selection position
+                        const deleteRange: Range = {
+                            anchor: selection.anchor,
+                            focus: backslashPoint,
+                        };
+
+                        // Select and delete the marker text range
+                        if (!Range.isCollapsed(deleteRange)) {
+                            Transforms.select(editor, deleteRange);
+                            Transforms.delete(editor);
+                        }
+
+                        if (!isClosingMarker) {
+                            // Inserting a new marker
+                            // Get the block element this text belongs to
+                            const blockParent = Editor.above(editor, {
+                                match: (n) => Editor.isBlock(editor, n),
+                            });
+
+                            if (blockParent) {
+                                const [, blockParentPath] = blockParent;
+                                // Get the last node of the block element
+                                const [
+                                    blockParentLastNode,
+                                    blockParentLastPath,
+                                ] = Editor.last(editor, blockParentPath);
+
+                                const lastNodeOffset = Text.isText(
+                                    blockParentLastNode,
+                                )
+                                    ? blockParentLastNode.text.length
+                                    : 0;
+
+                                console.log(
+                                    'Before:',
+                                    JSON.stringify(editor.children, null, 2),
+                                );
+                                console.log(editor.selection);
+
+                                if (markerStyleInfo?.oneWord) {
+                                    // Add new marker at backslash position
+                                    Transforms.insertNodes(
+                                        editor,
+                                        {
+                                            type: elementType,
+                                            style: markerStyle,
+                                            children: [{ text: '' }],
+                                        } as CustomElement,
+                                        { at: backslashPoint },
+                                    );
+                                    Transforms.move(editor, {
+                                        distance: 1,
+                                        unit: 'offset',
+                                        reverse: true,
+                                    });
+                                } else {
+                                    // Wrap from selection to block element in element associated with the marker
+                                    const transform = elementInfo.inline
+                                        ? Transforms.wrapNodes
+                                        : Transforms.setNodes;
+                                    transform(
+                                        editor,
+                                        {
+                                            type: elementType,
+                                            style: markerStyle,
+                                        } as CustomElement,
+                                        {
+                                            at: {
+                                                anchor: backslashPoint,
+                                                focus: {
+                                                    path: blockParentLastPath,
+                                                    offset: lastNodeOffset,
+                                                },
+                                            },
+                                            split: true,
+                                        },
+                                    );
+                                }
+
+                                console.log(
+                                    'After:',
+                                    JSON.stringify(editor.children, null, 2),
+                                );
+                                console.log(editor.selection);
+                            }
+                        } else {
+                            // Closing an existing marker
+                            // Get closest element of this marker style
+                            const markerElement = Editor.above(editor, {
+                                match: (n) =>
+                                    Element.isElement(n) &&
+                                    n.type !== 'editor' &&
+                                    n.type === elementType &&
+                                    n.style === markerStyle,
+                            });
+
+                            if (markerElement) {
+                                const [, markerElementPath] = markerElement;
+
+                                console.log(
+                                    JSON.stringify(editor.children, null, 2),
+                                );
+                                console.log(editor.selection);
+
+                                // Unwrap the marker element
+                                Editor.withoutNormalizing(editor, () => {
+                                    Transforms.unwrapNodes(editor, {
+                                        at: markerElementPath,
+                                    });
+
+                                    // Following is an example of modifying a path when unwrapping in case we need it in the future. I was just curious and played around. We don't need it here, though, because I just get the editor.selection again
+                                    // Remove one path level at the unwrapped marker's path because we just removed it
+                                    // Have to clone and splice a separate array because it looks like editor.selection.anchor is set up to be non-configurable https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Errors/Non_configurable_array_element
+                                    // But somehow assigning to backslashPoint.path still doesn't change its value, so this doesn't actually work
+                                    /* const newPath = [
+                                        ...backslashPoint.path,
+                                    ];
+                                    newPath.splice(
+                                        markerElementPath.length,
+                                        1,
+                                    );
+                                    backslashPoint.path = newPath; */
+
+                                    console.log(
+                                        JSON.stringify(
+                                            editor.children,
+                                            null,
+                                            2,
+                                        ),
+                                    );
+                                    console.log(editor.selection);
+
+                                    // Wrap from the marker element's start position to updated selection position (need to get updated selection position because unwrapping removed the path at index of length of markerElementPath)
+                                    if (editor.selection) {
+                                        Transforms.wrapNodes(
+                                            editor,
+                                            {
+                                                type: elementType,
+                                                style: markerStyle,
+                                                children: [],
+                                            } as CustomElement,
+                                            {
+                                                at: {
+                                                    anchor: {
+                                                        path: markerElementPath,
+                                                        offset: 0, // We aren't normalizing, so the markerElementPath is now the contents of the unwrapped node
+                                                    },
+                                                    focus: editor.selection
+                                                        .anchor,
+                                                },
+                                                split: true,
+                                            },
+                                        );
+                                    }
+                                });
+                            }
+                        }
+
+                        // Don't insert the space
+                        return;
+                    }
+                }
+            }
+        }
+
+        insertText(text);
     };
 
     return editor;
