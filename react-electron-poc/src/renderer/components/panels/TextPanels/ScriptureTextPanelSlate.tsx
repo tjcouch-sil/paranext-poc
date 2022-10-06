@@ -1,12 +1,13 @@
 import { getScripture } from '@services/ScriptureService';
 import { ScriptureChapterContent } from '@shared/data/ScriptureTypes';
 import { isString, isValidValue } from '@util/Util';
-import {
+import React, {
     createElement,
     FunctionComponent,
     PropsWithChildren,
     useCallback,
     useEffect,
+    useLayoutEffect,
     useRef,
     useState,
 } from 'react';
@@ -30,16 +31,17 @@ import {
     withReact,
     ReactEditor,
     RenderElementProps,
+    RenderLeafProps,
 } from 'slate-react';
-import {
-    ScriptureTextPanelHOC,
-    ScriptureTextPanelHOCProps,
-} from './ScriptureTextPanelHOC';
 import {
     getTextFromScrRef,
     parseChapter,
     parseVerse,
 } from '@util/ScriptureUtil';
+import {
+    ScriptureTextPanelHOC,
+    ScriptureTextPanelHOCProps,
+} from './ScriptureTextPanelHOC';
 
 // Slate types
 type CustomEditor = BaseEditor & ReactEditor;
@@ -111,7 +113,7 @@ export type CustomElement =
     | ChapterElementProps
     | EditorElementProps;
 
-type FormattedText = { text: string } & MarkerProps;
+type FormattedText = { text: string; searchResult?: boolean } & MarkerProps;
 
 type CustomText = FormattedText;
 
@@ -145,6 +147,7 @@ const BlockElement = ({
     attributes,
     children,
 }: MyRenderElementProps<CustomElementProps>) => (
+    // eslint-disable-next-line react/jsx-props-no-spreading
     <div className={`${MARKER_CLASS_PREFIX}${style}`} {...attributes}>
         <Marker style={style} />
         {children}
@@ -159,6 +162,7 @@ const InlineElement = ({
     endSpace = false,
     closingMarker = false,
 }: InlineElementProps) => (
+    // eslint-disable-next-line react/jsx-props-no-spreading
     <span className={`${MARKER_CLASS_PREFIX}${style}`} {...attributes}>
         <Marker style={style} />
         {children}
@@ -170,21 +174,25 @@ const InlineElement = ({
 );
 
 const VerseElement = (props: MyRenderElementProps<VerseElementProps>) => (
+    // eslint-disable-next-line react/jsx-props-no-spreading
     <InlineElement {...props} endSpace />
 );
 
 /** Renders a complete block of text with an open marker at the start */
 const ParaElement = (props: MyRenderElementProps<ParaElementProps>) => (
+    // eslint-disable-next-line react/jsx-props-no-spreading
     <BlockElement {...props} />
 );
 
 /** Renders inline text with closed markers around it */
 const CharElement = (props: MyRenderElementProps<CharElementProps>) => (
+    // eslint-disable-next-line react/jsx-props-no-spreading
     <InlineElement {...props} closingMarker />
 );
 
 /** Renders a chapter number */
 const ChapterElement = (props: MyRenderElementProps<ChapterElementProps>) => (
+    // eslint-disable-next-line react/jsx-props-no-spreading
     <BlockElement {...props} />
 );
 
@@ -194,6 +202,7 @@ const EditorElement = ({
     attributes,
     children,
 }: MyRenderElementProps<EditorElementProps>) => (
+    // eslint-disable-next-line react/jsx-props-no-spreading
     <div className="usfm" id={`editor-chapter-${number}`} {...attributes}>
         {children}
     </div>
@@ -248,8 +257,23 @@ const EditorElements: { [type: string]: ElementInfo } = {
     editor: { component: EditorElement },
 };
 
+/** Default renderer for slate elements - hopefully not used */
 const DefaultElement = ({ attributes, children }: RenderElementProps) => {
+    // eslint-disable-next-line react/jsx-props-no-spreading
     return <p {...attributes}>{children}</p>;
+};
+
+/** Renderer for 'leaf' elements in Slate aka secret elements that wrap text */
+const Leaf = ({ attributes, children, leaf }: RenderLeafProps) => {
+    return (
+        <span
+            // eslint-disable-next-line react/jsx-props-no-spreading
+            {...attributes}
+            className={`${leaf.searchResult ? 'search-result' : ''}`}
+        >
+            {children}
+        </span>
+    );
 };
 
 const withScrInlines = (editor: CustomEditor): CustomEditor => {
@@ -341,10 +365,7 @@ const withScrMarkers = (editor: CustomEditor): CustomEditor => {
         // TODO: Scan through the text, replace all markers, and insert rest of the text instead of only working on space
         if (text.endsWith(' ') && selection && Range.isCollapsed(selection)) {
             // Determine if we inserted a marker
-            const [selectedNode, selectedPath] = Editor.node(
-                editor,
-                selection.anchor,
-            );
+            const [selectedNode] = Editor.node(editor, selection.anchor);
             if (Text.isText(selectedNode)) {
                 // Figure out if the text before the offset has a backslash
                 const backslashOffset = selectedNode.text.lastIndexOf(
@@ -569,7 +590,7 @@ const getScrChapter = getScripture;
 
 export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
     ({
-        shortName,
+        // shortName,
         editable,
         book,
         chapter,
@@ -584,7 +605,28 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
             withScrMarkers(withScrInlines(withReact(createEditor()))),
         );
 
-        // Render our components for this project
+        // Search string for search highlighting. When null, don't show the search box. When '' or other, show the search box
+        const [searchString, setSearchString] = useState<string | null>(null);
+        /** Ref for the search input box */
+        const searchInputRef = useRef<HTMLInputElement>(null);
+
+        /** Update the search string when we type into the input */
+        const handleChangeSearchString = useCallback(
+            (e: React.ChangeEvent<HTMLInputElement>) => {
+                setSearchString(e.target.value);
+            },
+            [],
+        );
+
+        useEffect(() => {
+            if (searchString === '') {
+                searchInputRef.current?.focus();
+            } else if (searchString === null) {
+                ReactEditor.focus(editor);
+            }
+        }, [editor, searchString]);
+
+        /** Render slate elements for this project */
         const renderElement = useCallback(
             (props: MyRenderElementProps<CustomElement>): JSX.Element => {
                 return createElement(
@@ -595,6 +637,49 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
                 );
             },
             [],
+        );
+
+        /** Render slate leaves for this project */
+        const renderLeaf = useCallback(
+            // eslint-disable-next-line react/jsx-props-no-spreading
+            (props: RenderLeafProps) => <Leaf {...props} />,
+            [],
+        );
+
+        /** Set decorations in the editor */
+        const decorate = useCallback(
+            ([node, path]: NodeEntry<Node>): (Range &
+                Omit<FormattedText, 'text'>)[] => {
+                const ranges: (Range & Omit<FormattedText, 'text'>)[] = [];
+
+                // Modified search highlighting decoration logic from Slate search highlighting example
+                // https://github.com/ianstormtaylor/slate/blob/main/site/examples/search-highlighting.tsx
+                if (searchString && Text.isText(node)) {
+                    const { text } = node;
+                    const parts = text
+                        .toLowerCase()
+                        .split(searchString.toLowerCase());
+                    let offset = 0;
+
+                    parts.forEach((part, i) => {
+                        if (i !== 0) {
+                            ranges.push({
+                                anchor: {
+                                    path,
+                                    offset: offset - searchString.length,
+                                },
+                                focus: { path, offset },
+                                searchResult: true,
+                            });
+                        }
+
+                        offset = offset + part.length + searchString.length;
+                    });
+                }
+
+                return ranges;
+            },
+            [searchString],
         );
 
         /**
@@ -674,6 +759,25 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
                 }
             }, 1);
         }, [editor, updateScrRef, book]);
+
+        /** Handle keyboard events on the text panel wrapper */
+        const onKeyDown = useCallback(
+            (event: React.KeyboardEvent<HTMLDivElement>) => {
+                if (event.ctrlKey) {
+                    switch (event.key) {
+                        case 'f':
+                            // Make searchString '' if it is null or null if otherwise to toggle the search bar
+                            setSearchString((currentSearchString) =>
+                                currentSearchString === null ? '' : null,
+                            );
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            },
+            [],
+        );
 
         // When we get new Scripture project contents, update slate
         useEffect(() => {
@@ -780,14 +884,33 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
         }, [editor, scrChapters, book, chapter, verse]);
 
         return (
-            <div className="text-panel" onFocus={onFocus}>
-                <Slate editor={editor} value={[{ text: 'Loading' }]}>
-                    <Editable
-                        readOnly={!editable}
-                        renderElement={renderElement}
-                        onSelect={onSelect}
-                    />
-                </Slate>
+            // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+            <div className="text-panel-wrapper" onKeyDown={onKeyDown}>
+                {searchString !== null && (
+                    <div className="scr-toolbar text-panel-search">
+                        <span className="input-area">
+                            Search:
+                            <input
+                                ref={searchInputRef}
+                                type="text"
+                                className={`${searchString ? 'changed' : ''}`}
+                                value={searchString}
+                                onChange={handleChangeSearchString}
+                            />
+                        </span>
+                    </div>
+                )}
+                <div className="text-panel" onFocus={onFocus}>
+                    <Slate editor={editor} value={[{ text: 'Loading' }]}>
+                        <Editable
+                            readOnly={!editable}
+                            renderElement={renderElement}
+                            renderLeaf={renderLeaf}
+                            decorate={decorate}
+                            onSelect={onSelect}
+                        />
+                    </Slate>
+                </div>
             </div>
         );
     },

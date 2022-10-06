@@ -1,23 +1,23 @@
-.scrref-form {
+.scr-toolbar {
     padding: 7px;
     background-color: #1c1c2a;
 }
 
-.scrref-form button {
+.scr-toolbar button {
     font-size: 11pt;
 }
 
-.scrref-form .selector-area,
-.scrref-form .input-area {
+.scr-toolbar .selector-area,
+.scr-toolbar .input-area {
     color: white;
     display: inline-block;
 }
 
-.scrref-form .selector-area span {
+.scr-toolbar .selector-area span {
     margin: 0px 5px;
 }
 
-.scrref-form .selector-area .change-btn {
+.scr-toolbar .selector-area .change-btn {
     padding: 2px 1px;
     border-right: 1px solid #505070;
     border-top: 1px solid #505070;
@@ -28,25 +28,25 @@
     box-sizing: border-box;
 }
 
-.scrref-form .selector-area .change-btn.left {
+.scr-toolbar .selector-area .change-btn.left {
     border-radius: 5px 0px 0px 5px;
     border-left: 1px solid #505070;
     border-right: 0px;
 }
 
-.scrref-form .selector-area .splitter {
+.scr-toolbar .selector-area .splitter {
     margin: 0px;
     width: 1px;
     display: inline-block;
     box-sizing: border-box;
 }
 
-.scrref-form .selector-area .splitter.changed {
+.scr-toolbar .selector-area .splitter.changed {
     border-right: 1px solid #505070;
     display: inline;
 }
 
-.scrref-form input {
+.scr-toolbar input {
     width: 120px;
     margin: 4px;
     padding: 4px;
@@ -54,33 +54,33 @@
     transition: all ease-in 0.1s;
 }
 
-.scrref-form input:focus,
-.scrref-form input:hover,
-.scrref-form input.changed {
+.scr-toolbar input:focus,
+.scr-toolbar input:hover,
+.scr-toolbar input.changed {
     background-color: #505070;
     color: white;
 }
 
-.scrref-form .enter-button {
+.scr-toolbar .enter-button {
     padding: 5px 10px;
     background-color: #505070;
     color: white;
 }
 
-.scrref-form input,
-.scrref-form .enter-button:disabled,
-.scrref-form .selector-area .change-btn:disabled {
+.scr-toolbar input,
+.scr-toolbar .enter-button:disabled,
+.scr-toolbar .selector-area .change-btn:disabled {
     background-color: #1c1c2a;
     color: #505070;
 }
 
-.scrref-form input,
-.scrref-form .enter-button:disabled {
+.scr-toolbar input,
+.scr-toolbar .enter-button:disabled {
     border: 1px solid #505070;
 }
 
-.scrref-form .selector-area .change-btn:hover:enabled,
-.scrref-form .enter-button:hover:enabled {
+.scr-toolbar .selector-area .change-btn:hover:enabled,
+.scr-toolbar .enter-button:hover:enabled {
     background-color: #8a8aac;
     color: white;
 }
