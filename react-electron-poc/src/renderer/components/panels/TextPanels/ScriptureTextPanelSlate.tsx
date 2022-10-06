@@ -42,6 +42,7 @@ import {
     ScriptureTextPanelHOC,
     ScriptureTextPanelHOCProps,
 } from './ScriptureTextPanelHOC';
+import { withHistory } from 'slate-history';
 
 // Slate types
 type CustomEditor = BaseEditor & ReactEditor;
@@ -602,7 +603,9 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
         // Slate editor
         // TODO: Put in a useEffect listening for scrChapters and create editors for the number of chapters
         const [editor] = useState<CustomEditor>(() =>
-            withScrMarkers(withScrInlines(withReact(createEditor()))),
+            withScrMarkers(
+                withScrInlines(withReact(withHistory(createEditor()))),
+            ),
         );
 
         // Search string for search highlighting. When null, don't show the search box. When '' or other, show the search box
