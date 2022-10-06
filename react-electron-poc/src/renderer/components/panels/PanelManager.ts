@@ -3,7 +3,7 @@ import { getTextFromScrRef } from '@util/ScriptureUtil';
 import { newGuid } from '@util/Util';
 import { DockviewReadyEvent, AddPanelOptions } from 'dockview';
 import { PanelType } from './Panels';
-import { ScriptureTextPanelProps } from './TextPanels/ScriptureTextPanel';
+import { ScriptureTextPanelHOCProps } from './TextPanels/ScriptureTextPanelHOC';
 
 export interface PanelInfo {
     id: string;
@@ -30,13 +30,15 @@ export class PanelManager {
             throw new Error('generatePanelTitle: panelInfo undefined!');
         if (panelInfo.title || panelInfo.title === '') return panelInfo.title;
 
-        if (panelInfo.type === 'ScriptureTextPanel') {
-            const scrPanelProps = panelProps as ScriptureTextPanelProps;
+        if (panelInfo.type.startsWith('ScriptureTextPanel')) {
+            const scrPanelProps = panelProps as ScriptureTextPanelHOCProps;
             return `${scrPanelProps.shortName}: ${getTextFromScrRef({
                 book: scrPanelProps.book,
                 chapter: scrPanelProps.chapter,
                 verse: -1,
-            })}${scrPanelProps.editable ? ' Editable' : ''}`;
+            })}${scrPanelProps.editable ? ' Editable' : ''}${
+                panelInfo.type === 'ScriptureTextPanelSlate' ? ' Slate' : ''
+            }`;
         }
         return panelInfo.type;
     }
@@ -90,6 +92,24 @@ export class PanelManager {
             const panelPropsUpdated = {
                 ...panel.params,
                 ...newScrRef,
+            };
+            panel.update({
+                params: {
+                    params: panelPropsUpdated,
+                    title: PanelManager.generatePanelTitle(
+                        this.panelsInfo.get(panel.id),
+                        panelPropsUpdated,
+                    ),
+                },
+            });
+        });
+    }
+
+    updateBrowseBook(newBrowseBook: boolean): void {
+        this.dockview.api.panels.forEach((panel) => {
+            const panelPropsUpdated = {
+                ...panel.params,
+                browseBook: newBrowseBook,
             };
             panel.update({
                 params: {

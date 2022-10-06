@@ -24,7 +24,7 @@ export default ({ scrRef, handleSubmit }: ScrRefSelectorProps) => {
 
     const handleChange = useCallback(
         (e: React.ChangeEvent<HTMLInputElement>) => {
-            setCurrentRefText(e.currentTarget.value);
+            setCurrentRefText(e.target.value);
         },
         [],
     );

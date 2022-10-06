@@ -7,24 +7,42 @@ import {
     getAllResourceInfo,
     getResourceInfo,
 } from '@services/ScriptureService';
-import { ScriptureTextPanelProps } from '@components/panels/TextPanels/ScriptureTextPanel';
+import { ScriptureTextPanelHtmlProps } from '@components/panels/TextPanels/ScriptureTextPanelHtml';
 import { ScriptureReference } from '@shared/data/ScriptureTypes';
 import ScrRefSelector from '@components/ScrRefSelector';
 import { PanelManager } from '@components/panels/PanelManager';
+import { getSetting, setSetting } from '@services/SettingsService';
+
+/** Key for saving scrRef setting */
+const scrRefSettingKey = 'scrRef';
+/** Key for saving browseBook setting */
+const browseBookSettingKey = 'browseBook';
 
 const Layout = () => {
     const panelManager = useRef<PanelManager | undefined>(undefined);
 
-    const [scrRef, setScrRef] = useState<ScriptureReference>({
-        book: 19,
-        chapter: 119,
-        verse: 1,
-    });
-
+    const [scrRef, setScrRef] = useState<ScriptureReference>(
+        getSetting<ScriptureReference>(scrRefSettingKey) || {
+            book: 19,
+            chapter: 119,
+            verse: 1,
+        },
+    );
     const updateScrRef = useCallback((newScrRef: ScriptureReference) => {
         setScrRef(newScrRef);
+        setSetting(scrRefSettingKey, newScrRef);
 
         panelManager.current?.updateScrRef(newScrRef);
+    }, []);
+
+    const [browseBook, setBrowseBook] = useState<boolean>(
+        getSetting<boolean>(browseBookSettingKey) || false,
+    );
+    const updateBrowseBook = useCallback((newBrowseBook: boolean) => {
+        setBrowseBook(newBrowseBook);
+        setSetting(browseBookSettingKey, newBrowseBook);
+
+        panelManager.current?.updateBrowseBook(newBrowseBook);
     }, []);
 
     const onReady = useCallback(
@@ -69,20 +87,24 @@ const Layout = () => {
                 },
             ); */
             const csbPanel = panelManager.current.addPanel(
-                'ScriptureTextPanel',
+                'ScriptureTextPanelHtml',
                 {
                     shortName: 'CSB',
                     editable: false,
                     ...scrRef,
-                } as ScriptureTextPanelProps,
+                    updateScrRef,
+                    browseBook,
+                } as ScriptureTextPanelHtmlProps,
             );
             const ohebPanel = panelManager.current.addPanel(
-                'ScriptureTextPanel',
+                'ScriptureTextPanelHtml',
                 {
                     shortName: 'OHEB',
                     editable: false,
                     ...scrRef,
-                } as ScriptureTextPanelProps,
+                    updateScrRef,
+                    browseBook,
+                } as ScriptureTextPanelHtmlProps,
                 {
                     position: {
                         direction: 'right',
@@ -91,12 +113,14 @@ const Layout = () => {
                 },
             );
             panelManager.current.addPanel(
-                'ScriptureTextPanel',
+                'ScriptureTextPanelSlate',
                 {
                     shortName: 'zzz6',
                     editable: true,
                     ...scrRef,
-                } as ScriptureTextPanelProps,
+                    updateScrRef,
+                    browseBook,
+                } as ScriptureTextPanelHtmlProps,
                 {
                     position: {
                         direction: 'below',
@@ -105,12 +129,30 @@ const Layout = () => {
                 },
             );
             panelManager.current.addPanel(
-                'ScriptureTextPanel',
+                'ScriptureTextPanelHtml',
                 {
                     shortName: 'NIV84',
                     editable: false,
                     ...scrRef,
-                } as ScriptureTextPanelProps,
+                    updateScrRef,
+                    browseBook,
+                } as ScriptureTextPanelHtmlProps,
+                {
+                    position: {
+                        direction: 'below',
+                        referencePanel: ohebPanel.id,
+                    },
+                },
+            );
+            const zzz1Panel = panelManager.current.addPanel(
+                'ScriptureTextPanelHtml',
+                {
+                    shortName: 'zzz1',
+                    editable: true,
+                    ...scrRef,
+                    updateScrRef,
+                    browseBook,
+                } as ScriptureTextPanelHtmlProps,
                 {
                     position: {
                         direction: 'below',
@@ -119,34 +161,48 @@ const Layout = () => {
                 },
             );
             panelManager.current.addPanel(
-                'ScriptureTextPanel',
+                'ScriptureTextPanelHtml',
                 {
-                    shortName: 'zzz1',
+                    shortName: 'zzz6',
                     editable: true,
                     ...scrRef,
-                } as ScriptureTextPanelProps,
+                    updateScrRef,
+                    browseBook,
+                } as ScriptureTextPanelHtmlProps,
                 {
                     position: {
-                        direction: 'below',
-                        referencePanel: ohebPanel.id,
+                        direction: 'within',
+                        referencePanel: zzz1Panel.id,
                     },
                 },
             );
         },
-        [scrRef],
+        [scrRef, updateScrRef],
     );
 
     return (
-        <>
-            <ScrRefSelector scrRef={scrRef} handleSubmit={updateScrRef} />
-            <div className="layout">
+        <div className="layout">
+            <div className="layout-bar">
+                <ScrRefSelector scrRef={scrRef} handleSubmit={updateScrRef} />
+                <span className="layout-checkbox">
+                    Edit whole book
+                    <input
+                        type="checkbox"
+                        checked={browseBook}
+                        onChange={(event) =>
+                            updateBrowseBook(event.target.checked)
+                        }
+                    />
+                </span>
+            </div>
+            <div className="layout-dock">
                 <DockviewReact
                     className="dockview-theme-abyss"
                     onReady={onReady}
                     components={DockViewPanels}
                 />
             </div>
-        </>
+        </div>
     );
 };
 export default Layout;

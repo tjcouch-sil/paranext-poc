@@ -14,6 +14,7 @@ module.exports = {
         'prettier/prettier': ['warn', { tabWidth: 4, trailingComma: 'all' }],
         'no-console': 'off',
         'react/require-default-props': 'off',
+        'no-plusplus': ['error', { allowForLoopAfterthoughts: true }],
     },
     parserOptions: {
         ecmaVersion: 2020,

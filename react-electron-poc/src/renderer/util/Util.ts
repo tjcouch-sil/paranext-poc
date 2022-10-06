@@ -21,7 +21,7 @@ export function isString(o: unknown) {
  * @param val value to evaluate
  * @returns whether the value is truthy, false, or 0
  */
-export function isValidValue(val: unknown): boolean {
+export function isValidValue(val: unknown): val is NonNullable<unknown> {
     return !!val || val === false || val === 0;
 }
 

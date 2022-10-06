@@ -3,12 +3,38 @@ body {
 }
 
 #root {
-    width: 100vw;
     height: 100vh;
 }
 
 .layout {
     height: 100%;
+    display: flex;
+    flex-direction: column;
+    background-color: #1c1c2a;
+}
+
+.layout .layout-bar {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.layout .layout-bar .layout-checkbox {
+    background-color: #1c1c2a;
+    color: #505070;
+    border-radius: 5px;
+    border: 1px solid #505070;
+    padding: 3px;
+    margin: 4px;
+    flex-shrink: 0;
+}
+
+.layout .layout-dock {
+    flex-grow: 1;
+    /* Workaround for restoring from maximized leaving the dockview at maximized height.
+       See https://github.com/mathuo/dockview/issues/158#issuecomment-1260007967 for more info */
+    overflow: hidden;
 }
 
 .groupview.active-group > .tabs-and-actions-container {

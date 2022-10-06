@@ -169,6 +169,9 @@ const getScriptureDelay = 75;
 /** Simulating how long it may take Paratext to serve the resource info */
 const getResourceInfoDelay = 20;
 
+/** Regex for test Scripture file name bookNum-chapterNum.fileExtension */
+const regexpScrFileName = /(\d+)-(\d+)\.(.+)/;
+
 /**
  * Get the Scripture for a certain project for a whole book.
  * The json files are Slate JSON files
@@ -189,20 +192,59 @@ async function handleGetScriptureBook(
     bookNum: number,
 ): Promise<ScriptureChapter[]> {
     // TODO: If we want to implement this, parse file and split out into actual chapters
-    try {
-        return await getFilesText(
-            [`testScripture/${shortName}/${bookNum}.${fileExtension}`],
-            getScriptureDelay,
-        ).then((filesContents) =>
-            filesContents.map((fileContents, ind) => ({
-                chapter: ind,
-                contents: fileContents,
-            })),
+    return delayPromise<ScriptureChapter[]>((resolve, reject) => {
+        fs.readdir(
+            getAssetPath(`testScripture/${shortName}`),
+            {
+                withFileTypes: true,
+            },
+            async (err, dirents) => {
+                if (err) reject(`No path data for ${shortName} ${bookNum}`);
+                else {
+                    try {
+                        // Get all Scripture files
+                        const scrFilePaths = dirents
+                            .filter((dirent) => {
+                                if (dirent.isDirectory()) return false;
+
+                                const scrFileNameMatch =
+                                    dirent.name.match(regexpScrFileName);
+                                return (
+                                    scrFileNameMatch &&
+                                    scrFileNameMatch.length >= 4 &&
+                                    scrFileNameMatch[3] === fileExtension
+                                );
+                            })
+                            .map(
+                                (dirent) =>
+                                    `testScripture/${shortName}/${dirent.name}`,
+                            );
+                        const filesContents = await getFilesText(
+                            scrFilePaths,
+                            0,
+                        );
+                        resolve(
+                            filesContents.map(
+                                (fileContents, i) =>
+                                    ({
+                                        chapter: parseInt(
+                                            scrFilePaths[i].match(
+                                                regexpScrFileName,
+                                            )[2],
+                                            10,
+                                        ),
+                                        contents: fileContents,
+                                    } as ScriptureChapter),
+                            ),
+                        );
+                    } catch (e) {
+                        console.log(e);
+                        reject(`No data for ${shortName} ${bookNum}`);
+                    }
+                }
+            },
         );
-    } catch (e) {
-        console.log(e);
-        throw new Error(`No data for ${shortName} ${bookNum}`);
-    }
+    }, getScriptureDelay);
 }
 
 /**
