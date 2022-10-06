@@ -43,6 +43,7 @@ import {
     ScriptureTextPanelHOCProps,
 } from './ScriptureTextPanelHOC';
 import { withHistory } from 'slate-history';
+import isHotkey from 'is-hotkey';
 
 // Slate types
 type CustomEditor = BaseEditor & ReactEditor;
@@ -582,6 +583,9 @@ const withScrMarkers = (editor: CustomEditor): CustomEditor => {
     return editor;
 };
 
+/** hotkey for toggling the search box */
+const isHotkeyFind = isHotkey('mod+f');
+
 export interface ScriptureTextPanelProps extends ScriptureTextPanelHOCProps {
     scrChapters: ScriptureChapterContent[];
 }
@@ -763,20 +767,14 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
             }, 1);
         }, [editor, updateScrRef, book]);
 
-        /** Handle keyboard events on the text panel wrapper */
+        /** Handle keyboard events on the text panel */
         const onKeyDown = useCallback(
             (event: React.KeyboardEvent<HTMLDivElement>) => {
-                if (event.ctrlKey) {
-                    switch (event.key) {
-                        case 'f':
-                            // Make searchString '' if it is null or null if otherwise to toggle the search bar
-                            setSearchString((currentSearchString) =>
-                                currentSearchString === null ? '' : null,
-                            );
-                            break;
-                        default:
-                            break;
-                    }
+                if (isHotkeyFind(event)) {
+                    // Make searchString '' if it is null or null if otherwise to toggle the search bar
+                    setSearchString((currentSearchString) =>
+                        currentSearchString === null ? '' : null,
+                    );
                 }
             },
             [],

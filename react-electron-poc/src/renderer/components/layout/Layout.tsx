@@ -13,11 +13,17 @@ import ScrRefSelector from '@components/ScrRefSelector';
 import { PanelManager } from '@components/panels/PanelManager';
 import { getSetting, setSetting } from '@services/SettingsService';
 import { offsetChapter, offsetVerse } from '@util/ScriptureUtil';
+import isHotkey from 'is-hotkey';
 
 /** Key for saving scrRef setting */
 const scrRefSettingKey = 'scrRef';
 /** Key for saving browseBook setting */
 const browseBookSettingKey = 'browseBook';
+
+const isHotkeyPreviousChapter = isHotkey('mod+alt+ArrowUp');
+const isHotkeyNextChapter = isHotkey('mod+alt+ArrowDown');
+const isHotkeyPreviousVerse = isHotkey('mod+alt+ArrowLeft');
+const isHotkeyNextVerse = isHotkey('mod+alt+ArrowRight');
 
 const Layout = () => {
     const panelManager = useRef<PanelManager | undefined>(undefined);
@@ -49,23 +55,14 @@ const Layout = () => {
     /** Handle keyboard events for the whole application */
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
-            if (event.ctrlKey && event.altKey) {
-                switch (event.key) {
-                    case 'ArrowUp':
-                        updateScrRef(offsetChapter(scrRef, -1));
-                        break;
-                    case 'ArrowDown':
-                        updateScrRef(offsetChapter(scrRef, 1));
-                        break;
-                    case 'ArrowLeft':
-                        updateScrRef(offsetVerse(scrRef, -1));
-                        break;
-                    case 'ArrowRight':
-                        updateScrRef(offsetVerse(scrRef, 1));
-                        break;
-                    default:
-                        break;
-                }
+            if (isHotkeyPreviousChapter(event)) {
+                updateScrRef(offsetChapter(scrRef, -1));
+            } else if (isHotkeyNextChapter(event)) {
+                updateScrRef(offsetChapter(scrRef, 1));
+            } else if (isHotkeyPreviousVerse(event)) {
+                updateScrRef(offsetVerse(scrRef, -1));
+            } else if (isHotkeyNextVerse(event)) {
+                updateScrRef(offsetVerse(scrRef, 1));
             }
         };
 
