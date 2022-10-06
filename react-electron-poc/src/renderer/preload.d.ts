@@ -39,6 +39,7 @@ declare global {
                 getScriptureStyle(shortName: string): Promise<string>;
                 getResourceInfo(shortName: string): Promise<ResourceInfo>;
                 getAllResourceInfo(): Promise<ResourceInfo[]>;
+                setActiveResource(shortName: string): Promise<void>;
             };
         };
         electron: {

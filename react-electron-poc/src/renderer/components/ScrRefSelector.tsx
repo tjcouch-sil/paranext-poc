@@ -107,19 +107,21 @@ export default ({ scrRef, handleSubmit }: ScrRefSelectorProps) => {
                     &gt;
                 </button>
             </span>
-            <input
-                type="text"
-                className={`${isScrRefChanged ? 'changed' : ''}`}
-                value={currentRefText}
-                onChange={handleChange}
-            />
-            <button
-                type="submit"
-                className="enter-button"
-                disabled={!isScrRefChanged}
-            >
-                Go!
-            </button>
+            <span className="input-area">
+                <input
+                    type="text"
+                    className={`${isScrRefChanged ? 'changed' : ''}`}
+                    value={currentRefText}
+                    onChange={handleChange}
+                />
+                <button
+                    type="submit"
+                    className="enter-button"
+                    disabled={!isScrRefChanged}
+                >
+                    Go!
+                </button>
+            </span>
         </form>
     );
 };

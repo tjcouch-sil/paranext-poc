@@ -1,4 +1,7 @@
-import { getScriptureStyle } from '@services/ScriptureService';
+import {
+    getScriptureStyle,
+    setActiveResource,
+} from '@services/ScriptureService';
 import {
     ResourceInfo,
     ScriptureChapter,
@@ -24,6 +27,7 @@ export interface ScriptureTextPanelHOCProps
     scrChapters: ScriptureChapter[];
     updateScrRef: (newScrRef: ScriptureReference) => void;
     browseBook?: boolean;
+    onFocus: () => Promise<void>;
 }
 
 export function ScriptureTextPanelHOC<T extends ScriptureTextPanelHOCProps>(
@@ -49,10 +53,12 @@ export function ScriptureTextPanelHOC<T extends ScriptureTextPanelHOCProps>(
             }, [shortName]),
         );
 
+        /** Get the whole contents of the current book */
         const getMyScrBook = useCallback(async () => {
             if (!shortName || !isValidValue(book)) return null;
             return getScrChapter(shortName, book, -1);
         }, [shortName, book]);
+        /** Get the contents of the current chapter */
         const getMyScrChapter = useCallback(async () => {
             if (!shortName || !isValidValue(book) || !isValidValue(chapter))
                 return null;
@@ -61,6 +67,7 @@ export function ScriptureTextPanelHOC<T extends ScriptureTextPanelHOCProps>(
 
         // Get the project's contents
         const [scrChapters] = usePromise<ScriptureChapter[]>(
+            // Depending on if we are browsing by book or chapter, use the appropriate function. This way, we only refresh scrChapters when needed (when browsing by book, we don't need to refresh when changing chapter)
             browseBook ? getMyScrBook : getMyScrChapter,
             useState<ScriptureChapter[]>([
                 {
@@ -74,9 +81,18 @@ export function ScriptureTextPanelHOC<T extends ScriptureTextPanelHOCProps>(
             ])[0],
         );
 
+        /** Function to call when setting focus on this panel. Tells the backend we set the active project */
+        const onFocus = useCallback(async () => {
+            return setActiveResource(shortName);
+        }, [shortName]);
+
         return (
-            // eslint-disable-next-line react/jsx-props-no-spreading
-            <WrappedComponent {...props} scrChapters={scrChapters}>
+            <WrappedComponent
+                // eslint-disable-next-line react/jsx-props-no-spreading
+                {...props}
+                scrChapters={scrChapters}
+                onFocus={onFocus}
+            >
                 {children}
             </WrappedComponent>
         );

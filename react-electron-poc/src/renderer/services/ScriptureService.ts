@@ -127,12 +127,29 @@ export const getScriptureStyle = async (shortName: string): Promise<string> => {
     return window.electronAPI.scripture.getScriptureStyle(shortName);
 };
 
+/**
+ * Gets information about the resource with the specified short name
+ * @param shortName the short name of the project
+ * @returns Promise with ResourceInfo for the specified resource
+ */
 export const getResourceInfo = async (
     shortName: string,
 ): Promise<ResourceInfo> => {
     return window.electronAPI.scripture.getResourceInfo(shortName);
 };
 
+/**
+ * Gets information about all available resources
+ * @returns Promise with array of ResourceInfo for all resources
+ */
 export const getAllResourceInfo = async (): Promise<ResourceInfo[]> => {
     return window.electronAPI.scripture.getAllResourceInfo();
+};
+
+/**
+ * Tell the backend that the user focused on a resource so the backend can do what it wants like set the keyboard.
+ * @returns Promise that resolves when the backend is finished processing
+ */
+export const setActiveResource = async (shortName: string): Promise<void> => {
+    return window.electronAPI.scripture.setActiveResource(shortName);
 };

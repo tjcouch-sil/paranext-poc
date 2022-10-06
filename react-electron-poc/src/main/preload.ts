@@ -84,6 +84,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
             ipcRenderer.invoke('ipc-scripture:getResourceInfo', shortName),
         getAllResourceInfo: (): Promise<ResourceInfo[]> =>
             ipcRenderer.invoke('ipc-scripture:getAllResourceInfo'),
+        setActiveResource: (shortName: string): Promise<void> =>
+            ipcRenderer.invoke('ipc-scripture:setActiveResource', shortName),
     },
 });
 
