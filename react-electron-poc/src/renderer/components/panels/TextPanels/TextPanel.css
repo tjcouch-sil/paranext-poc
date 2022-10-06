@@ -1,16 +1,20 @@
 @import '@components/Components.css';
 
-.text-panel-wrapper {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-}
-
 .text-panel {
     width: 100%;
     height: 100%;
-    flex-grow: 1;
     background-color: white;
+    overflow-y: auto;
+}
+
+.text-panel.slate {
+    display: flex;
+    flex-direction: column;
+}
+
+.text-panel-slate-editor {
+    width: 100%;
+    flex-grow: 1;
     overflow-y: auto;
 }
 

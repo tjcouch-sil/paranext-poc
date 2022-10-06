@@ -885,7 +885,11 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
 
         return (
             // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-            <div className="text-panel-wrapper" onKeyDown={onKeyDown}>
+            <div
+                className="text-panel slate"
+                onFocus={onFocus}
+                onKeyDown={onKeyDown}
+            >
                 {searchString !== null && (
                     <div className="scr-toolbar text-panel-search">
                         <span className="input-area">
@@ -900,7 +904,7 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
                         </span>
                     </div>
                 )}
-                <div className="text-panel" onFocus={onFocus}>
+                <div className="text-panel-slate-editor">
                     <Slate editor={editor} value={[{ text: 'Loading' }]}>
                         <Editable
                             readOnly={!editable}

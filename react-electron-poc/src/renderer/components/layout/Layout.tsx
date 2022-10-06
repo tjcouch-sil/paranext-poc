@@ -2,7 +2,7 @@ import './Layout.css';
 import { DockviewReact, DockviewReadyEvent } from 'dockview';
 import '@node_modules/dockview/dist/styles/dockview.css';
 import { DockViewPanels } from '@components/panels/Panels';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
     getAllResourceInfo,
     getResourceInfo,
@@ -12,6 +12,7 @@ import { ScriptureReference } from '@shared/data/ScriptureTypes';
 import ScrRefSelector from '@components/ScrRefSelector';
 import { PanelManager } from '@components/panels/PanelManager';
 import { getSetting, setSetting } from '@services/SettingsService';
+import { offsetChapter, offsetVerse } from '@util/ScriptureUtil';
 
 /** Key for saving scrRef setting */
 const scrRefSettingKey = 'scrRef';
@@ -44,6 +45,36 @@ const Layout = () => {
 
         panelManager.current?.updateBrowseBook(newBrowseBook);
     }, []);
+
+    /** Handle keyboard events for the whole application */
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.ctrlKey && event.altKey) {
+                switch (event.key) {
+                    case 'ArrowUp':
+                        updateScrRef(offsetChapter(scrRef, -1));
+                        break;
+                    case 'ArrowDown':
+                        updateScrRef(offsetChapter(scrRef, 1));
+                        break;
+                    case 'ArrowLeft':
+                        updateScrRef(offsetVerse(scrRef, -1));
+                        break;
+                    case 'ArrowRight':
+                        updateScrRef(offsetVerse(scrRef, 1));
+                        break;
+                    default:
+                        break;
+                }
+            }
+        };
+
+        window.addEventListener('keydown', onKeyDown, true);
+
+        return () => {
+            window.removeEventListener('keydown', onKeyDown, true);
+        };
+    }, [scrRef, updateScrRef]);
 
     const onReady = useCallback(
         (event: DockviewReadyEvent) => {
@@ -177,7 +208,7 @@ const Layout = () => {
                 },
             );
         },
-        [scrRef, updateScrRef],
+        [scrRef, updateScrRef, browseBook],
     );
 
     return (
