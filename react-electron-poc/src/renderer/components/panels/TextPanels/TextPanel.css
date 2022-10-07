@@ -1,6 +1,33 @@
+@import '@components/Components.css';
+
 .text-panel {
     width: 100%;
     height: 100%;
     background-color: white;
-    overflow-y: scroll;
+    overflow-y: auto;
+}
+
+.text-panel.slate {
+    display: flex;
+    flex-direction: column;
+}
+
+.text-panel-slate-editor {
+    width: 100%;
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+.scr-toolbar.text-panel-search .input-area {
+    display: flex;
+}
+
+.scr-toolbar.text-panel-search input {
+    flex-grow: 1;
+    margin: 0px;
+    margin-left: 7px;
+}
+
+.text-panel .search-result {
+    background-color: #ffdd1e;
 }

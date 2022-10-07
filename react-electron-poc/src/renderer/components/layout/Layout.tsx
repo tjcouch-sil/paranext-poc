@@ -2,7 +2,7 @@ import './Layout.css';
 import { DockviewReact, DockviewReadyEvent } from 'dockview';
 import '@node_modules/dockview/dist/styles/dockview.css';
 import { DockViewPanels } from '@components/panels/Panels';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
     getAllResourceInfo,
     getResourceInfo,
@@ -12,11 +12,18 @@ import { ScriptureReference } from '@shared/data/ScriptureTypes';
 import ScrRefSelector from '@components/ScrRefSelector';
 import { PanelManager } from '@components/panels/PanelManager';
 import { getSetting, setSetting } from '@services/SettingsService';
+import { offsetChapter, offsetVerse } from '@util/ScriptureUtil';
+import isHotkey from 'is-hotkey';
 
 /** Key for saving scrRef setting */
 const scrRefSettingKey = 'scrRef';
 /** Key for saving browseBook setting */
 const browseBookSettingKey = 'browseBook';
+
+const isHotkeyPreviousChapter = isHotkey('mod+alt+ArrowUp');
+const isHotkeyNextChapter = isHotkey('mod+alt+ArrowDown');
+const isHotkeyPreviousVerse = isHotkey('mod+alt+ArrowLeft');
+const isHotkeyNextVerse = isHotkey('mod+alt+ArrowRight');
 
 const Layout = () => {
     const panelManager = useRef<PanelManager | undefined>(undefined);
@@ -44,6 +51,27 @@ const Layout = () => {
 
         panelManager.current?.updateBrowseBook(newBrowseBook);
     }, []);
+
+    /** Handle keyboard events for the whole application */
+    useEffect(() => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (isHotkeyPreviousChapter(event)) {
+                updateScrRef(offsetChapter(scrRef, -1));
+            } else if (isHotkeyNextChapter(event)) {
+                updateScrRef(offsetChapter(scrRef, 1));
+            } else if (isHotkeyPreviousVerse(event)) {
+                updateScrRef(offsetVerse(scrRef, -1));
+            } else if (isHotkeyNextVerse(event)) {
+                updateScrRef(offsetVerse(scrRef, 1));
+            }
+        };
+
+        window.addEventListener('keydown', onKeyDown, true);
+
+        return () => {
+            window.removeEventListener('keydown', onKeyDown, true);
+        };
+    }, [scrRef, updateScrRef]);
 
     const onReady = useCallback(
         (event: DockviewReadyEvent) => {
@@ -177,7 +205,7 @@ const Layout = () => {
                 },
             );
         },
-        [scrRef, updateScrRef],
+        [scrRef, updateScrRef, browseBook],
     );
 
     return (

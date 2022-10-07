@@ -37,7 +37,7 @@ export default ({ scrRef, handleSubmit }: ScrRefSelectorProps) => {
 
     return (
         <form
-            className="scrref-form"
+            className="scr-toolbar"
             onSubmit={(e: React.FormEvent) => {
                 e.preventDefault();
                 handleSubmit(getScrRefFromText(currentRefText));
