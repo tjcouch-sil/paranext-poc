@@ -9,8 +9,10 @@ import React, {
     useRef,
     useState,
 } from 'react';
-import { getScripture, getScriptureHtml, getResourceInfo,
-getAllResourceInfo, } from '@services/ScriptureService';
+import {
+    getAllResourceInfo,
+    getResourceInfo,
+} from '@services/ScriptureService';
 import { ResourceInfo, ScriptureReference } from '@shared/data/ScriptureTypes';
 import ScrRefSelector from '@components/ScrRefSelector';
 import {
