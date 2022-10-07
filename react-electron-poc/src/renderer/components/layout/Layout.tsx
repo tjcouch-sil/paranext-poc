@@ -3,8 +3,10 @@ import { DockviewReact, DockviewReadyEvent } from 'dockview';
 import '@node_modules/dockview/dist/styles/dockview.css';
 import { DockViewPanels } from '@components/panels/Panels';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getScripture, getScriptureHtml, getResourceInfo,
-getAllResourceInfo, } from '@services/ScriptureService';
+import {
+    getAllResourceInfo,
+    getResourceInfo,
+} from '@services/ScriptureService';
 import { ScriptureTextPanelHtmlProps } from '@components/panels/TextPanels/ScriptureTextPanelHtml';
 import { ScriptureReference } from '@shared/data/ScriptureTypes';
 import ScrRefSelector from '@components/ScrRefSelector';
