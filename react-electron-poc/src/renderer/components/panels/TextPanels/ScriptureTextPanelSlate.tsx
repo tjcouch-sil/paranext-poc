@@ -4,6 +4,7 @@ import { isString, isValidValue } from '@util/Util';
 import React, {
     createElement,
     FunctionComponent,
+    memo,
     PropsWithChildren,
     useCallback,
     useEffect,
@@ -42,11 +43,11 @@ import {
     ScriptureTextPanelHOC,
     ScriptureTextPanelHOCProps,
 } from './ScriptureTextPanelHOC';
-import { withHistory } from 'slate-history';
+import { HistoryEditor, withHistory } from 'slate-history';
 import isHotkey from 'is-hotkey';
 
 // Slate types
-type CustomEditor = BaseEditor & ReactEditor;
+type CustomEditor = BaseEditor & ReactEditor & HistoryEditor;
 
 // Types of components:
 //      Element - contiguous, semantic elements in the document
@@ -175,39 +176,43 @@ const InlineElement = ({
     </span>
 );
 
-const VerseElement = (props: MyRenderElementProps<VerseElementProps>) => (
+const VerseElement = memo((props: MyRenderElementProps<VerseElementProps>) => (
     // eslint-disable-next-line react/jsx-props-no-spreading
     <InlineElement {...props} endSpace />
-);
+));
 
 /** Renders a complete block of text with an open marker at the start */
-const ParaElement = (props: MyRenderElementProps<ParaElementProps>) => (
+const ParaElement = memo((props: MyRenderElementProps<ParaElementProps>) => (
     // eslint-disable-next-line react/jsx-props-no-spreading
     <BlockElement {...props} />
-);
+));
 
 /** Renders inline text with closed markers around it */
-const CharElement = (props: MyRenderElementProps<CharElementProps>) => (
+const CharElement = memo((props: MyRenderElementProps<CharElementProps>) => (
     // eslint-disable-next-line react/jsx-props-no-spreading
     <InlineElement {...props} closingMarker />
-);
+));
 
 /** Renders a chapter number */
-const ChapterElement = (props: MyRenderElementProps<ChapterElementProps>) => (
-    // eslint-disable-next-line react/jsx-props-no-spreading
-    <BlockElement {...props} />
+const ChapterElement = memo(
+    (props: MyRenderElementProps<ChapterElementProps>) => (
+        // eslint-disable-next-line react/jsx-props-no-spreading
+        <BlockElement {...props} />
+    ),
 );
 
 /** Overall chapter editor element */
-const EditorElement = ({
-    element: { number },
-    attributes,
-    children,
-}: MyRenderElementProps<EditorElementProps>) => (
-    // eslint-disable-next-line react/jsx-props-no-spreading
-    <div className="usfm" id={`editor-chapter-${number}`} {...attributes}>
-        {children}
-    </div>
+const EditorElement = memo(
+    ({
+        element: { number },
+        attributes,
+        children,
+    }: MyRenderElementProps<EditorElementProps>) => (
+        // eslint-disable-next-line react/jsx-props-no-spreading
+        <div className="usfm" id={`editor-chapter-${number}`} {...attributes}>
+            {children}
+        </div>
+    ),
 );
 
 /** Characteristics of a marker style */
@@ -266,7 +271,7 @@ const DefaultElement = ({ attributes, children }: RenderElementProps) => {
 };
 
 /** Renderer for 'leaf' elements in Slate aka secret elements that wrap text */
-const Leaf = ({ attributes, children, leaf }: RenderLeafProps) => {
+const Leaf = memo(({ attributes, children, leaf }: RenderLeafProps) => {
     return (
         <span
             // eslint-disable-next-line react/jsx-props-no-spreading
@@ -276,7 +281,7 @@ const Leaf = ({ attributes, children, leaf }: RenderLeafProps) => {
             {children}
         </span>
     );
-};
+});
 
 const withScrInlines = (editor: CustomEditor): CustomEditor => {
     const { isInline } = editor;
