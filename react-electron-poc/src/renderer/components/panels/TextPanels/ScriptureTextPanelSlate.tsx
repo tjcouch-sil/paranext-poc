@@ -595,7 +595,6 @@ const getScrChapter = getScripture;
 
 export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
     ({
-        // shortName,
         editable,
         book,
         chapter,
