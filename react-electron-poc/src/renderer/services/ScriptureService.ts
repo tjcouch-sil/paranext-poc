@@ -311,12 +311,9 @@ export const getScriptureStyle = async (shortName: string): Promise<string | und
  * @param shortName the short name of the project
  * @returns Promise with ResourceInfo for the specified resource
  */
-/**
- * Gets information about the resource such as whether or not it is editable
- * @param shortName the short name of the resource
- * @returns Promise with info about the specified resource
- */
-export const getResourceInfo = async (shortName: string): Promise<string> => {
+export const getResourceInfo = async (
+    shortName: string,
+): Promise<ResourceInfo> => {
     return fetch(
         `http://localhost:5122/api/resource/GetResourceInfo/${shortName}`,
         {
