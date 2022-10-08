@@ -1,4 +1,3 @@
-
 export interface ScriptureReference {
     book: number;
     chapter: number;
@@ -12,8 +11,7 @@ export interface ResourceInfo {
 
 /** Slate object for Scripture editing */
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface ScriptureContent extends CustomDescendant {
-}
+export interface ScriptureContent extends CustomDescendant {}
 
 /** Scipture chapter contents along with which chapter it is */
 export interface ScriptureChapter {
