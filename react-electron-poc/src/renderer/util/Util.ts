@@ -2,6 +2,7 @@
 export function newGuid(): string {
     return '00-0-4-1-000'.replace(/[^-]/g, (s) =>
         // @ts-expect-error ts(2363) this works fine
+        // eslint-disable-next-line no-bitwise
         (((Math.random() + ~~s) * 0x10000) >> s).toString(16).padStart(4, '0'),
     );
 }
@@ -23,6 +24,25 @@ export function isString(o: unknown) {
  */
 export function isValidValue(val: unknown): val is NonNullable<unknown> {
     return !!val || val === false || val === 0;
+}
+
+/**
+ * Get a function that reduces calls to the function passed in
+ * @param fun The function to debounce
+ * @param delay How much delay before the most recent call to the debounced function to call the function
+ * @returns function that, when called, only calls the function passed in at maximum every delay ms
+ */
+export function debounce<T extends (...args: unknown[]) => void>(
+    fun: T,
+    delay = 300,
+): T {
+    if (isString(fun))
+        throw new Error('Tried to debounce a string! Could be XSS');
+    let timeout: NodeJS.Timeout;
+    return ((...args) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => fun(args), delay);
+    }) as T;
 }
 
 /** string[] of element tags that cannot have contents */
