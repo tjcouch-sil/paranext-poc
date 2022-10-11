@@ -46,7 +46,9 @@ export default ({ scrRef, handleSubmit }: ScrRefSelectorProps) => {
             <span
                 className={`selector-area${isScrRefChanged ? ' changed' : ''}`}
             >
-                <span>{getBookLongNameFromNum(scrRef.book)}</span>
+                <span className="book">
+                    {getBookLongNameFromNum(scrRef.book)}
+                </span>
                 <button
                     type="button"
                     className="change-btn left"
@@ -66,7 +68,7 @@ export default ({ scrRef, handleSubmit }: ScrRefSelectorProps) => {
                 >
                     &gt;
                 </button>
-                <span>{scrRef.chapter}:</span>
+                <span className="chapter">{scrRef.chapter}:</span>
                 <button
                     type="button"
                     className="change-btn left"

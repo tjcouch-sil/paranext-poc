@@ -135,17 +135,45 @@ export const parseChapter = (chapterText: string): number | undefined => {
     return parseVerse(chapterText);
 };
 
-const regexpScrRef = /([^ ]+) ([^:]+):(.+)/;
-export const getScrRefFromText = (refText: string): ScriptureReference => {
+const regexpScrRefFull = /([^ ]+) ([^:]+):(.+)/;
+const regexpScrRefChapter = /([^ ]+) ([^:]+)/;
+const regexpScrRefBook = /([^ ]+)/;
+export const getScrRefFromText = (
+    refText: string,
+    defaultChapter = 1,
+    defaultVerse = 1,
+): ScriptureReference => {
+    // No text entered. Return error
     if (!refText) return { book: -1, chapter: -1, verse: -1 };
-    const scrRefMatch = refText.match(regexpScrRef);
-    if (!scrRefMatch || scrRefMatch.length < 4)
-        return { book: -1, chapter: -1, verse: -1 };
-    return {
-        book: getBookNumFromName(scrRefMatch[1]),
-        chapter: parseInt(scrRefMatch[2], 10),
-        verse: parseInt(scrRefMatch[3], 10),
-    };
+    const scrRefMatchFull = refText.match(regexpScrRefFull);
+    // If we have the whole reference, use it
+    if (scrRefMatchFull && scrRefMatchFull.length === 4)
+        return {
+            book: getBookNumFromName(scrRefMatchFull[1]),
+            chapter: parseInt(scrRefMatchFull[2], 10),
+            verse: parseInt(scrRefMatchFull[3], 10),
+        };
+
+    const scrRefMatchChapter = refText.match(regexpScrRefChapter);
+    // If we have the reference to the chapter, use it
+    if (scrRefMatchChapter && scrRefMatchChapter.length === 3)
+        return {
+            book: getBookNumFromName(scrRefMatchChapter[1]),
+            chapter: parseInt(scrRefMatchChapter[2], 10),
+            verse: defaultVerse,
+        };
+
+    const scrRefMatchBook = refText.match(regexpScrRefBook);
+    // If we have the reference to the book, use it
+    if (scrRefMatchBook && scrRefMatchBook.length === 2)
+        return {
+            book: getBookNumFromName(scrRefMatchBook[1]),
+            chapter: defaultChapter,
+            verse: defaultVerse,
+        };
+
+    // Nothing matched. Return error
+    return { book: -1, chapter: -1, verse: -1 };
 };
 
 export const getTextFromScrRef = (scrRef: ScriptureReference): string =>

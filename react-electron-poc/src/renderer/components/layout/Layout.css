@@ -20,6 +20,12 @@ body {
     align-items: center;
 }
 
+.layout .layout-bar .settings {
+    display: flex;
+    justify-content: end;
+    flex-wrap: wrap;
+}
+
 .layout .layout-bar .layout-checkbox {
     background-color: #1c1c2a;
     color: #505070;
@@ -28,6 +34,12 @@ body {
     padding: 3px;
     margin: 4px;
     flex-shrink: 0;
+    display: inline-block;
+}
+
+.layout .layout-bar .layout-checkbox:hover {
+    background-color: #505070;
+    color: white;
 }
 
 .layout .layout-dock {
