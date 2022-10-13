@@ -1,7 +1,20 @@
 import { getScripture } from '@services/ScriptureService';
 import {
+    ChapterElementProps,
+    CharElementProps,
+    CustomElement,
+    CustomElementProps,
+    CustomSlateEditor,
+    CustomText,
+    EditorElementProps,
+    FormattedText,
+    InlineElementProps,
+    MarkerProps,
+    MyRenderElementProps,
+    ParaElementProps,
     ScriptureChapterContent,
-    ScriptureContent,
+    ScriptureContentChunk,
+    VerseElementProps,
 } from '@shared/data/ScriptureTypes';
 import { debounce, isString, isValidValue, newGuid } from '@util/Util';
 import React, {
@@ -9,7 +22,6 @@ import React, {
     CSSProperties,
     FunctionComponent,
     memo,
-    PropsWithChildren,
     useCallback,
     useEffect,
     useMemo,
@@ -19,7 +31,6 @@ import React, {
 import './TextPanel.css';
 import {
     createEditor,
-    BaseEditor,
     NodeEntry,
     Node,
     Transforms,
@@ -37,17 +48,21 @@ import {
     ReactEditor,
     RenderElementProps,
     RenderLeafProps,
+    useSlate,
 } from 'slate-react';
 import {
+    getLastVerseInScriptureContents,
     getTextFromScrRef,
     parseChapter,
     parseVerse,
 } from '@util/ScriptureUtil';
-import { HistoryEditor, withHistory } from 'slate-history';
+import { withHistory } from 'slate-history';
 import isHotkey from 'is-hotkey';
 import {
+    Align,
     ListChildComponentProps,
     ListOnItemsRenderedProps,
+    ListOnScrollProps,
     VariableSizeList,
 } from 'react-window';
 import ReactVirtualizedAutoSizer from 'react-virtualized-auto-sizer';
@@ -56,101 +71,17 @@ import {
     ScriptureTextPanelHOCProps,
 } from './ScriptureTextPanelHOC';
 
-// Slate types
-type CustomSlateEditor = BaseEditor &
-    ReactEditor &
-    HistoryEditor &
-    ScriptureContentChunkInfo;
-
-// Types of components:
-//      Element - contiguous, semantic elements in the document
-//          - Ex: Marker Element (in-line) that contains a line and is formatted appropriately
-//          - Note: You cannot have block elements as siblings of inline elements or text.
-//          - Note: You cannot have children of inline elements other than text, it seems.
-//      Text - non-contiguous, character-level formatting
-//      Decoration - computed at render-time based on the content itself
-//          - helpful for dynamic formatting like syntax highlighting or search keywords, where changes to the content (or some external data) has the potential to change the formatting
-//          - Ex: The text inside markers is styled literally based on if there's a \
-//                The notes are based on certain text in a verse
-//                Maybe we can make decorations that show the \markers before the lines? Otherwise need to be inline void elements
-// Normalizing - enforce rules about your content like structure and such
-//      - Ex: Enforce that a marker element has the \marker at the beginning
-
-type MyRenderElementProps<T> = PropsWithChildren<
-    {
-        element: T;
-    } & Omit<RenderElementProps, 'element' | 'children'>
->;
-
-/** Base element props. All elements should have a style */
-type StyleProps = {
-    style?: string;
-};
-
-type MarkerProps = {
-    closingMarker?: boolean;
-} & StyleProps;
-
-type CustomElementProps = {
-    children: CustomDescendant[];
-} & StyleProps;
-
-export type InlineElementProps = {
-    endSpace?: boolean;
-    closingMarker?: boolean;
-} & MyRenderElementProps<CustomElementProps>;
-
-export type VerseElementProps = {
-    type: 'verse';
-} & CustomElementProps;
-
-export type ParaElementProps = {
-    type: 'para';
-} & CustomElementProps;
-
-export type CharElementProps = {
-    type: 'char';
-} & CustomElementProps;
-
-export type ChapterElementProps = {
-    type: 'chapter';
-} & CustomElementProps;
-
-export type EditorElementProps = {
-    type: 'editor';
-    number: string;
-    children: CustomDescendant[];
-};
-
-export type CustomElement =
-    | VerseElementProps
-    | ParaElementProps
-    | CharElementProps
-    | ChapterElementProps
-    | EditorElementProps;
-
-type FormattedText = { text: string; searchResult?: boolean } & MarkerProps;
-
-type CustomText = FormattedText;
-
-export type CustomDescendant = CustomElement | CustomText;
-
-declare module 'slate' {
-    interface CustomTypes {
-        Editor: CustomSlateEditor;
-        Element: CustomElement;
-        Text: CustomText;
-    }
-}
-
 // Slate components
 
 /* Renders markers' \marker text with the marker style */
 const Marker = ({ style, closingMarker = false }: MarkerProps) => {
-    return (
+    const slate = useSlate();
+    return slate.editable ? (
         <span className="marker" contentEditable={false}>
             {`\\${style}${closingMarker ? '' : ' '}`}
         </span>
+    ) : (
+        <></>
     );
 };
 
@@ -300,11 +231,19 @@ const Leaf = memo(({ attributes, children, leaf }: RenderLeafProps) => {
     );
 });
 
+/** Initialize CustomSlateEditor variables for this editor */
+const withCustomSlateEditor = (
+    editor: CustomSlateEditor,
+): CustomSlateEditor => {
+    editor.editable = false;
+    return editor;
+};
+
 /** Initialize ScriptureContentChunkInfo variables for this editor */
 const withScrChunkEditor = (editor: CustomSlateEditor): CustomSlateEditor => {
     editor.chapter = -1;
     editor.chunkNum = -1;
-    editor.startingVerse = -1;
+    editor.finalVerse = -1;
     return editor;
 };
 
@@ -523,7 +462,7 @@ const withScrMarkers = (editor: CustomSlateEditor): CustomSlateEditor => {
                             const markerElement = Editor.above(editor, {
                                 match: (n) =>
                                     Element.isElement(n) &&
-                                    n.type !== 'editor' &&
+                                    // n.type !== 'editor' &&
                                     n.type === elementType &&
                                     n.style === markerStyle,
                             });
@@ -593,6 +532,7 @@ const slateEditorPlugins: ((editor: CustomSlateEditor) => CustomSlateEditor)[] =
     [
         withHistory,
         withReact,
+        withCustomSlateEditor,
         withScrInlines,
         withScrMarkers,
         withScrChunkEditor,
@@ -629,6 +569,12 @@ const CHUNK_SIZE = 25;
 const EST_CHUNK_HEIGHT = 710;
 
 /**
+ * How long to wait after updating to assume the virtualized Slate editor is finished loading
+ * TODO: Find a better way to wait for virtualized list to get DOM heights and update scroll height appropriately on startup and on scroll
+ */
+const SLATE_VIRTUALIZED_LOAD_TIME = 200;
+
+/**
  * Get the id for the ScriptureContnetChunkInfo div holding the contents of the editor chunk
  * @param editorGuid Unique ID for this editor
  * @param chapter Chapter number
@@ -641,31 +587,14 @@ const getScriptureChunkEditorSlateId = (
     chunkNum: number,
 ) => `scrChunkEd-${editorGuid}-${chapter}-${chunkNum}`;
 
-/** Information about a chunk of Scripture content. Found on the slate editor */
-type ScriptureContentChunkInfo = {
-    chapter: number;
-    chunkNum: number;
-    startingVerse: number;
-};
-
-type ScriptureContentChunk = {
-    contents: ScriptureContent[];
-} & ScriptureContentChunkInfo;
-
-type ScriptureChapterContentChunked = {
-    contents: ScriptureContentChunk[];
-} & Omit<ScriptureChapterContent, 'contents'>;
-
 interface ScriptureChunkEditorSlateProps
-    extends Omit<
-        ScriptureTextPanelSlateProps,
-        'scrChapters' | 'onFocus' | 'useVirtualization'
-    > {
+    extends Omit<ScriptureTextPanelSlateProps, 'scrChapters' | 'onFocus'> {
     virtualizedIndex: number;
     virtualizedStyle: CSSProperties;
     editorGuid: string;
     scrChapterChunk: ScriptureContentChunk;
     searchString: string | null;
+    notifyUpdatedScrRef: () => void;
 }
 
 const ScriptureChunkEditorSlate = memo(
@@ -678,12 +607,14 @@ const ScriptureChunkEditorSlate = memo(
         chapter,
         verse,
         updateScrRef,
+        useVirtualization,
         scrChapterChunk,
         searchString,
+        notifyUpdatedScrRef,
     }: ScriptureChunkEditorSlateProps) => {
         // Slate editor
         // TODO: Put in a useEffect listening for scrChapters and create editors for the number of chapters
-        const [editor] = useState<CustomSlateEditor>(() => createSlateEditor());
+        const [editor] = useState<CustomSlateEditor>(createSlateEditor);
 
         // Focus the editor when we close the search bar
         // TODO: Could do this directly on the hotkey
@@ -728,11 +659,12 @@ const ScriptureChunkEditorSlate = memo(
         );
 
         /**
-         * Whether or not the upcoming scrRef update is form this text panel.
+         * Whether or not the upcoming scrRef update is from this text panel.
          * TODO: Not a great way to determine this - should be improved in the future
          * */
         const didIUpdateScrRef = useRef(false);
 
+        /** Update scrRef to the selected verse */
         const onSelect = useCallback(() => {
             // TODO: For some reason, the onSelect callback doesn't always have the most up-to-date editor.selection.
             // As such, I added a setTimeout, which is gross. Please fix this hacky setTimeout
@@ -742,8 +674,8 @@ const ScriptureChunkEditorSlate = memo(
             setTimeout(() => {
                 if (editor.selection) {
                     // Set reference to the current verse
-                    // We must be in a chapter
-                    let selectedChapter = -1;
+                    // Get our selected chapter
+                    const selectedChapter = editor.chapter;
                     // Intro material should show as verse 0, so allow 0
                     let selectedVerse = 0;
 
@@ -753,7 +685,7 @@ const ScriptureChunkEditorSlate = memo(
                         editor.selection.anchor,
                     );
 
-                    // Step up the node tree via previous siblings then parents all the way up until we find a chapter and verse
+                    // Step up the node tree via previous siblings then parents all the way up until we find a verse
                     while (nodeEntry && !Editor.isEditor(nodeEntry[0])) {
                         const [node, path] = nodeEntry as NodeEntry<Node>;
                         if (Element.isElement(node)) {
@@ -764,20 +696,10 @@ const ScriptureChunkEditorSlate = memo(
                                 if (isValidValue(verseNum)) {
                                     selectedVerse = verseNum;
                                 }
-                            } else if (
-                                selectedChapter < 0 &&
-                                node.type === 'chapter'
-                            ) {
-                                // It's a chapter, so try to parse its text and use that as the chapter
-                                const chapterText = Node.string(node);
-                                const chapterNum = parseChapter(chapterText);
-                                if (isValidValue(chapterNum)) {
-                                    selectedChapter = chapterNum;
-                                }
                             }
                         }
 
-                        if (selectedChapter >= 0) {
+                        if (selectedVerse >= 1) {
                             // We got our results! Done
                             break;
                         } else if (Path.hasPrevious(path)) {
@@ -792,18 +714,43 @@ const ScriptureChunkEditorSlate = memo(
                         }
                     }
 
-                    // If we found verse info, set the selection
-                    if (selectedChapter > 0) {
-                        updateScrRef({
-                            book,
-                            chapter: selectedChapter,
-                            verse: selectedVerse,
-                        });
-                        didIUpdateScrRef.current = true;
-                    }
+                    // If we found verse info, set the scrRef
+                    // TODO: There is probably a bug here where you select the same verse as the scrRef has,
+                    // then next time you change the scrRef with another window, this window doesn't update
+                    // becuase we are setting didIUpdateScrRef whether updateScrRef actually changed the scrRef
+                    updateScrRef({
+                        book,
+                        chapter: selectedChapter,
+                        verse: selectedVerse,
+                    });
+                    didIUpdateScrRef.current = true;
+                    notifyUpdatedScrRef();
                 }
             }, 1);
-        }, [editor, updateScrRef, book]);
+        }, [editor, updateScrRef, book, notifyUpdatedScrRef]);
+
+        /** Mock up a call to onSelect for a non-editable editor */
+        const onClick = useCallback(() => {
+            if (!editable) {
+                const windowSel = window.getSelection();
+                if (windowSel && windowSel.rangeCount > 0) {
+                    // Get slate range from window selection
+                    const slateRange = ReactEditor.toSlateRange(
+                        editor,
+                        windowSel.getRangeAt(0),
+                        {
+                            exactMatch: true,
+                            suppressThrow: false,
+                        },
+                    );
+                    // If we successfully got a Slate selection,
+                    if (slateRange) {
+                        Transforms.select(editor, slateRange);
+                        onSelect();
+                    }
+                }
+            }
+        }, [editable, editor, onSelect]);
 
         // When we get new Scripture project contents, update slate
         useEffect(() => {
@@ -817,7 +764,8 @@ const ScriptureChunkEditorSlate = memo(
                 // Update ScriptureContentChunkInfo
                 editor.chapter = scrChapterChunk.chapter;
                 editor.chunkNum = scrChapterChunk.chunkNum;
-                editor.startingVerse = scrChapterChunk.startingVerse;
+                editor.finalVerse = scrChapterChunk.finalVerse;
+                editor.editable = editable;
 
                 // Replace the editor's contents
                 editor.children = scrChapterChunk.contents as CustomElement[];
@@ -829,18 +777,18 @@ const ScriptureChunkEditorSlate = memo(
 
                 editor.onChange();
             }
-        }, [editor, scrChapterChunk]);
+        }, [editor, editable, scrChapterChunk]);
 
         // When the scrRef changes, scroll to view
         useEffect(() => {
             // TODO: Determine if this window should scroll by computing if the verse element is already visible instead of using hacky didIUpdateScrRef
-            if (!didIUpdateScrRef.current) {
+            if (!didIUpdateScrRef.current && !useVirtualization) {
                 // TODO: Find a better way to wait for the DOM to load before scrolling and hopefully remove scrChapters from dependencies. Ex: Go between Psalm 118:15 and Psalm 119:150
                 setTimeout(() => {
                     // Make sure this is the right chapter and chunk for the verse
                     if (
                         chapter === editor.chapter &&
-                        verse >= editor.startingVerse
+                        verse <= editor.finalVerse
                     ) {
                         // Make a match function that matches on the chapter node if verse 0 or the verse node otherwise
                         const matchVerseNode =
@@ -887,7 +835,7 @@ const ScriptureChunkEditorSlate = memo(
                 }, 1);
             }
             didIUpdateScrRef.current = false;
-        }, [editor, scrChapterChunk, book, chapter, verse]);
+        }, [editor, useVirtualization, scrChapterChunk, book, chapter, verse]);
 
         return (
             <div style={virtualizedStyle}>
@@ -911,6 +859,7 @@ const ScriptureChunkEditorSlate = memo(
                             renderLeaf={renderLeaf}
                             decorate={decorate}
                             onSelect={onSelect}
+                            onClick={onClick}
                         />
                     </Slate>
                 </div>
@@ -922,6 +871,34 @@ const ScriptureChunkEditorSlate = memo(
 /** hotkey for toggling the search box */
 const isHotkeyFind = isHotkey('mod+f');
 
+/** Information about the height of a virtualized editor chunk */
+interface ChunkHeight {
+    /** The height of the DOM element representing this chunk */
+    height: number;
+    /** Whether this height can be trusted as up-to-date or if it may be old
+     * TODO: implement staling on typing and on scrolling offscreen
+     */
+    stale?: boolean;
+}
+
+/** virtualizedList state with types. It seems the type library does not type the state */
+type VariableSizeListState<T> = {
+    instance: VariableSizeList<T>;
+    isScrolling: boolean;
+} & ListOnScrollProps;
+
+/** Find the index for the Scripture chunk that contains the chapter and verse provided */
+const getScrRefChunkIndex = (
+    scrChaptersChunked: ScriptureContentChunk[],
+    chapter: number,
+    verse: number,
+) =>
+    scrChaptersChunked.findIndex(
+        (scrChapterChunk) =>
+            chapter === scrChapterChunk.chapter &&
+            verse <= scrChapterChunk.finalVerse,
+    );
+
 export interface ScriptureTextPanelSlateProps
     extends ScriptureTextPanelHOCProps {
     scrChapters: ScriptureChapterContent[];
@@ -932,12 +909,10 @@ const getScrChapter = getScripture;
 
 export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
     (props: ScriptureTextPanelSlateProps) => {
-        const {
-            scrChapters,
-            onFocus,
-            useVirtualization,
-            ...scrChunkEditorSlateProps
-        } = props;
+        const { scrChapters, onFocus, ...scrChunkEditorSlateProps } = props;
+
+        const { book, chapter, verse, useVirtualization } =
+            scrChunkEditorSlateProps;
 
         // Search string for search highlighting. When null, don't show the search box. When '' or other, show the search box
         const [searchString, setSearchString] = useState<string | null>(null);
@@ -994,15 +969,16 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
                         i < Math.ceil(scrChapterContents.length / chunkSize);
                         i++
                     ) {
+                        const chunkContents = scrChapterContents.slice(
+                            i * chunkSize,
+                            i * chunkSize + chunkSize,
+                        );
                         chapterChunks.push({
                             chapter: scrChapter.chapter,
                             chunkNum: i,
-                            // TODO: Track startingVerse
-                            startingVerse: 0,
-                            contents: scrChapterContents.slice(
-                                i * chunkSize,
-                                i * chunkSize + chunkSize,
-                            ),
+                            finalVerse:
+                                getLastVerseInScriptureContents(chunkContents),
+                            contents: chunkContents,
                         });
                     }
                     return chapterChunks;
@@ -1011,6 +987,7 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
             return [];
         }, [scrChapters, useVirtualization]);
 
+        /** Ref for the virtualized list component */
         const virtualizedList =
             useRef<VariableSizeList<ScriptureContentChunk[]>>(null);
 
@@ -1025,7 +1002,11 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
                 virtualizedList.current.resetAfterIndex(overscanStartIndex);
         };
 
-        const invalidateListCachedHeights = (chunkIndex = 0) => {
+        /**
+         * Invalidate virtualized-list-cached chunk heights and get again from our cache or recalculate from DOM
+         * @param chunkIndex the chunk index at and after which to invalidate chunk heights. Defaults to 0 (all chunks)
+         */
+        const invalidateVirtualizedListCachedHeights = (chunkIndex = 0) => {
             onItemsRendered({
                 overscanStartIndex: chunkIndex >= 0 ? chunkIndex : 0,
             } as ListOnItemsRenderedProps);
@@ -1033,13 +1014,14 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
 
         /** At startup, calculate editor chunk heights in the DOM */
         useEffect(() => {
-            invalidateListCachedHeights();
+            setTimeout(
+                invalidateVirtualizedListCachedHeights,
+                SLATE_VIRTUALIZED_LOAD_TIME,
+            );
         }, []);
 
-        /** Height of each editor chunk if measured in the DOM */
-        const editorChunkHeights = useRef<
-            ({ height: number; stale?: boolean } | undefined)[]
-        >([]);
+        /** Our cache of height of each editor chunk if measured in the DOM. Does not include estimates unlike the virtualized-list-cached heights */
+        const editorChunkHeights = useRef<(ChunkHeight | undefined)[]>([]);
 
         /**
          * Marks stale or clears a cached editor chunk height
@@ -1067,7 +1049,18 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
             } else {
                 editorChunkHeights.current[chunkIndex] = undefined;
             }
-            invalidateListCachedHeights(chunkIndex);
+            invalidateVirtualizedListCachedHeights(chunkIndex);
+        };
+
+        /**
+         * Current scrollOffset aka viewport position for the virtualized view.
+         * We need this because the scrollTo and scrollToItem methods don't update virtualizedList.state.scrollOffset immediately.
+         */
+        const virtualizedScrollOffset = useRef<number>(0);
+
+        /** Keep track of current offset */
+        const onScroll = ({ scrollOffset }: ListOnScrollProps) => {
+            virtualizedScrollOffset.current = scrollOffset;
         };
 
         /**
@@ -1080,22 +1073,46 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
             if (cachedChunkHeight && !cachedChunkHeight.stale)
                 return cachedChunkHeight.height;
 
-            const el = document.getElementById(
+            const editorChunk = document.getElementById(
                 getScriptureChunkEditorSlateId(
                     editorGuid.current,
-                    scrChunkEditorSlateProps.chapter,
+                    chapter,
                     chunkIndex,
                 ),
             );
-            if (el) {
-                const editorChunkHeight = el.scrollHeight;
+            if (editorChunk) {
+                const editorChunkHeight = editorChunk.scrollHeight;
                 // Don't record the height if the editor is loading
                 // TODO: We could probably make this better by firing a method in the editor when it finishes loading
                 if (editorChunkHeight > 100) {
                     editorChunkHeights.current[chunkIndex] = {
                         height: editorChunkHeight,
                     };
-                    // TODO: scroll down by the difference between the estimated height and the actual height if we are scrolling up
+
+                    const editorChunkWrapper = editorChunk.parentElement;
+
+                    // If the measured chunk height is different than the estimated and the measured chunk's bottom
+                    // is above the viewport top (scrollOffset), offset the scroll to avoid jitters
+                    if (
+                        editorChunkHeight !== EST_CHUNK_HEIGHT &&
+                        virtualizedList.current &&
+                        editorChunkWrapper
+                    ) {
+                        // If the bottom of the measured chunk is above the viewport, scroll the viewport
+                        if (
+                            editorChunkWrapper.offsetTop + editorChunkHeight <
+                            virtualizedScrollOffset.current
+                        ) {
+                            // Scroll down by the difference between the estimated height and the actual height so we don't get jitters when loading new chunks
+                            const chunkHeightDiff =
+                                editorChunkHeight - EST_CHUNK_HEIGHT;
+                            virtualizedScrollOffset.current += chunkHeightDiff;
+                            virtualizedList.current.scrollTo(
+                                Math.max(0, virtualizedScrollOffset.current),
+                            );
+                        }
+                    }
+
                     return editorChunkHeight;
                 }
             }
@@ -1113,7 +1130,93 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
             [],
         );
 
-        const renderEditor = ({
+        /**
+         * Whether or not the upcoming scrRef update is from this text panel. Blocks scrolling on this panel.
+         * Called from the ScriptureChunkEditorSlate that made the update.
+         * TODO: Not a great way to determine this - should be improved in the future
+         * */
+        const didIUpdateScrRef = useRef(false);
+
+        /**
+         * Disables scrolling to new scrRefs because this panel changed the scrRef.
+         * Called from the ScriptureChunkEditorSlate that made the update.
+         */
+        const notifyUpdatedScrRef = useCallback(() => {
+            didIUpdateScrRef.current = true;
+        }, []);
+
+        // When the scrRef changes, tell the virtualized list to scroll to the appropriate chunk
+        // TODO: When you figure out how not to recreate the editors every time the scrRef changes, allow the chunks to scroll to the scrRefs for themselves (as in non-virtualized)
+        useEffect(() => {
+            // TODO: Determine if this window should scroll by computing if the verse element is already visible instead of using hacky didIUpdateScrRef
+            if (!didIUpdateScrRef.current && useVirtualization) {
+                // Find the chunk matching the reference
+                const chunkIndex = getScrRefChunkIndex(
+                    scrChaptersChunked,
+                    chapter,
+                    verse,
+                );
+
+                if (chunkIndex >= 0) {
+                    const scrollToChunk = (align: Align) =>
+                        virtualizedList.current?.scrollToItem(
+                            chunkIndex,
+                            align,
+                        );
+                    scrollToChunk('start');
+                    setTimeout(() => {
+                        // Scroll so the chunk is at the start because we will offset to center later
+                        scrollToChunk('start');
+                        // Estimate where the verse is in the chunk and scroll there
+                        if (virtualizedList.current) {
+                            const scrChapterChunk =
+                                scrChaptersChunked[chunkIndex];
+                            const startingVerse =
+                                scrChapterChunk.chunkNum === 0
+                                    ? 0
+                                    : scrChaptersChunked[chunkIndex - 1]
+                                          .finalVerse + 1;
+                            const editorChunkHeight =
+                                editorChunkHeights.current[chunkIndex];
+                            if (editorChunkHeight)
+                                // This setTimeout is a quick way to allow the virtualizedListState.scrollOffset to update from the scrollToChunk('start') above.
+                                // TODO: Remove this setTimeout and calculate the appropriate offset.
+                                setTimeout(() => {
+                                    // Offset the virtualized list scroll proportionally by where the verse is in the chunk compared to the height of the chunk
+                                    // And center the verse in the virtualized list.
+                                    // Add one to the final verse before calculating because the final verse is likely not at the actual end of the chunk
+                                    if (virtualizedList.current) {
+                                        const virtualizedListState = // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                            virtualizedList.current
+                                                .state as VariableSizeListState<
+                                                ScriptureContentChunk[]
+                                            >;
+                                        virtualizedList.current.scrollTo(
+                                            Math.max(
+                                                0,
+                                                virtualizedListState.scrollOffset +
+                                                    ((verse - startingVerse) /
+                                                        (scrChapterChunk.finalVerse +
+                                                            1 -
+                                                            startingVerse)) *
+                                                        editorChunkHeight.height -
+                                                    (virtualizedList.current
+                                                        .props
+                                                        .height as number) /
+                                                        2,
+                                            ),
+                                        );
+                                    }
+                                }, 1);
+                        }
+                    }, SLATE_VIRTUALIZED_LOAD_TIME);
+                }
+            }
+            didIUpdateScrRef.current = false;
+        }, [useVirtualization, scrChaptersChunked, book, chapter, verse]);
+
+        /** Renders the editor chunk at the specified chunk index and virtualized style */
+        const renderEditorChunk = ({
             index,
             style,
         }: Omit<ListChildComponentProps, 'data'>) => {
@@ -1135,6 +1238,7 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
                         // eslint-disable-next-line react/jsx-props-no-spreading
                         {...scrChunkEditorSlateProps}
                         searchString={searchString}
+                        notifyUpdatedScrRef={notifyUpdatedScrRef}
                     />
                 </EditorElement>
             );
@@ -1177,16 +1281,17 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
                                     width={width}
                                     itemCount={scrChaptersChunked.length}
                                     estimatedItemSize={EST_CHUNK_HEIGHT}
+                                    onScroll={onScroll}
                                     itemSize={getChunkHeight}
                                     onItemsRendered={onItemsRendered}
                                 >
-                                    {renderEditor}
+                                    {renderEditorChunk}
                                 </VariableSizeList>
                             )}
                         </ReactVirtualizedAutoSizer>
                     ) : (
                         scrChaptersChunked.map((_scrChapterChunk, i) =>
-                            renderEditor({ index: i, style: {} }),
+                            renderEditorChunk({ index: i, style: {} }),
                         )
                     )}
                 </div>
