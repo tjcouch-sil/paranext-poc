@@ -2,13 +2,16 @@
     outline: 0px solid transparent;
 }
 
+button
+
+button:hover:enabled {
+    transform: scale(1.05);
+    opacity: 1;
+}
+
 .scr-toolbar {
     padding: 7px;
     background-color: #1c1c2a;
-}
-
-.scr-toolbar button {
-    font-size: 11pt;
 }
 
 .scr-toolbar .selector-area,
@@ -47,6 +50,7 @@
     background-color: #505070;
     color: #1c1c2a;
     box-sizing: border-box;
+    font-size: 11pt;
 }
 
 .scr-toolbar .selector-area .change-btn.left {
@@ -86,27 +90,28 @@
     outline: 1px solid white;
 }
 
-.scr-toolbar .enter-button {
+button {
     padding: 5px 10px;
     background-color: #505070;
     color: white;
     border-radius: 5px;
+    font-size: 11pt;
 }
 
 .scr-toolbar input,
-.scr-toolbar .enter-button:disabled,
+button:disabled,
 .scr-toolbar .selector-area .change-btn:disabled {
     background-color: #1c1c2a;
     color: #505070;
 }
 
 .scr-toolbar input,
-.scr-toolbar .enter-button:disabled {
+button:disabled {
     border: 1px solid #505070;
 }
 
 .scr-toolbar .selector-area .change-btn:hover:enabled,
-.scr-toolbar .enter-button:hover:enabled {
+button:hover:enabled {
     background-color: #8a8aac;
     color: white;
 }

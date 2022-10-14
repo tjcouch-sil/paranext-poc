@@ -11,6 +11,8 @@ body {
     display: flex;
     flex-direction: column;
     background-color: #1c1c2a;
+    font-size: 11pt;
+    font-family: sans-serif;
 }
 
 .layout .layout-bar {
@@ -26,7 +28,7 @@ body {
     flex-wrap: wrap;
 }
 
-.layout .layout-bar .layout-checkbox {
+.layout .layout-bar .layout-interactive {
     background-color: #1c1c2a;
     color: #505070;
     border-radius: 5px;
@@ -37,9 +39,13 @@ body {
     display: inline-block;
 }
 
-.layout .layout-bar .layout-checkbox:hover {
+.layout .layout-bar .layout-interactive:hover {
     background-color: #505070;
     color: white;
+}
+
+.layout .layout-bar .add-tab {
+    padding: 5px 10px;
 }
 
 .layout .layout-dock {

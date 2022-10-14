@@ -8,13 +8,13 @@ import {
     getResourceInfo,
 } from '@services/ScriptureService';
 import { ScriptureTextPanelHtmlProps } from '@components/panels/TextPanels/ScriptureTextPanelHtml';
-import { ScriptureReference } from '@shared/data/ScriptureTypes';
+import { ResourceInfo, ScriptureReference } from '@shared/data/ScriptureTypes';
 import ScrRefSelector from '@components/ScrRefSelector';
-import { PanelManager } from '@components/panels/PanelManager';
+import { DIRECTIONS, PanelManager } from '@components/panels/PanelManager';
 import { getSetting, setSetting } from '@services/SettingsService';
 import { offsetChapter, offsetVerse } from '@util/ScriptureUtil';
 import isHotkey from 'is-hotkey';
-import { ScriptureTextPanelSlate } from '@components/panels/TextPanels/ScriptureTextPanelSlate';
+import { ScriptureTextPanelSlateProps } from '@components/panels/TextPanels/ScriptureTextPanelSlate';
 
 /** Key for saving scrRef setting */
 const scrRefSettingKey = 'scrRef';
@@ -68,6 +68,9 @@ const Layout = () => {
         panelManager.current?.updateBrowseBook(newBrowseBook);
     }, []);
 
+    /** All Resource Information on available resources */
+    const allResourceInfo = useRef<ResourceInfo[]>([]);
+
     /** Handle keyboard events for the whole application */
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
@@ -93,9 +96,10 @@ const Layout = () => {
         (event: DockviewReadyEvent) => {
             // Test resource info api
             getAllResourceInfo()
-                .then((allResourceInfo) =>
+                .then((retrievedResourceInfo) => {
+                    allResourceInfo.current = retrievedResourceInfo;
                     console.log(
-                        `All Resource Info:\n${allResourceInfo
+                        `All Resource Info:\n${retrievedResourceInfo
                             .map(
                                 (resourceInfo) =>
                                     `\tResource: ${resourceInfo.shortName}${
@@ -103,8 +107,9 @@ const Layout = () => {
                                     }`,
                             )
                             .join('\n')}`,
-                    ),
-                )
+                    );
+                    return undefined;
+                })
                 .catch((r) => console.log(r));
             getResourceInfo('zzz6')
                 .then((resourceInfo) =>
@@ -230,12 +235,82 @@ const Layout = () => {
         [scrRef, updateScrRef, useVirtualization, browseBook],
     );
 
+    const addTab = useCallback(() => {
+        if (panelManager.current) {
+            // Get all resources that are open and are editable (don't want two of the same resource open for now)
+            const resourcesInUse: Set<string> = new Set<string>();
+
+            const panelsInfo = Array.from(
+                panelManager.current.panelsInfo.values(),
+            );
+            // eslint-disable-next-line no-restricted-syntax
+            panelsInfo.forEach((panelInfo) => {
+                const panelProps =
+                    // We just checked that panelManager.current is defined. This is just a typescript issue
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    panelManager.current!.getScriptureTextPanelProps(
+                        panelInfo.id,
+                    );
+                if (panelProps?.editable) {
+                    resourcesInUse.add(panelProps.shortName);
+                }
+            });
+
+            // Get all available resources to open (closed or editable)
+            const availableResources = allResourceInfo.current.filter(
+                (resourceInfo) =>
+                    !resourceInfo.editable ||
+                    !resourcesInUse.has(resourceInfo.shortName),
+            );
+
+            if (availableResources.length > 0) {
+                const resource =
+                    availableResources[
+                        Math.floor(Math.random() * availableResources.length)
+                    ];
+                const rootPanel =
+                    panelsInfo[Math.floor(Math.random() * panelsInfo.length)];
+                panelManager.current.addPanel(
+                    'ScriptureTextPanelHtml',
+                    {
+                        shortName: resource.shortName,
+                        editable: resource.editable,
+                        ...scrRef,
+                        updateScrRef,
+                        useVirtualization,
+                        browseBook,
+                    } as ScriptureTextPanelSlateProps,
+                    rootPanel
+                        ? {
+                              position: {
+                                  direction:
+                                      DIRECTIONS[
+                                          Math.floor(
+                                              Math.random() * DIRECTIONS.length,
+                                          )
+                                      ],
+                                  referencePanel: rootPanel.id,
+                              },
+                          }
+                        : undefined,
+                );
+            }
+        }
+    }, [browseBook, scrRef, updateScrRef, useVirtualization]);
+
     return (
         <div className="layout">
             <div className="layout-bar">
                 <ScrRefSelector scrRef={scrRef} handleSubmit={updateScrRef} />
+                <button
+                    type="button"
+                    className="layout-interactive add-tab"
+                    onClick={addTab}
+                >
+                    Add Tab
+                </button>
                 <span className="settings">
-                    <span className="layout-checkbox">
+                    <span className="layout-interactive">
                         Use Virtualization
                         <input
                             type="checkbox"
@@ -245,7 +320,7 @@ const Layout = () => {
                             }
                         />
                     </span>
-                    <span className="layout-checkbox">
+                    <span className="layout-interactive">
                         Edit whole book
                         <input
                             type="checkbox"

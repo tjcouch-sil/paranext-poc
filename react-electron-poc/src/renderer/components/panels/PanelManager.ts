@@ -1,9 +1,23 @@
 import { ScriptureReference } from '@shared/data/ScriptureTypes';
 import { getTextFromScrRef } from '@util/ScriptureUtil';
 import { newGuid } from '@util/Util';
-import { DockviewReadyEvent, AddPanelOptions } from 'dockview';
+import {
+    DockviewReadyEvent,
+    AddPanelOptions,
+    IDockviewPanel,
+    Direction,
+    IDisposable,
+} from 'dockview';
 import { PanelType } from './Panels';
 import { ScriptureTextPanelHOCProps } from './TextPanels/ScriptureTextPanelHOC';
+
+export const DIRECTIONS: Direction[] = [
+    'left',
+    'right',
+    'above',
+    'below',
+    'within',
+];
 
 export interface PanelInfo {
     id: string;
@@ -18,8 +32,22 @@ export class PanelManager {
     /** Map of panel id to information about that panel (particularly useful for generating title) */
     panelsInfo: Map<string, PanelInfo>;
 
+    eventListeners: IDisposable[];
+
     constructor(readonly dockview: DockviewReadyEvent) {
         this.panelsInfo = new Map<string, PanelInfo>();
+
+        // Add event listeners to dockview
+        this.eventListeners = [];
+        this.eventListeners.push(
+            dockview.api.onDidRemovePanel((panel) =>
+                this.panelsInfo.delete(panel.id),
+            ),
+        );
+    }
+
+    dispose() {
+        this.eventListeners.forEach((eventListener) => eventListener.dispose());
     }
 
     static generatePanelTitle(
@@ -85,6 +113,18 @@ export class PanelManager {
         );
         this.panelsInfo.set(panelInfo.id, panelInfo);
         return this.dockview.api.addPanel(panelOptions);
+    }
+
+    getPanel(id: string): IDockviewPanel | undefined {
+        return this.dockview.api.panels.find((panel) => panel.id === id);
+    }
+
+    getScriptureTextPanelProps(
+        id: string,
+    ): ScriptureTextPanelHOCProps | undefined {
+        if (this.panelsInfo.get(id)?.type.startsWith('ScriptureTextPanel'))
+            return this.getPanel(id)?.params as ScriptureTextPanelHOCProps;
+        return undefined;
     }
 
     updateScrRef(newScrRef: ScriptureReference): void {
