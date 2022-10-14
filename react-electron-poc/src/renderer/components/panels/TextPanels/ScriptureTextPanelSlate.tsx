@@ -1162,7 +1162,7 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
         }, []);
 
         /**
-         * Updates the Scripture chunk at the provided index with updated contents.
+         * Updates the Scripture chunk at the provided index with updated contents and saves the edited chapter.
          * DOES NOT update the chunk's reference in order to avoid React re-rendering. Could potentially pose some issues somewhere or another
          * @param chunkIndex which chunk index had a change
          * @param scrChapterChunk the updated Scripture chunk
@@ -1172,44 +1172,41 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
                 chunkIndex: number,
                 updatedScrChapterChunk: ScriptureContentChunk,
             ) => {
-                const scrChapterChunk = scrChaptersChunked[chunkIndex];
-                scrChapterChunk.contents = updatedScrChapterChunk.contents;
+                const editedScrChapterChunk = scrChaptersChunked[chunkIndex];
+                const editedChapter = editedScrChapterChunk.chapter;
+                editedScrChapterChunk.contents =
+                    updatedScrChapterChunk.contents;
 
                 const start = performance.now();
-                // Group the chunks by chapter
-                const scrChapterChunkMap = groupBy(
-                    scrChaptersChunked,
-                    (chapterChunk) => chapterChunk.chapter,
+                // Reassemble the edited chapter and send it to the backend to save (no need to save the whole book)
+                // Get the chunks for the chapter that was edited
+                const editedScrChapterChunks = scrChaptersChunked.filter(
+                    (chapterChunk) => chapterChunk.chapter === editedChapter,
                 );
 
                 // Reassemble the chunks into scrChapters and write
-                const scrChaptersUnchunked: ScriptureChapterContent[] = [];
-                // eslint-disable-next-line no-restricted-syntax
-                for (const [
-                    chunkChapter,
-                    chapterChunks,
-                ] of scrChapterChunkMap.entries()) {
-                    scrChaptersUnchunked.push(
-                        unchunkScriptureContent(chapterChunks, chunkChapter),
-                    );
-                }
+                const editedScrChaptersUnchunked: ScriptureChapterContent[] = [
+                    unchunkScriptureContent(
+                        editedScrChapterChunks,
+                        editedChapter,
+                    ),
+                ];
 
                 console.log(
-                    `Unchunking Scripture Chapters took ${
+                    `Performance: Unchunking Scripture Chapter ${editedChapter} for saving took ${
                         performance.now() - start
                     } ms`,
                 );
 
+                // Send the chapter to the backend for saving
                 writeScripture(
                     shortName,
                     book,
-                    // Save whole book if we're browsing by book because why not
-                    // TODO: save only the relevant chapter for performance
-                    browseBook ? -1 : chapter,
-                    scrChaptersUnchunked,
+                    editedChapter,
+                    editedScrChaptersUnchunked,
                 );
             },
-            [scrChaptersChunked, shortName, browseBook, book, chapter],
+            [scrChaptersChunked, shortName, book],
         );
 
         // When the scrRef changes, tell the virtualized list to scroll to the appropriate chunk
