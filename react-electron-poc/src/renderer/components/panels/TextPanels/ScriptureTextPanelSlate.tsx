@@ -1029,7 +1029,8 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
         /** When we get new Scripture project contents, partition the chapters into smaller chunks and create an editor for each chunk */
         const scrChaptersChunked = useMemo<ScriptureContentChunk[]>(() => {
             if (scrChapters && scrChapters.length > 0) {
-                return scrChapters.flatMap((scrChapter) => {
+                const start = performance.now();
+                const scrChapterChunks = scrChapters.flatMap((scrChapter) => {
                     // TODO: When loading, the contents come as a string. Consider how to improve the loading value in ScriptureTextPanelHOC
                     const scrChapterContents = isString(scrChapter.contents)
                         ? [
@@ -1049,6 +1050,12 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
                         chunkSize,
                     );
                 });
+                console.log(
+                    `Performance: chunking scrChapters took ${
+                        performance.now() - start
+                    } ms`,
+                );
+                return scrChapterChunks;
             }
             return [];
         }, [scrChapters, useVirtualization]);

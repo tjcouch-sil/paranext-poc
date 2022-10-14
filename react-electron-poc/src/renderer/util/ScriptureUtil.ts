@@ -77,8 +77,10 @@ const scrBookNames: string[][] = [
     ['JUD', 'Jude'],
     ['REV', 'Revelation'],
 ];
-const firstScrBookNum = 1;
-const lastScrBookNum = scrBookNames.length - 1;
+export const FIRST_SCR_BOOK_NUM = 1;
+export const LAST_SCR_BOOK_NUM = scrBookNames.length - 1;
+export const FIRST_SCR_CHAPTER_NUM = 1;
+export const FIRST_SCR_VERSE_NUM = 0;
 
 export const getBookNumFromName = (bookName: string): number => {
     return scrBookNames.findIndex((bookNames) => bookNames.includes(bookName));
@@ -87,20 +89,26 @@ export const getBookNumFromName = (bookName: string): number => {
 export const getAllBookNamesFromNum = (bookNum: number): string[] => {
     return [
         ...scrBookNames[
-            bookNum < firstScrBookNum || bookNum > lastScrBookNum ? 0 : bookNum
+            bookNum < FIRST_SCR_BOOK_NUM || bookNum > LAST_SCR_BOOK_NUM
+                ? 0
+                : bookNum
         ],
     ];
 };
 
 export const getBookShortNameFromNum = (bookNum: number): string => {
     return scrBookNames[
-        bookNum < firstScrBookNum || bookNum > lastScrBookNum ? 0 : bookNum
+        bookNum < FIRST_SCR_BOOK_NUM || bookNum > LAST_SCR_BOOK_NUM
+            ? 0
+            : bookNum
     ][0];
 };
 
 export const getBookLongNameFromNum = (bookNum: number): string => {
     return scrBookNames[
-        bookNum < firstScrBookNum || bookNum > lastScrBookNum ? 0 : bookNum
+        bookNum < FIRST_SCR_BOOK_NUM || bookNum > LAST_SCR_BOOK_NUM
+            ? 0
+            : bookNum
     ][1];
 };
 
@@ -109,8 +117,8 @@ export const offsetBook = (
     offset: number,
 ): ScriptureReference => ({
     book: Math.max(
-        firstScrBookNum,
-        Math.min(scrRef.book + offset, lastScrBookNum),
+        FIRST_SCR_BOOK_NUM,
+        Math.min(scrRef.book + offset, LAST_SCR_BOOK_NUM),
     ),
     chapter: 1,
     verse: 1,
@@ -121,14 +129,17 @@ export const offsetChapter = (
     offset: number,
 ): ScriptureReference => ({
     ...scrRef,
-    chapter: scrRef.chapter + offset,
+    chapter: Math.max(FIRST_SCR_CHAPTER_NUM, scrRef.chapter + offset),
     verse: 1,
 });
 
 export const offsetVerse = (
     scrRef: ScriptureReference,
     offset: number,
-): ScriptureReference => ({ ...scrRef, verse: scrRef.verse + offset });
+): ScriptureReference => ({
+    ...scrRef,
+    verse: Math.max(FIRST_SCR_VERSE_NUM, scrRef.verse + offset),
+});
 
 /** Parse a verse number from a string */
 export const parseVerse = (verseText: string): number | undefined => {

@@ -36,10 +36,9 @@ export const getScripture = async (
                 ),
             }),
         );
-        const end = performance.now();
         console.log(
             `Performance: Parsing JSON for getScripture(${shortName}, ${bookNum}, ${chapter}) took ${
-                end - start
+                performance.now() - start
             } ms`,
         );
         return scrChapterContentsParsed;
@@ -74,10 +73,16 @@ export const writeScripture = async (
     contents: ScriptureChapterContent[],
 ): Promise<boolean> => {
     try {
+        const start = performance.now();
         const contentsJSON = contents.map((content) => ({
             ...content,
-            contents: JSON.stringify(content.contents, null, 4),
+            contents: JSON.stringify(content.contents),
         })) as unknown as ScriptureChapterContent[];
+        console.log(
+            `Performance: Stringifying ${shortName} ${bookNum}:${chapter} took ${
+                performance.now() - start
+            } ms`,
+        );
         if (chapter >= 0)
             await window.electronAPI.scripture.writeScriptureChapter(
                 shortName,

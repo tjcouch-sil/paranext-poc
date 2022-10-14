@@ -33,6 +33,11 @@
     width: 4ch
 }
 
+.scr-toolbar .selector-area .change-btns {
+    width: auto;
+    margin: 0px;
+}
+
 .scr-toolbar .selector-area .change-btn {
     padding: 2px 1px;
     border-right: 1px solid #505070;
