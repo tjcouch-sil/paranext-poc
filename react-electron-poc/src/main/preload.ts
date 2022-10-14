@@ -38,6 +38,30 @@ contextBridge.exposeInMainWorld('electronAPI', {
                 bookNum,
                 chapter,
             ),
+        writeScriptureBook: (
+            shortName: string,
+            bookNum: number,
+            contents: ScriptureChapterContent[],
+        ): Promise<void> =>
+            ipcRenderer.invoke(
+                'ipc-scripture:writeScriptureBook',
+                shortName,
+                bookNum,
+                contents,
+            ),
+        writeScriptureChapter: (
+            shortName: string,
+            bookNum: number,
+            chapter: number,
+            contents: ScriptureChapterContent,
+        ): Promise<void> =>
+            ipcRenderer.invoke(
+                'ipc-scripture:writeScriptureChapter',
+                shortName,
+                bookNum,
+                chapter,
+                contents,
+            ),
         getScriptureBookRaw: (
             shortName: string,
             bookNum: number,

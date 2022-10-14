@@ -1,7 +1,8 @@
-import { getScripture } from '@services/ScriptureService';
+import { getScripture, writeScripture } from '@services/ScriptureService';
 import {
     ChapterElementProps,
     CharElementProps,
+    CustomDescendant,
     CustomElement,
     CustomElementProps,
     CustomSlateEditor,
@@ -16,7 +17,7 @@ import {
     ScriptureContentChunk,
     VerseElementProps,
 } from '@shared/data/ScriptureTypes';
-import { debounce, isString, isValidValue, newGuid } from '@util/Util';
+import { debounce, groupBy, isString, isValidValue, newGuid } from '@util/Util';
 import React, {
     createElement,
     CSSProperties,
@@ -51,10 +52,11 @@ import {
     useSlate,
 } from 'slate-react';
 import {
-    getLastVerseInScriptureContents,
+    chunkScriptureChapter,
     getTextFromScrRef,
     parseChapter,
     parseVerse,
+    unchunkScriptureContent,
 } from '@util/ScriptureUtil';
 import { withHistory } from 'slate-history';
 import isHotkey from 'is-hotkey';
@@ -589,17 +591,21 @@ const getScriptureChunkEditorSlateId = (
 
 interface ScriptureChunkEditorSlateProps
     extends Omit<ScriptureTextPanelSlateProps, 'scrChapters' | 'onFocus'> {
-    virtualizedIndex: number;
+    chunkIndex: number;
     virtualizedStyle: CSSProperties;
     editorGuid: string;
     scrChapterChunk: ScriptureContentChunk;
     searchString: string | null;
     notifyUpdatedScrRef: () => void;
+    updateScrChapterChunk: (
+        chunkIndex: number,
+        updatedScrChapterChunk: ScriptureContentChunk,
+    ) => void;
 }
 
 const ScriptureChunkEditorSlate = memo(
     ({
-        virtualizedIndex,
+        chunkIndex,
         virtualizedStyle,
         editorGuid,
         editable,
@@ -611,10 +617,24 @@ const ScriptureChunkEditorSlate = memo(
         scrChapterChunk,
         searchString,
         notifyUpdatedScrRef,
+        updateScrChapterChunk,
     }: ScriptureChunkEditorSlateProps) => {
         // Slate editor
         // TODO: Put in a useEffect listening for scrChapters and create editors for the number of chapters
         const [editor] = useState<CustomSlateEditor>(createSlateEditor);
+
+        /** When the contents are changed, update the chapter chunk */
+        const onChange = useCallback(
+            (value: CustomDescendant[]) => {
+                // Filter out changes that are just selection changes - thanks to the Slate tutorial https://docs.slatejs.org/walkthroughs/06-saving-to-a-database
+                if (editor.operations.some((op) => op.type !== 'set_selection'))
+                    updateScrChapterChunk(chunkIndex, {
+                        ...scrChapterChunk,
+                        contents: value,
+                    });
+            },
+            [editor, updateScrChapterChunk, chunkIndex, scrChapterChunk],
+        );
 
         // Focus the editor when we close the search bar
         // TODO: Could do this directly on the hotkey
@@ -843,7 +863,7 @@ const ScriptureChunkEditorSlate = memo(
                     id={getScriptureChunkEditorSlateId(
                         editorGuid,
                         chapter,
-                        virtualizedIndex,
+                        chunkIndex,
                     )}
                 >
                     {/* -------------------
@@ -852,7 +872,11 @@ const ScriptureChunkEditorSlate = memo(
                     }/${virtualizedIndex}: ${JSON.stringify(
                         scrChapterChunk.contents,
                     ).substring(0, 20)}`} */}
-                    <Slate editor={editor} value={[{ text: 'Loading' }]}>
+                    <Slate
+                        editor={editor}
+                        value={[{ text: 'Loading' }]}
+                        onChange={onChange}
+                    >
                         <Editable
                             readOnly={!editable}
                             renderElement={renderElement}
@@ -911,8 +935,14 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
     (props: ScriptureTextPanelSlateProps) => {
         const { scrChapters, onFocus, ...scrChunkEditorSlateProps } = props;
 
-        const { book, chapter, verse, useVirtualization } =
-            scrChunkEditorSlateProps;
+        const {
+            browseBook,
+            shortName,
+            book,
+            chapter,
+            verse,
+            useVirtualization,
+        } = scrChunkEditorSlateProps;
 
         // Search string for search highlighting. When null, don't show the search box. When '' or other, show the search box
         const [searchString, setSearchString] = useState<string | null>(null);
@@ -959,29 +989,15 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
                           ]
                         : scrChapter.contents;
 
+                    // If not virtualizing, create one chunk per chapter
                     const chunkSize = useVirtualization
                         ? CHUNK_SIZE
                         : scrChapterContents.length;
 
-                    const chapterChunks: ScriptureContentChunk[] = [];
-                    for (
-                        let i = 0;
-                        i < Math.ceil(scrChapterContents.length / chunkSize);
-                        i++
-                    ) {
-                        const chunkContents = scrChapterContents.slice(
-                            i * chunkSize,
-                            i * chunkSize + chunkSize,
-                        );
-                        chapterChunks.push({
-                            chapter: scrChapter.chapter,
-                            chunkNum: i,
-                            finalVerse:
-                                getLastVerseInScriptureContents(chunkContents),
-                            contents: chunkContents,
-                        });
-                    }
-                    return chapterChunks;
+                    return chunkScriptureChapter(
+                        { ...scrChapter, contents: scrChapterContents },
+                        chunkSize,
+                    );
                 });
             }
             return [];
@@ -1145,6 +1161,57 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
             didIUpdateScrRef.current = true;
         }, []);
 
+        /**
+         * Updates the Scripture chunk at the provided index with updated contents.
+         * DOES NOT update the chunk's reference in order to avoid React re-rendering. Could potentially pose some issues somewhere or another
+         * @param chunkIndex which chunk index had a change
+         * @param scrChapterChunk the updated Scripture chunk
+         */
+        const updateScrChapterChunk = useCallback(
+            (
+                chunkIndex: number,
+                updatedScrChapterChunk: ScriptureContentChunk,
+            ) => {
+                const scrChapterChunk = scrChaptersChunked[chunkIndex];
+                scrChapterChunk.contents = updatedScrChapterChunk.contents;
+
+                const start = performance.now();
+                // Group the chunks by chapter
+                const scrChapterChunkMap = groupBy(
+                    scrChaptersChunked,
+                    (chapterChunk) => chapterChunk.chapter,
+                );
+
+                // Reassemble the chunks into scrChapters and write
+                const scrChaptersUnchunked: ScriptureChapterContent[] = [];
+                // eslint-disable-next-line no-restricted-syntax
+                for (const [
+                    chunkChapter,
+                    chapterChunks,
+                ] of scrChapterChunkMap.entries()) {
+                    scrChaptersUnchunked.push(
+                        unchunkScriptureContent(chapterChunks, chunkChapter),
+                    );
+                }
+
+                console.log(
+                    `Unchunking Scripture Chapters took ${
+                        performance.now() - start
+                    } ms`,
+                );
+
+                writeScripture(
+                    shortName,
+                    book,
+                    // Save whole book if we're browsing by book because why not
+                    // TODO: save only the relevant chapter for performance
+                    browseBook ? -1 : chapter,
+                    scrChaptersUnchunked,
+                );
+            },
+            [scrChaptersChunked, shortName, browseBook, book, chapter],
+        );
+
         // When the scrRef changes, tell the virtualized list to scroll to the appropriate chunk
         // TODO: When you figure out how not to recreate the editors every time the scrRef changes, allow the chunks to scroll to the scrRefs for themselves (as in non-virtualized)
         useEffect(() => {
@@ -1231,7 +1298,7 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
                     attributes={{} as never}
                 >
                     <ScriptureChunkEditorSlate
-                        virtualizedIndex={index}
+                        chunkIndex={index}
                         virtualizedStyle={style}
                         editorGuid={editorGuid.current}
                         scrChapterChunk={scrChapterChunk}
@@ -1239,6 +1306,7 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
                         {...scrChunkEditorSlateProps}
                         searchString={searchString}
                         notifyUpdatedScrRef={notifyUpdatedScrRef}
+                        updateScrChapterChunk={updateScrChapterChunk}
                     />
                 </EditorElement>
             );

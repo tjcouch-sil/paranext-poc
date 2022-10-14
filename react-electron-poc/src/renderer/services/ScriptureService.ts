@@ -61,6 +61,45 @@ export const getScripture = async (
 };
 
 /**
+ * Writes the specified Scripture chapter in the specified book from the specified project in Slate JSON
+ * @param shortName the short name of the project
+ * @param bookNum number of book to write
+ * @param chapter number of chapter to write. Defaults to -1 meaning the whole book
+ * @returns Promise that resolves true when writing is finished or false if there was an exception
+ */
+export const writeScripture = async (
+    shortName: string,
+    bookNum: number,
+    chapter = -1,
+    contents: ScriptureChapterContent[],
+): Promise<boolean> => {
+    try {
+        const contentsJSON = contents.map((content) => ({
+            ...content,
+            contents: JSON.stringify(content.contents, null, 4),
+        })) as unknown as ScriptureChapterContent[];
+        if (chapter >= 0)
+            await window.electronAPI.scripture.writeScriptureChapter(
+                shortName,
+                bookNum,
+                chapter,
+                contentsJSON[0],
+            );
+        else
+            await window.electronAPI.scripture.writeScriptureBook(
+                shortName,
+                bookNum,
+                contentsJSON,
+            );
+        return true;
+    } catch (e) {
+        console.log(e);
+        return false;
+    }
+    // Make sure to stringify the contents before sending them over
+};
+
+/**
  * Gets the specified Scripture chapter in the specified book from the specified project in USX
  * @param shortName the short name of the project
  * @param bookNum number of book to get

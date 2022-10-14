@@ -1,7 +1,9 @@
 import {
     CustomElement,
     FormattedText,
+    ScriptureChapterContent,
     ScriptureContent,
+    ScriptureContentChunk,
     ScriptureReference,
 } from '@shared/data/ScriptureTypes';
 import { isString, isValidValue } from './Util';
@@ -343,3 +345,50 @@ export const getLastVerseInScriptureContents = (
     }
     return defaultVerse;
 };
+
+// Scripture Chunking functions
+
+/**
+ * Splits the contents of the Scripture chapter supplied into chunks of size chunkSize
+ * @param scrChapter the chapter contents to split into chunks
+ * @param chunkSize max number of Scripture contents to put in each chunk
+ * @returns array of Scripture content chunks which together make up the chapter
+ */
+export const chunkScriptureChapter = (
+    scrChapter: ScriptureChapterContent,
+    chunkSize: number,
+): ScriptureContentChunk[] => {
+    const chapterChunks: ScriptureContentChunk[] = [];
+    for (
+        let i = 0;
+        i < Math.ceil(scrChapter.contents.length / chunkSize);
+        i++
+    ) {
+        const chunkContents = scrChapter.contents.slice(
+            i * chunkSize,
+            i * chunkSize + chunkSize,
+        );
+        chapterChunks.push({
+            chapter: scrChapter.chapter,
+            chunkNum: i,
+            finalVerse: getLastVerseInScriptureContents(chunkContents),
+            contents: chunkContents,
+        });
+    }
+    return chapterChunks;
+};
+
+/**
+ * Combines chunks of Scripture content into the content of a scripture Chapter.
+ * Note: this does not currently respect the chunks' chunkNum order. It just assembles in the array order.
+ * @param scrChapterChunks array of Scripture content chunks which together make up a chapter
+ * @param chapter the chapter number to assemble
+ * @returns Assembled Scripture chapter whose content is the combined chunks
+ */
+export const unchunkScriptureContent = (
+    scrChapterChunks: ScriptureContentChunk[],
+    chapter: number,
+): ScriptureChapterContent => ({
+    chapter,
+    contents: scrChapterChunks.flatMap((chapterChunk) => chapterChunk.contents),
+});

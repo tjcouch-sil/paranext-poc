@@ -18,6 +18,17 @@ declare global {
                     bookNum: number,
                     chapter: number,
                 ): Promise<ScriptureChapterContent>;
+                writeScriptureBook(
+                    shortName: string,
+                    bookNum: number,
+                    contents: ScriptureChapterContent[],
+                ): Promise<void>;
+                writeScriptureChapter(
+                    shortName: string,
+                    bookNum: number,
+                    chapter: number,
+                    contents: ScriptureChapterContent,
+                ): Promise<void>;
                 getScriptureBookRaw(
                     shortName: string,
                     bookNum: number,
