@@ -188,7 +188,7 @@ async function writeFileText(
     }, delay);
 }
 
-async function writeFilesText(
+/* async function writeFilesText(
     files: { filePath: string; fileContents: string }[],
     delay = 0,
 ): Promise<void[]> {
@@ -197,7 +197,7 @@ async function writeFilesText(
             writeFileText(filePath, fileContents, delay),
         ),
     );
-}
+} */
 
 /** Simulating how long it may take Paratext to load and serve the Scriptures */
 const getScriptureDelay = 75;
@@ -320,10 +320,10 @@ async function handleGetScriptureChapter(
 
 async function handleWriteScriptureBook(
     _event: IpcMainInvokeEvent,
-    fileExtension: string,
-    shortName: string,
-    bookNum: number,
-    contents: ScriptureChapter[],
+    _fileExtension: string,
+    _shortName: string,
+    _bookNum: number,
+    _contents: ScriptureChapter[],
 ): Promise<void> {
     throw new Error(
         'writeScriptureBook was deemed not necessary for this POC and was not implemented',

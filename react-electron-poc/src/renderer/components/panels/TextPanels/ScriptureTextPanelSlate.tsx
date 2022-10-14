@@ -17,7 +17,7 @@ import {
     ScriptureContentChunk,
     VerseElementProps,
 } from '@shared/data/ScriptureTypes';
-import { debounce, groupBy, isString, isValidValue, newGuid } from '@util/Util';
+import { debounce, isString, isValidValue, newGuid } from '@util/Util';
 import React, {
     createElement,
     CSSProperties,
@@ -639,17 +639,15 @@ const EST_CHUNK_HEIGHT = 710;
 const SLATE_VIRTUALIZED_LOAD_TIME = 200;
 
 /**
- * Get the id for the ScriptureContnetChunkInfo div holding the contents of the editor chunk
+ * Get the id for the ScriptureContetChunkInfo div holding the contents of the editor chunk
  * @param editorGuid Unique ID for this editor
- * @param chapter Chapter number
- * @param chunkNum Chunk number within this chapter
+ * @param chunkIndex Index of chunk in the virtualized list
  * @returns Id string for div holding the editor chunk contents
  */
 const getScriptureChunkEditorSlateId = (
     editorGuid: string,
-    chapter: number,
-    chunkNum: number,
-) => `scrChunkEd-${editorGuid}-${chapter}-${chunkNum}`;
+    chunkIndex: number,
+) => `scrChunkEd-${editorGuid}-${chunkIndex}`;
 
 interface ScriptureChunkEditorSlateProps
     extends Omit<ScriptureTextPanelSlateProps, 'scrChapters' | 'onFocus'> {
@@ -922,11 +920,7 @@ const ScriptureChunkEditorSlate = memo(
         return (
             <div style={virtualizedStyle}>
                 <div
-                    id={getScriptureChunkEditorSlateId(
-                        editorGuid,
-                        chapter,
-                        chunkIndex,
-                    )}
+                    id={getScriptureChunkEditorSlateId(editorGuid, chunkIndex)}
                 >
                     {/* -------------------
                     {`${
@@ -997,14 +991,8 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
     (props: ScriptureTextPanelSlateProps) => {
         const { scrChapters, onFocus, ...scrChunkEditorSlateProps } = props;
 
-        const {
-            browseBook,
-            shortName,
-            book,
-            chapter,
-            verse,
-            useVirtualization,
-        } = scrChunkEditorSlateProps;
+        const { shortName, book, chapter, verse, useVirtualization } =
+            scrChunkEditorSlateProps;
 
         // Search string for search highlighting. When null, don't show the search box. When '' or other, show the search box
         const [searchString, setSearchString] = useState<string | null>(null);
@@ -1073,22 +1061,26 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
         const editorGuid = useRef<string>(newGuid().substring(0, 8));
 
         /** Invalidate virtualized-list-cached chunk heights and get again from our cache or recalculate from DOM */
-        const onItemsRendered = ({
-            overscanStartIndex,
-        }: ListOnItemsRenderedProps) => {
-            if (virtualizedList.current)
-                virtualizedList.current.resetAfterIndex(overscanStartIndex);
-        };
+        const onItemsRendered = useCallback(
+            ({ overscanStartIndex }: ListOnItemsRenderedProps) => {
+                if (virtualizedList.current)
+                    virtualizedList.current.resetAfterIndex(overscanStartIndex);
+            },
+            [],
+        );
 
         /**
          * Invalidate virtualized-list-cached chunk heights and get again from our cache or recalculate from DOM
          * @param chunkIndex the chunk index at and after which to invalidate chunk heights. Defaults to 0 (all chunks)
          */
-        const invalidateVirtualizedListCachedHeights = (chunkIndex = 0) => {
-            onItemsRendered({
-                overscanStartIndex: chunkIndex >= 0 ? chunkIndex : 0,
-            } as ListOnItemsRenderedProps);
-        };
+        const invalidateVirtualizedListCachedHeights = useCallback(
+            (chunkIndex = 0) => {
+                onItemsRendered({
+                    overscanStartIndex: chunkIndex >= 0 ? chunkIndex : 0,
+                } as ListOnItemsRenderedProps);
+            },
+            [onItemsRendered],
+        );
 
         /** At startup, calculate editor chunk heights in the DOM */
         useEffect(() => {
@@ -1096,7 +1088,7 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
                 invalidateVirtualizedListCachedHeights,
                 SLATE_VIRTUALIZED_LOAD_TIME,
             );
-        }, []);
+        }, [invalidateVirtualizedListCachedHeights]);
 
         /** Our cache of height of each editor chunk if measured in the DOM. Does not include estimates unlike the virtualized-list-cached heights */
         const editorChunkHeights = useRef<(ChunkHeight | undefined)[]>([]);
@@ -1106,29 +1098,34 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
          * @param chunkIndex index of the chunk to clear
          * @param hard if true, completely deletes the cached height. If false (default), marks it stale for recalculating next time the chunk is in the DOM
          */
-        const invalidateCachedChunkHeight = (
-            chunkIndex: number,
-            hard = false,
-        ) => {
-            // Invalidate all chunk heights
-            if (chunkIndex < 0) {
-                if (!hard) {
-                    editorChunkHeights.current.forEach((editorChunkHeight) => {
-                        if (editorChunkHeight && !editorChunkHeight.stale)
-                            editorChunkHeight.stale = true;
-                    });
-                } else editorChunkHeights.current = [];
-            }
-            // Invalidate a particular chunk height
-            else if (!hard) {
-                const cachedChunkHeight =
-                    editorChunkHeights.current[chunkIndex];
-                if (cachedChunkHeight) cachedChunkHeight.stale = true;
-            } else {
-                editorChunkHeights.current[chunkIndex] = undefined;
-            }
-            invalidateVirtualizedListCachedHeights(chunkIndex);
-        };
+        const invalidateCachedChunkHeight = useCallback(
+            (chunkIndex: number, hard = false) => {
+                // Invalidate all chunk heights
+                if (chunkIndex < 0) {
+                    if (!hard) {
+                        editorChunkHeights.current.forEach(
+                            (editorChunkHeight) => {
+                                if (
+                                    editorChunkHeight &&
+                                    !editorChunkHeight.stale
+                                )
+                                    editorChunkHeight.stale = true;
+                            },
+                        );
+                    } else editorChunkHeights.current = [];
+                }
+                // Invalidate a particular chunk height
+                else if (!hard) {
+                    const cachedChunkHeight =
+                        editorChunkHeights.current[chunkIndex];
+                    if (cachedChunkHeight) cachedChunkHeight.stale = true;
+                } else {
+                    editorChunkHeights.current[chunkIndex] = undefined;
+                }
+                invalidateVirtualizedListCachedHeights(chunkIndex);
+            },
+            [invalidateVirtualizedListCachedHeights],
+        );
 
         /**
          * Current scrollOffset aka viewport position for the virtualized view.
@@ -1137,26 +1134,22 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
         const virtualizedScrollOffset = useRef<number>(0);
 
         /** Keep track of current offset */
-        const onScroll = ({ scrollOffset }: ListOnScrollProps) => {
+        const onScroll = useCallback(({ scrollOffset }: ListOnScrollProps) => {
             virtualizedScrollOffset.current = scrollOffset;
-        };
+        }, []);
 
         /**
          * Get the size of the editor chunk for virtualization. Gets size from the DOM or estimates size
          * @param chunkIndex chunk index for the editor chunk
          * @returns height of editor chunk
          */
-        const getChunkHeight = (chunkIndex: number) => {
+        const getChunkHeight = useCallback((chunkIndex: number) => {
             const cachedChunkHeight = editorChunkHeights.current[chunkIndex];
             if (cachedChunkHeight && !cachedChunkHeight.stale)
                 return cachedChunkHeight.height;
 
             const editorChunk = document.getElementById(
-                getScriptureChunkEditorSlateId(
-                    editorGuid.current,
-                    chapter,
-                    chunkIndex,
-                ),
+                getScriptureChunkEditorSlateId(editorGuid.current, chunkIndex),
             );
             if (editorChunk) {
                 const editorChunkHeight = editorChunk.scrollHeight;
@@ -1195,7 +1188,7 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
                 }
             }
             return cachedChunkHeight?.height || EST_CHUNK_HEIGHT;
-        };
+        }, []);
 
         /** Delay invalidating cached chunk heights partially to reduce lag
          * and partially because there is a problem where the elements may be
@@ -1267,8 +1260,14 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
                     editedChapter,
                     editedScrChaptersUnchunked,
                 );
+
+                // Invalidate the updated chunk's cached height so we recalculate in case we added a line or something
+                // TODO: setTimeout required because we need to wait for Slate to update the editor chunk to the new height. Clean this up by listening for the end of slate changes somehow?
+                setTimeout(() => {
+                    invalidateCachedChunkHeight(chunkIndex);
+                }, 1);
             },
-            [scrChaptersChunked, shortName, book],
+            [scrChaptersChunked, shortName, book, invalidateCachedChunkHeight],
         );
 
         // When the scrRef changes, tell the virtualized list to scroll to the appropriate chunk

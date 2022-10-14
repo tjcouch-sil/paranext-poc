@@ -14,7 +14,6 @@ import {
     memo,
     PropsWithChildren,
     useCallback,
-    useEffect,
     useState,
 } from 'react';
 import usePromise from 'renderer/hooks/usePromise';
