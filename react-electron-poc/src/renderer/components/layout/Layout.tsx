@@ -1,20 +1,23 @@
 import './Layout.css';
 import { DockviewReact, DockviewReadyEvent } from 'dockview';
 import '@node_modules/dockview/dist/styles/dockview.css';
-import { DockViewPanels } from '@components/panels/Panels';
+import Panels, { DockViewPanels, PanelType, SCRIPTURE_PANEL_TYPES } from '@components/panels/Panels';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
     getAllResourceInfo,
     getResourceInfo,
 } from '@services/ScriptureService';
-import { ScriptureTextPanelHtmlProps } from '@components/panels/TextPanels/ScriptureTextPanelHtml';
+import { ScriptureTextPanelStringProps } from '@components/panels/TextPanels/ScriptureTextPanelHtml';
 import { ResourceInfo, ScriptureReference } from '@shared/data/ScriptureTypes';
 import ScrRefSelector from '@components/ScrRefSelector';
 import { DIRECTIONS, PanelManager } from '@components/panels/PanelManager';
 import { getSetting, setSetting } from '@services/SettingsService';
 import { offsetChapter, offsetVerse } from '@util/ScriptureUtil';
 import isHotkey from 'is-hotkey';
-import { ScriptureTextPanelSlateProps } from '@components/panels/TextPanels/ScriptureTextPanelSlate';
+import {
+    ScriptureTextPanelSlate,
+    ScriptureTextPanelSlateProps,
+} from '@components/panels/TextPanels/ScriptureTextPanelSlate';
 
 /** Key for saving scrRef setting */
 const scrRefSettingKey = 'scrRef';
@@ -144,7 +147,7 @@ const Layout = () => {
                     updateScrRef,
                     useVirtualization,
                     browseBook,
-                } as ScriptureTextPanelHtmlProps,
+                } as ScriptureTextPanelStringProps,
             );
             const ohebPanel = panelManager.current.addPanel(
                 'ScriptureTextPanelHtml',
@@ -155,7 +158,7 @@ const Layout = () => {
                     updateScrRef,
                     useVirtualization,
                     browseBook,
-                } as ScriptureTextPanelHtmlProps,
+                } as ScriptureTextPanelStringProps,
                 {
                     position: {
                         direction: 'right',
@@ -172,7 +175,7 @@ const Layout = () => {
                     updateScrRef,
                     useVirtualization,
                     browseBook,
-                } as ScriptureTextPanelHtmlProps,
+                } as ScriptureTextPanelStringProps,
                 {
                     position: {
                         direction: 'below',
@@ -189,7 +192,7 @@ const Layout = () => {
                     updateScrRef,
                     useVirtualization,
                     browseBook,
-                } as ScriptureTextPanelHtmlProps,
+                } as ScriptureTextPanelStringProps,
                 {
                     position: {
                         direction: 'below',
@@ -206,7 +209,7 @@ const Layout = () => {
                     updateScrRef,
                     useVirtualization,
                     browseBook,
-                } as ScriptureTextPanelHtmlProps,
+                } as ScriptureTextPanelStringProps,
                 {
                     position: {
                         direction: 'below',
@@ -223,7 +226,7 @@ const Layout = () => {
                     updateScrRef,
                     useVirtualization,
                     browseBook,
-                } as ScriptureTextPanelHtmlProps,
+                } as ScriptureTextPanelStringProps,
                 {
                     position: {
                         direction: 'within',
@@ -270,8 +273,9 @@ const Layout = () => {
                     ];
                 const rootPanel =
                     panelsInfo[Math.floor(Math.random() * panelsInfo.length)];
+
                 panelManager.current.addPanel(
-                    'ScriptureTextPanelHtml',
+                    SCRIPTURE_PANEL_TYPES[Math.floor(Math.random() * SCRIPTURE_PANEL_TYPES.length)],
                     {
                         shortName: resource.shortName,
                         editable: resource.editable,
@@ -333,6 +337,15 @@ const Layout = () => {
                 </span>
             </div>
             <div className="layout-dock">
+                {/* <ScriptureTextPanelSlate
+                    shortName="zzz6"
+                    editable
+                    // eslint-disable-next-line react/jsx-props-no-spreading
+                    {...scrRef}
+                    updateScrRef={updateScrRef}
+                    useVirtualization={useVirtualization}
+                    browseBook={browseBook}
+                /> */}
                 <DockviewReact
                     className="dockview-theme-abyss"
                     onReady={onReady}

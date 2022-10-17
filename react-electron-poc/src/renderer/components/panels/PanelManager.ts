@@ -60,12 +60,14 @@ export class PanelManager {
 
         if (panelInfo.type.startsWith('ScriptureTextPanel')) {
             const scrPanelProps = panelProps as ScriptureTextPanelHOCProps;
-            return `${scrPanelProps.shortName}: ${getTextFromScrRef({
+            return `${scrPanelProps.editable ? '[' : ''}${
+                scrPanelProps.shortName
+            }: ${getTextFromScrRef({
                 book: scrPanelProps.book,
                 chapter: scrPanelProps.chapter,
                 verse: -1,
-            })}${scrPanelProps.editable ? ' Editable' : ''}${
-                panelInfo.type === 'ScriptureTextPanelSlate' ? ' Slate' : ''
+            })} ${panelInfo.type.replace('ScriptureTextPanel', '')}${
+                scrPanelProps.editable ? ']' : ''
             }`;
         }
         return panelInfo.type;

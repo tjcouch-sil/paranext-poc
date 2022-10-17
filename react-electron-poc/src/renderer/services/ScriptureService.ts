@@ -59,6 +59,9 @@ export const getScripture = async (
     }
 };
 
+/** Gets the specified Scripture chapter in the specified book from the specified project in Slate JSON from USX on the backend */
+export const getScriptureJSONFromUsx = getScripture;
+
 /**
  * Writes the specified Scripture chapter in the specified book from the specified project in Slate JSON
  * @param shortName the short name of the project
@@ -105,7 +108,7 @@ export const writeScripture = async (
 };
 
 /**
- * Gets the specified Scripture chapter in the specified book from the specified project in USX
+ * Gets the specified Scripture chapter in the specified book from the specified project in USFM
  * @param shortName the short name of the project
  * @param bookNum number of book to get
  * @param chapter number of chapter to get. Defaults to -1 meaning the whole book
@@ -122,6 +125,40 @@ export const getScriptureRaw = async (
                   .getScriptureChapterRaw(shortName, bookNum, chapter)
                   .then((result) => [result])
             : await window.electronAPI.scripture.getScriptureBookRaw(
+                  shortName,
+                  bookNum,
+              );
+    } catch (e) {
+        console.log(e);
+        return [
+            {
+                chapter,
+                contents: `Could not get contents of ${shortName} ${getTextFromScrRef(
+                    { book: bookNum, chapter, verse: -1 },
+                )}.`,
+            },
+        ];
+    }
+};
+
+/**
+ * Gets the specified Scripture chapter in the specified book from the specified project in USX
+ * @param shortName the short name of the project
+ * @param bookNum number of book to get
+ * @param chapter number of chapter to get. Defaults to -1 meaning the whole book
+ * @returns Promise with specified chapter or book if chapter not specified
+ */
+export const getScriptureUsx = async (
+    shortName: string,
+    bookNum: number,
+    chapter = -1,
+): Promise<ScriptureChapterString[]> => {
+    try {
+        return chapter >= 0
+            ? await window.electronAPI.scripture
+                  .getScriptureChapterUsx(shortName, bookNum, chapter)
+                  .then((result) => [result])
+            : await window.electronAPI.scripture.getScriptureBookUsx(
                   shortName,
                   bookNum,
               );

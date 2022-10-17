@@ -38,6 +38,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
                 bookNum,
                 chapter,
             ),
+        getScriptureJSONFromUsxBook: (
+            shortName: string,
+            bookNum: number,
+        ): Promise<ScriptureChapterContent[]> =>
+            ipcRenderer.invoke(
+                'ipc-scripture:getScriptureJSONFromUsxBook',
+                shortName,
+                bookNum,
+            ),
+        getScriptureJSONFromUsxChapter: (
+            shortName: string,
+            bookNum: number,
+            chapter: number,
+        ): Promise<ScriptureChapterContent> =>
+            ipcRenderer.invoke(
+                'ipc-scripture:getScriptureJSONFromUsxChapter',
+                shortName,
+                bookNum,
+                chapter,
+            ),
         writeScriptureBook: (
             shortName: string,
             bookNum: number,
@@ -78,6 +98,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ): Promise<ScriptureChapterString> =>
             ipcRenderer.invoke(
                 'ipc-scripture:getScriptureChapterRaw',
+                shortName,
+                bookNum,
+                chapter,
+            ),
+        getScriptureBookUsx: (
+            shortName: string,
+            bookNum: number,
+        ): Promise<ScriptureChapterString[]> =>
+            ipcRenderer.invoke(
+                'ipc-scripture:getScriptureBookUsx',
+                shortName,
+                bookNum,
+            ),
+        getScriptureChapterUsx: (
+            shortName: string,
+            bookNum: number,
+            chapter: number,
+        ): Promise<ScriptureChapterString> =>
+            ipcRenderer.invoke(
+                'ipc-scripture:getScriptureChapterUsx',
                 shortName,
                 bookNum,
                 chapter,

@@ -426,6 +426,17 @@ const ipcHandlers: {
         bookNum: number,
         chapter: number,
     ) => handleGetScriptureChapter(event, 'json', shortName, bookNum, chapter),
+    'ipc-scripture:getScriptureJSONFromUsxBook': (
+        event,
+        shortName: string,
+        bookNum: number,
+    ) => handleGetScriptureBook(event, 'json', shortName, bookNum),
+    'ipc-scripture:getScriptureJSONFromUsxChapter': (
+        event,
+        shortName: string,
+        bookNum: number,
+        chapter: number,
+    ) => handleGetScriptureChapter(event, 'json', shortName, bookNum, chapter),
     'ipc-scripture:writeScriptureBook': (
         event,
         shortName: string,
@@ -451,8 +462,19 @@ const ipcHandlers: {
         event,
         shortName: string,
         bookNum: number,
-    ) => handleGetScriptureBook(event, 'usx', shortName, bookNum),
+    ) => handleGetScriptureBook(event, 'usfm', shortName, bookNum),
     'ipc-scripture:getScriptureChapterRaw': (
+        event,
+        shortName: string,
+        bookNum: number,
+        chapter: number,
+    ) => handleGetScriptureChapter(event, 'usfm', shortName, bookNum, chapter),
+    'ipc-scripture:getScriptureBookUsx': (
+        event,
+        shortName: string,
+        bookNum: number,
+    ) => handleGetScriptureBook(event, 'usx', shortName, bookNum),
+    'ipc-scripture:getScriptureChapterUsx': (
         event,
         shortName: string,
         bookNum: number,
