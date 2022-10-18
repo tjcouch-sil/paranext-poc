@@ -253,6 +253,10 @@ async function handleGetScriptureBook(
                                 (dirent) =>
                                     `testScripture/${shortName}/${dirent.name}`,
                             );
+                        if (scrFilePaths.length <= 0)
+                            throw new Error(
+                                `No chapters found for ${shortName} book ${bookNum} .${fileExtension}`,
+                            );
                         const filesContents = await getFilesText(
                             scrFilePaths,
                             0,
