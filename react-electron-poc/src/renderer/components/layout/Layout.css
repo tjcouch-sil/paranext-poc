@@ -40,12 +40,12 @@ body {
 }
 
 .layout .layout-bar .layout-interactive:hover,
-.layout .layout-bar .layout-interactive:hover .starting-tabs {
+.layout .layout-bar .layout-interactive:hover .embedded-input {
     background-color: #505070;
     color: white;
 }
 
-.layout .layout-bar .layout-interactive .starting-tabs {
+.layout .layout-bar .layout-interactive .embedded-input {
     margin: 0px;
     height: 10px;
     width: 4ch;
@@ -54,6 +54,19 @@ body {
     font-size: 11pt;
     font-family: sans-serif;
     text-align: right;
+}
+
+.layout .layout-bar .layout-interactive .tab-type-select {
+    margin: 0px 3px;
+    padding: 1px;
+    height: auto;
+    width: 10.25ch;
+    text-align: center;
+}
+
+.layout .layout-bar .layout-interactive .tab-type-select:hover,
+.layout .layout-bar .layout-interactive .tab-type-select:focus {
+    outline: 1px solid white;
 }
 
 .layout .layout-bar .add-tab {

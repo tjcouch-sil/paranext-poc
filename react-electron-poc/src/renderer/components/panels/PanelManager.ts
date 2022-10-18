@@ -21,6 +21,10 @@ export const DIRECTIONS: Direction[] = [
 
 export const PANEL_TYPE_RANDOM_SCRIPTURE = 'ScriptureTextPanelRandom';
 export type AddPanelType = PanelType | typeof PANEL_TYPE_RANDOM_SCRIPTURE;
+export const ADD_SCRIPTURE_PANEL_TYPES: AddPanelType[] = [
+    PANEL_TYPE_RANDOM_SCRIPTURE,
+    ...SCRIPTURE_PANEL_TYPES,
+];
 
 export interface PanelInfo {
     id: string;

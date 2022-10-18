@@ -2,7 +2,7 @@ import './Layout.css';
 import { DockviewReact, DockviewReadyEvent, IDockviewPanel } from 'dockview';
 import '@node_modules/dockview/dist/styles/dockview.css';
 import { DockViewPanels } from '@components/panels/Panels';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     getAllResourceInfo,
     getResourceInfo,
@@ -12,6 +12,7 @@ import { ResourceInfo, ScriptureReference } from '@shared/data/ScriptureTypes';
 import ScrRefSelector from '@components/ScrRefSelector';
 import {
     AddPanelType,
+    ADD_SCRIPTURE_PANEL_TYPES,
     DIRECTIONS,
     PanelManager,
     PANEL_TYPE_RANDOM_SCRIPTURE,
@@ -30,15 +31,20 @@ const useVirtualizationSettingKey = 'useVirtualization';
 const browseBookSettingKey = 'browseBook';
 /** Key for saving startingTabs setting */
 const startingTabsSettingKey = 'startingTabs';
+/** Key for saving newTabType setting */
+const newTabTypeSettingKey = 'newTabType';
 
 const isHotkeyPreviousChapter = isHotkey('mod+alt+ArrowUp');
 const isHotkeyNextChapter = isHotkey('mod+alt+ArrowDown');
 const isHotkeyPreviousVerse = isHotkey('mod+alt+ArrowLeft');
 const isHotkeyNextVerse = isHotkey('mod+alt+ArrowRight');
 
+export const startChangeScrRef = { lastChangeTime: performance.now() };
+
 const Layout = () => {
     const panelManager = useRef<PanelManager | undefined>(undefined);
 
+    // The Scripture reference the panels are synced on
     const [scrRef, setScrRef] = useState<ScriptureReference>(
         getSetting<ScriptureReference>(scrRefSettingKey) || {
             book: 19,
@@ -47,12 +53,14 @@ const Layout = () => {
         },
     );
     const updateScrRef = useCallback((newScrRef: ScriptureReference) => {
+        startChangeScrRef.lastChangeTime = performance.now();
         setScrRef(newScrRef);
         setSetting(scrRefSettingKey, newScrRef);
 
         panelManager.current?.updateScrRef(newScrRef);
     }, []);
 
+    // Whether the Slate panels use virtualization to render what is visible on screen
     const [useVirtualization, setUseVirtualization] = useState<boolean>(
         getSetting<boolean>(useVirtualizationSettingKey) || false,
     );
@@ -66,6 +74,7 @@ const Layout = () => {
         [],
     );
 
+    // Whether the panels load full books or just a chapter
     const [browseBook, setBrowseBook] = useState<boolean>(
         getSetting<boolean>(browseBookSettingKey) || false,
     );
@@ -76,16 +85,25 @@ const Layout = () => {
         panelManager.current?.updateBrowseBook(newBrowseBook);
     }, []);
 
+    // How many tabs to open on startup
     const [startingTabs, setStartingTabs] = useState<number>(() => {
         const startingTabsSaved = getSetting<number>(startingTabsSettingKey);
         if (isValidValue(startingTabsSaved)) return startingTabsSaved;
         return 5;
     });
     const updateStartingTabs = useCallback((newStartingTabs: number) => {
-        if (newStartingTabs < 0 || newStartingTabs >= 100) return;
-
-        setStartingTabs(newStartingTabs);
+        setStartingTabs(Math.max(0, Math.min(newStartingTabs, 99)));
         setSetting(startingTabsSettingKey, newStartingTabs);
+    }, []);
+
+    // Selected tab type to open on startup or when clicking Add Tab
+    const [newTabType, setNewTabType] = useState<AddPanelType>(
+        getSetting<AddPanelType>(newTabTypeSettingKey) ||
+            PANEL_TYPE_RANDOM_SCRIPTURE,
+    );
+    const updateNewTabType = useCallback((newNewTabType: AddPanelType) => {
+        setNewTabType(newNewTabType);
+        setSetting(newTabTypeSettingKey, newNewTabType);
     }, []);
 
     /** All Resource Information on available resources */
@@ -113,7 +131,7 @@ const Layout = () => {
     }, [scrRef, updateScrRef]);
 
     const addTab = useCallback(
-        (panelType: AddPanelType = PANEL_TYPE_RANDOM_SCRIPTURE) => {
+        (panelType: AddPanelType = newTabType) => {
             if (panelManager.current) {
                 // Get all resources that are open and are editable (don't want two of the same resource open for now)
                 const resourcesInUse: Set<string> = new Set<string>();
@@ -181,7 +199,7 @@ const Layout = () => {
                 }
             }
         },
-        [browseBook, scrRef, updateScrRef, useVirtualization],
+        [newTabType, browseBook, scrRef, updateScrRef, useVirtualization],
     );
 
     const onReady = useCallback(
@@ -224,7 +242,7 @@ const Layout = () => {
 
             panelManager.current = new PanelManager(event);
 
-            // Add the default tabs
+            /* // Add the default tabs
             if (panelManager.current.panelsInfo.size >= startingTabs) return;
 
             const csbPanel = panelManager.current.addPanel(
@@ -337,16 +355,10 @@ const Layout = () => {
                         referencePanel: zzz1Panel.id,
                     },
                 },
-            ); */
+            );
+            */
         },
-        [
-            startingTabs,
-            scrRef,
-            updateScrRef,
-            useVirtualization,
-            browseBook,
-            addTab,
-        ],
+        [startingTabs, addTab],
     );
 
     return (
@@ -362,14 +374,32 @@ const Layout = () => {
                         e.preventDefault();
                     }}
                 >
-                    Add Tab
+                    Add
+                    <select
+                        className="layout-interactive embedded-input tab-type-select"
+                        onClick={(e: React.MouseEvent<HTMLSelectElement>) => {
+                            // Do not add a tab when we click the dropdown
+                            e.stopPropagation();
+                        }}
+                        value={newTabType}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                            updateNewTabType(e.target.value as AddPanelType)
+                        }
+                    >
+                        {ADD_SCRIPTURE_PANEL_TYPES.map((addPanelType) => (
+                            <option value={addPanelType}>
+                                {addPanelType.replace('ScriptureTextPanel', '')}
+                            </option>
+                        ))}
+                    </select>
+                    Tab
                 </button>
                 <span className="settings">
-                    <span className="layout-interactive">
+                    <label className="layout-interactive">
                         Starting Tabs:
                         <input
                             type="number"
-                            className="starting-tabs layout-interactive"
+                            className="layout-interactive embedded-input"
                             value={startingTabs}
                             onChange={(
                                 e: React.ChangeEvent<HTMLInputElement>,
@@ -377,8 +407,8 @@ const Layout = () => {
                                 updateStartingTabs(parseInt(e.target.value, 10))
                             }
                         />
-                    </span>
-                    <span className="layout-interactive">
+                    </label>
+                    <label className="layout-interactive">
                         Use Virtualization
                         <input
                             type="checkbox"
@@ -387,8 +417,8 @@ const Layout = () => {
                                 updateUseVirtualization(event.target.checked)
                             }
                         />
-                    </span>
-                    <span className="layout-interactive">
+                    </label>
+                    <label className="layout-interactive">
                         Edit whole book
                         <input
                             type="checkbox"
@@ -397,7 +427,7 @@ const Layout = () => {
                                 updateBrowseBook(event.target.checked)
                             }
                         />
-                    </span>
+                    </label>
                 </span>
             </div>
             <div className="layout-dock">

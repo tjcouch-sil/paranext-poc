@@ -17,6 +17,7 @@ export const getScripture = async (
     bookNum: number,
     chapter = -1,
 ): Promise<ScriptureChapterContent[]> => {
+    const startGet = performance.now();
     try {
         const scrChapterContents =
             chapter >= 0
@@ -27,7 +28,7 @@ export const getScripture = async (
                       shortName,
                       bookNum,
                   );
-        const start = performance.now();
+        const startParse = performance.now();
         const scrChapterContentsParsed = scrChapterContents.map(
             (scrChapterContent) => ({
                 ...scrChapterContent,
@@ -36,13 +37,24 @@ export const getScripture = async (
                 ),
             }),
         );
-        console.log(
-            `Performance: Parsing JSON for getScripture(${shortName}, ${bookNum}, ${chapter}) took ${
-                performance.now() - start
+        const end = performance.now();
+        console.debug(
+            `Performance<ScriptureService.getScripture(${shortName}, ${bookNum}, ${chapter})>: Parsing JSON took ${
+                end - startParse
+            } ms`,
+        );
+        console.debug(
+            `Performance<ScriptureService.getScripture(${shortName}, ${bookNum}, ${chapter})>: took ${
+                end - startGet
             } ms`,
         );
         return scrChapterContentsParsed;
     } catch (e) {
+        console.debug(
+            `Performance<ScriptureService.getScripture(${shortName}, ${bookNum}, ${chapter})>: Exception took ${
+                performance.now() - startGet
+            } ms`,
+        );
         console.log(e);
         return [
             {
@@ -75,14 +87,14 @@ export const writeScripture = async (
     chapter = -1,
     contents: ScriptureChapterContent[],
 ): Promise<boolean> => {
+    const start = performance.now();
     try {
-        const start = performance.now();
         const contentsJSON = contents.map((content) => ({
             ...content,
             contents: JSON.stringify(content.contents),
         })) as unknown as ScriptureChapterContent[];
-        console.log(
-            `Performance: Stringifying ${shortName} ${bookNum}:${chapter} took ${
+        console.debug(
+            `Performance<ScriptureService.writeScripture(${shortName}, ${bookNum}, ${chapter})>: Stringifying took ${
                 performance.now() - start
             } ms`,
         );
@@ -99,8 +111,18 @@ export const writeScripture = async (
                 bookNum,
                 contentsJSON,
             );
+        console.debug(
+            `Performance<ScriptureService.writeScripture(${shortName}, ${bookNum}, ${chapter})>: took ${
+                performance.now() - start
+            } ms`,
+        );
         return true;
     } catch (e) {
+        console.debug(
+            `Performance<ScriptureService.writeScripture(${shortName}, ${bookNum}, ${chapter})>: Exception took ${
+                performance.now() - start
+            } ms`,
+        );
         console.log(e);
         return false;
     }

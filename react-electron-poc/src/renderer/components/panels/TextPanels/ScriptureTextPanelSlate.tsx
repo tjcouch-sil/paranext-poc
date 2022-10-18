@@ -29,6 +29,7 @@ import React, {
     memo,
     useCallback,
     useEffect,
+    useLayoutEffect,
     useMemo,
     useRef,
     useState,
@@ -76,6 +77,7 @@ import {
     ScriptureTextPanelHOC,
     ScriptureTextPanelHOCProps,
 } from './ScriptureTextPanelHOC';
+import { startChangeScrRef } from '@components/layout/Layout';
 
 // Slate components
 
@@ -687,6 +689,24 @@ const ScriptureChunkEditorSlate = memo(
         // TODO: Put in a useEffect listening for scrChapters and create editors for the number of chapters
         const [editor] = useState<CustomSlateEditor>(createSlateEditor);
 
+        useLayoutEffect(
+            () =>
+                console.log(
+                    `Performance<ScriptureChunkEditorSlate>: finished rendering at ${performance.now()} ms from start.`,
+                ),
+            [],
+        );
+
+        useLayoutEffect(
+            () =>
+                console.log(
+                    `Performance<ScriptureChunkEditorSlate>: finished rendering ${
+                        performance.now() - startChangeScrRef.lastChangeTime
+                    } ms from changing scrRef.`,
+                ),
+            [scrChapterChunk],
+        );
+
         /** When the contents are changed, update the chapter chunk */
         const onChange = useCallback(
             (value: CustomDescendant[]) => {
@@ -1055,7 +1075,7 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
                 );
             });
             console.log(
-                `Performance: chunking scrChapters took ${
+                `Performance<ScriptureTextPanelSlate.scrChaptersChunked>: chunking scrChapters took ${
                     performance.now() - start
                 } ms`,
             );
@@ -1230,11 +1250,13 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
      */
     const updateScrChapterChunk = useCallback(
         (chunkIndex: number, updatedScrChapterChunk: ScriptureContentChunk) => {
+            const startWriteScripture = performance.now();
+
             const editedScrChapterChunk = scrChaptersChunked[chunkIndex];
             const editedChapter = editedScrChapterChunk.chapter;
             editedScrChapterChunk.contents = updatedScrChapterChunk.contents;
 
-            const start = performance.now();
+            const startChunking = performance.now();
             // Reassemble the edited chapter and send it to the backend to save (no need to save the whole book)
             // Get the chunks for the chapter that was edited
             const editedScrChapterChunks = scrChaptersChunked.filter(
@@ -1247,8 +1269,8 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
             ];
 
             console.log(
-                `Performance: Unchunking Scripture Chapter ${editedChapter} for saving took ${
-                    performance.now() - start
+                `Performance<ScriptureTextPanelSlate.updateScrChapterChunk>: Unchunking Scripture Chapter ${editedChapter} for saving took ${
+                    performance.now() - startChunking
                 } ms`,
             );
 
@@ -1258,7 +1280,20 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
                 book,
                 editedChapter,
                 editedScrChaptersUnchunked,
-            );
+            )
+                .then((success) => {
+                    console.log(
+                        `Performance<ScriptureTextPanelSlate.updateScrChapterChunk>: writeScripture resolved with success = ${success} and took ${
+                            performance.now() - startWriteScripture
+                        } ms`,
+                    );
+                    return undefined;
+                })
+                .catch((r) =>
+                    console.log(
+                        `Exception while writing Scripture from Slate! ${r}`,
+                    ),
+                );
 
             // Invalidate the updated chunk's cached height so we recalculate in case we added a line or something
             // TODO: setTimeout required because we need to wait for Slate to update the editor chunk to the new height. Clean this up by listening for the end of slate changes somehow?

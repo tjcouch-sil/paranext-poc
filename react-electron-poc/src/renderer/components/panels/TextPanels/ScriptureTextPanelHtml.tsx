@@ -13,7 +13,7 @@ import {
     parseVerse,
 } from '@util/ScriptureUtil';
 import { htmlEncode, isValidValue } from '@util/Util';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import ContentEditable, { ContentEditableEvent } from 'react-contenteditable';
 import {
     ScriptureTextPanelHOC,
@@ -46,6 +46,14 @@ const ScriptureTextPanelString = ({
 }: ScriptureTextPanelStringProps) => {
     /** Ref for the top-level editor div */
     const editorRef = useRef<HTMLDivElement>(null);
+
+    useLayoutEffect(
+        () =>
+            console.debug(
+                `Performance<ScriptureTextPanelString>: finished rendering at ${performance.now()} ms from start.`,
+            ),
+        [],
+    );
 
     // Make a ref for the Scripture that works with react-content-editable
     const editableScrChapters = useRef<ScriptureChapter[]>([
