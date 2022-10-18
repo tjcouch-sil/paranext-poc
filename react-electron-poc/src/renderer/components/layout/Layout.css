@@ -39,9 +39,21 @@ body {
     display: inline-block;
 }
 
-.layout .layout-bar .layout-interactive:hover {
+.layout .layout-bar .layout-interactive:hover,
+.layout .layout-bar .layout-interactive:hover .starting-tabs {
     background-color: #505070;
     color: white;
+}
+
+.layout .layout-bar .layout-interactive .starting-tabs {
+    margin: 0px;
+    height: 10px;
+    width: 4ch;
+    border: 0px solid;
+    outline: 0px solid;
+    font-size: 11pt;
+    font-family: sans-serif;
+    text-align: right;
 }
 
 .layout .layout-bar .add-tab {

@@ -1,7 +1,7 @@
 import './Layout.css';
-import { DockviewReact, DockviewReadyEvent } from 'dockview';
+import { DockviewReact, DockviewReadyEvent, IDockviewPanel } from 'dockview';
 import '@node_modules/dockview/dist/styles/dockview.css';
-import Panels, { DockViewPanels, PanelType, SCRIPTURE_PANEL_TYPES } from '@components/panels/Panels';
+import { DockViewPanels } from '@components/panels/Panels';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
     getAllResourceInfo,
@@ -10,14 +10,17 @@ import {
 import { ScriptureTextPanelStringProps } from '@components/panels/TextPanels/ScriptureTextPanelHtml';
 import { ResourceInfo, ScriptureReference } from '@shared/data/ScriptureTypes';
 import ScrRefSelector from '@components/ScrRefSelector';
-import { DIRECTIONS, PanelManager } from '@components/panels/PanelManager';
+import {
+    AddPanelType,
+    DIRECTIONS,
+    PanelManager,
+    PANEL_TYPE_RANDOM_SCRIPTURE,
+} from '@components/panels/PanelManager';
 import { getSetting, setSetting } from '@services/SettingsService';
 import { offsetChapter, offsetVerse } from '@util/ScriptureUtil';
 import isHotkey from 'is-hotkey';
-import {
-    ScriptureTextPanelSlate,
-    ScriptureTextPanelSlateProps,
-} from '@components/panels/TextPanels/ScriptureTextPanelSlate';
+import { ScriptureTextPanelSlateProps } from '@components/panels/TextPanels/ScriptureTextPanelSlate';
+import { isValidValue } from '@util/Util';
 
 /** Key for saving scrRef setting */
 const scrRefSettingKey = 'scrRef';
@@ -25,6 +28,8 @@ const scrRefSettingKey = 'scrRef';
 const useVirtualizationSettingKey = 'useVirtualization';
 /** Key for saving browseBook setting */
 const browseBookSettingKey = 'browseBook';
+/** Key for saving startingTabs setting */
+const startingTabsSettingKey = 'startingTabs';
 
 const isHotkeyPreviousChapter = isHotkey('mod+alt+ArrowUp');
 const isHotkeyNextChapter = isHotkey('mod+alt+ArrowDown');
@@ -71,6 +76,18 @@ const Layout = () => {
         panelManager.current?.updateBrowseBook(newBrowseBook);
     }, []);
 
+    const [startingTabs, setStartingTabs] = useState<number>(() => {
+        const startingTabsSaved = getSetting<number>(startingTabsSettingKey);
+        if (isValidValue(startingTabsSaved)) return startingTabsSaved;
+        return 5;
+    });
+    const updateStartingTabs = useCallback((newStartingTabs: number) => {
+        if (newStartingTabs < 0 || newStartingTabs >= 100) return;
+
+        setStartingTabs(newStartingTabs);
+        setSetting(startingTabsSettingKey, newStartingTabs);
+    }, []);
+
     /** All Resource Information on available resources */
     const allResourceInfo = useRef<ResourceInfo[]>([]);
 
@@ -95,6 +112,78 @@ const Layout = () => {
         };
     }, [scrRef, updateScrRef]);
 
+    const addTab = useCallback(
+        (panelType: AddPanelType = PANEL_TYPE_RANDOM_SCRIPTURE) => {
+            if (panelManager.current) {
+                // Get all resources that are open and are editable (don't want two of the same resource open for now)
+                const resourcesInUse: Set<string> = new Set<string>();
+
+                const panelsInfo = Array.from(
+                    panelManager.current.panelsInfo.values(),
+                );
+                // eslint-disable-next-line no-restricted-syntax
+                panelsInfo.forEach((panelInfo) => {
+                    const panelProps =
+                        // We just checked that panelManager.current is defined. This is just a typescript issue
+                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                        panelManager.current!.getScriptureTextPanelProps(
+                            panelInfo.id,
+                        );
+                    if (panelProps?.editable) {
+                        resourcesInUse.add(panelProps.shortName);
+                    }
+                });
+
+                // Get all available resources to open (closed or editable)
+                const availableResources = allResourceInfo.current.filter(
+                    (resourceInfo) =>
+                        !resourceInfo.editable ||
+                        !resourcesInUse.has(resourceInfo.shortName),
+                );
+
+                if (availableResources.length > 0) {
+                    const resource =
+                        availableResources[
+                            Math.floor(
+                                Math.random() * availableResources.length,
+                            )
+                        ];
+                    const rootPanel =
+                        panelsInfo[
+                            Math.floor(Math.random() * panelsInfo.length)
+                        ];
+
+                    panelManager.current.addPanel(
+                        panelType,
+                        {
+                            shortName: resource.shortName,
+                            editable: resource.editable,
+                            ...scrRef,
+                            updateScrRef,
+                            useVirtualization,
+                            browseBook,
+                        } as ScriptureTextPanelSlateProps,
+                        rootPanel
+                            ? {
+                                  position: {
+                                      direction:
+                                          DIRECTIONS[
+                                              Math.floor(
+                                                  Math.random() *
+                                                      DIRECTIONS.length,
+                                              )
+                                          ],
+                                      referencePanel: rootPanel.id,
+                                  },
+                              }
+                            : undefined,
+                    );
+                }
+            }
+        },
+        [browseBook, scrRef, updateScrRef, useVirtualization],
+    );
+
     const onReady = useCallback(
         (event: DockviewReadyEvent) => {
             // Test resource info api
@@ -111,6 +200,15 @@ const Layout = () => {
                             )
                             .join('\n')}`,
                     );
+
+                    if (panelManager.current) {
+                        // Add tabs to get up to the correct number of starting tabs
+                        while (
+                            panelManager.current.panelsInfo.size < startingTabs
+                        )
+                            addTab();
+                    }
+
                     return undefined;
                 })
                 .catch((r) => console.log(r));
@@ -125,19 +223,10 @@ const Layout = () => {
                 .catch((r) => console.log(r));
 
             panelManager.current = new PanelManager(event);
-            /* const erb = panelFactory.addPanel('Erb', undefined, {
-                title: 'ERB',
-            }); */
-            /* const textPanel = panelFactory.addPanel(
-                'TextPanel',
-                {
-                    placeholderText: 'Loading zzz6 Psalm 119 USX',
-                    textPromise: getScripture('zzz6', 19, 119),
-                } as TextPanelProps,
-                {
-                    title: 'zzz6: Psalm 119 USX',
-                },
-            ); */
+
+            // Add the default tabs
+            if (panelManager.current.panelsInfo.size >= startingTabs) return;
+
             const csbPanel = panelManager.current.addPanel(
                 'ScriptureTextPanelHtml',
                 {
@@ -149,6 +238,9 @@ const Layout = () => {
                     browseBook,
                 } as ScriptureTextPanelStringProps,
             );
+
+            if (panelManager.current.panelsInfo.size >= startingTabs) return;
+
             const ohebPanel = panelManager.current.addPanel(
                 'ScriptureTextPanelHtml',
                 {
@@ -166,6 +258,9 @@ const Layout = () => {
                     },
                 },
             );
+
+            if (panelManager.current.panelsInfo.size >= startingTabs) return;
+
             panelManager.current.addPanel(
                 'ScriptureTextPanelSlate',
                 {
@@ -183,6 +278,9 @@ const Layout = () => {
                     },
                 },
             );
+
+            if (panelManager.current.panelsInfo.size >= startingTabs) return;
+
             panelManager.current.addPanel(
                 'ScriptureTextPanelHtml',
                 {
@@ -200,6 +298,9 @@ const Layout = () => {
                     },
                 },
             );
+
+            if (panelManager.current.panelsInfo.size >= startingTabs) return;
+
             const zzz1Panel = panelManager.current.addPanel(
                 'ScriptureTextPanelHtml',
                 {
@@ -217,6 +318,9 @@ const Layout = () => {
                     },
                 },
             );
+
+            /* if (startingTabs < 6) return;
+
             panelManager.current.addPanel(
                 'ScriptureTextPanelHtml',
                 {
@@ -233,74 +337,17 @@ const Layout = () => {
                         referencePanel: zzz1Panel.id,
                     },
                 },
-            );
+            ); */
         },
-        [scrRef, updateScrRef, useVirtualization, browseBook],
+        [
+            startingTabs,
+            scrRef,
+            updateScrRef,
+            useVirtualization,
+            browseBook,
+            addTab,
+        ],
     );
-
-    const addTab = useCallback(() => {
-        if (panelManager.current) {
-            // Get all resources that are open and are editable (don't want two of the same resource open for now)
-            const resourcesInUse: Set<string> = new Set<string>();
-
-            const panelsInfo = Array.from(
-                panelManager.current.panelsInfo.values(),
-            );
-            // eslint-disable-next-line no-restricted-syntax
-            panelsInfo.forEach((panelInfo) => {
-                const panelProps =
-                    // We just checked that panelManager.current is defined. This is just a typescript issue
-                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                    panelManager.current!.getScriptureTextPanelProps(
-                        panelInfo.id,
-                    );
-                if (panelProps?.editable) {
-                    resourcesInUse.add(panelProps.shortName);
-                }
-            });
-
-            // Get all available resources to open (closed or editable)
-            const availableResources = allResourceInfo.current.filter(
-                (resourceInfo) =>
-                    !resourceInfo.editable ||
-                    !resourcesInUse.has(resourceInfo.shortName),
-            );
-
-            if (availableResources.length > 0) {
-                const resource =
-                    availableResources[
-                        Math.floor(Math.random() * availableResources.length)
-                    ];
-                const rootPanel =
-                    panelsInfo[Math.floor(Math.random() * panelsInfo.length)];
-
-                panelManager.current.addPanel(
-                    SCRIPTURE_PANEL_TYPES[Math.floor(Math.random() * SCRIPTURE_PANEL_TYPES.length)],
-                    {
-                        shortName: resource.shortName,
-                        editable: resource.editable,
-                        ...scrRef,
-                        updateScrRef,
-                        useVirtualization,
-                        browseBook,
-                    } as ScriptureTextPanelSlateProps,
-                    rootPanel
-                        ? {
-                              position: {
-                                  direction:
-                                      DIRECTIONS[
-                                          Math.floor(
-                                              Math.random() * DIRECTIONS.length,
-                                          )
-                                      ],
-                                  referencePanel: rootPanel.id,
-                              },
-                          }
-                        : undefined,
-                );
-            }
-        }
-    }, [browseBook, scrRef, updateScrRef, useVirtualization]);
 
     return (
         <div className="layout">
@@ -309,11 +356,28 @@ const Layout = () => {
                 <button
                     type="button"
                     className="layout-interactive add-tab"
-                    onClick={addTab}
+                    onClick={() => addTab()}
+                    onContextMenu={(e: React.MouseEvent<HTMLButtonElement>) => {
+                        addTab('Erb');
+                        e.preventDefault();
+                    }}
                 >
                     Add Tab
                 </button>
                 <span className="settings">
+                    <span className="layout-interactive">
+                        Starting Tabs:
+                        <input
+                            type="number"
+                            className="starting-tabs layout-interactive"
+                            value={startingTabs}
+                            onChange={(
+                                e: React.ChangeEvent<HTMLInputElement>,
+                            ) =>
+                                updateStartingTabs(parseInt(e.target.value, 10))
+                            }
+                        />
+                    </span>
                     <span className="layout-interactive">
                         Use Virtualization
                         <input

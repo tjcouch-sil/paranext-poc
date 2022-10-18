@@ -8,7 +8,7 @@ import {
     Direction,
     IDisposable,
 } from 'dockview';
-import { PanelType } from './Panels';
+import { PanelType, SCRIPTURE_PANEL_TYPES } from './Panels';
 import { ScriptureTextPanelHOCProps } from './TextPanels/ScriptureTextPanelHOC';
 
 export const DIRECTIONS: Direction[] = [
@@ -18,6 +18,9 @@ export const DIRECTIONS: Direction[] = [
     'below',
     'within',
 ];
+
+export const PANEL_TYPE_RANDOM_SCRIPTURE = 'ScriptureTextPanelRandom';
+export type AddPanelType = PanelType | typeof PANEL_TYPE_RANDOM_SCRIPTURE;
 
 export interface PanelInfo {
     id: string;
@@ -101,15 +104,21 @@ export class PanelManager {
 
     /** Creates a new panel and adds it to the view */
     addPanel(
-        panelType: PanelType,
+        panelType: AddPanelType,
         panelProps: object = {},
         addPanelOptions: Omit<
             AddPanelOptions,
             'id' | 'component' | 'params'
         > = {},
     ) {
+        const addPanelType =
+            panelType === PANEL_TYPE_RANDOM_SCRIPTURE
+                ? SCRIPTURE_PANEL_TYPES[
+                      Math.floor(Math.random() * SCRIPTURE_PANEL_TYPES.length)
+                  ]
+                : panelType;
         const [panelInfo, panelOptions] = PanelManager.buildPanel(
-            panelType,
+            addPanelType,
             panelProps,
             addPanelOptions,
         );

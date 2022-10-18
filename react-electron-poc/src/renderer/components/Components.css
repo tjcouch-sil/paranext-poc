@@ -2,7 +2,9 @@
     outline: 0px solid transparent;
 }
 
-button
+button:enabled {
+    cursor: pointer;
+}
 
 button:hover:enabled {
     transform: scale(1.05);
