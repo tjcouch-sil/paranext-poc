@@ -691,7 +691,7 @@ const ScriptureChunkEditorSlate = memo(
 
         useLayoutEffect(
             () =>
-                console.log(
+                console.debug(
                     `Performance<ScriptureChunkEditorSlate>: finished rendering at ${performance.now()} ms from start.`,
                 ),
             [],
@@ -699,7 +699,7 @@ const ScriptureChunkEditorSlate = memo(
 
         useLayoutEffect(
             () =>
-                console.log(
+                console.debug(
                     `Performance<ScriptureChunkEditorSlate>: finished rendering ${
                         performance.now() - startChangeScrRef.lastChangeTime
                     } ms from changing scrRef.`,
@@ -1074,7 +1074,7 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
                     chunkSize,
                 );
             });
-            console.log(
+            console.debug(
                 `Performance<ScriptureTextPanelSlate.scrChaptersChunked>: chunking scrChapters took ${
                     performance.now() - start
                 } ms`,
@@ -1268,11 +1268,21 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
                 unchunkScriptureContent(editedScrChapterChunks, editedChapter),
             ];
 
-            console.log(
+            console.debug(
                 `Performance<ScriptureTextPanelSlate.updateScrChapterChunk>: Unchunking Scripture Chapter ${editedChapter} for saving took ${
                     performance.now() - startChunking
                 } ms`,
             );
+
+            // Save the newly edited chapters in scrChapters
+            editedScrChaptersUnchunked.forEach((editedScrChapter) => {
+                const originalScrChapter = scrChapters.find(
+                    (scrChapter) =>
+                        scrChapter.chapter === editedScrChapter.chapter,
+                );
+                if (originalScrChapter)
+                    originalScrChapter.contents = editedScrChapter.contents;
+            });
 
             // Send the chapter to the backend for saving
             writeScripture(
@@ -1282,7 +1292,7 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
                 editedScrChaptersUnchunked,
             )
                 .then((success) => {
-                    console.log(
+                    console.debug(
                         `Performance<ScriptureTextPanelSlate.updateScrChapterChunk>: writeScripture resolved with success = ${success} and took ${
                             performance.now() - startWriteScripture
                         } ms`,
