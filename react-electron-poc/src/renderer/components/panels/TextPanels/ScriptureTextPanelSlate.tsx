@@ -1,4 +1,4 @@
-import {
+﻿import {
     getScripture,
     getScriptureJSONFromUsx,
     writeScripture,

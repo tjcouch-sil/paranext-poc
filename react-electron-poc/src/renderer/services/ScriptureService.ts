@@ -135,7 +135,6 @@ export const writeScripture = async (
  * @param bookNum number of book to get
  * @param chapter number of chapter to get. Defaults to -1 meaning the whole book
  * @returns Promise with specified chapter or book if chapter not specified
- */
 export const getScriptureRaw = async (
     shortName: string,
     bookNum: number,
@@ -162,6 +161,7 @@ export const getScriptureRaw = async (
         ];
     }
 };
+*/
 
 /**
  * Gets the specified Scripture chapter in the specified book from the specified project in USX
@@ -239,37 +239,149 @@ export const getScriptureHtml = async (
  * @param chapter number of chapter to get. Defaults to -1 meaning the whole book
  * @returns Promise with specified chapter or book if chapter not specified
  */
-export const getScriptureHtml = async (
+export const getScriptureJsonFromUsx = async (
     shortName: string,
-    bookNumber: number,
-    chapterNumber = -1,
-): Promise<string> => {
-    return fetch(
-        `http://localhost:5122/api/scriptureText/GetScriptureText/${shortName}/${bookNumber}/${chapterNumber}`,
-        {
-            method: 'GET',
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
+    bookNum: number,
+    chapter = -1,
+): Promise<ScriptureChapterContent[]> => {
+    try {
+        const scrChapterContents = await fetch(
+            `http://localhost:5122/api/scriptureText/GetScriptureJsonFromUsx/${shortName}/${bookNum}/${chapter}`,
+            {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
             },
-        },
-    )
-        .then((response) => response.json())
-        .catch((error) =>
-            console.error(
-                `Unable to get the ${shortName} project to display.`,
-                error,
-            ),
+        ).then(
+            (response) => response.json() as Promise<ScriptureChapterContent[]>,
         );
+        const scr = scrChapterContents.map((scrChapterContent) => ({
+            ...scrChapterContent,
+            contents: JSON.parse(
+                scrChapterContent.contents as unknown as string, // Parsing from string, but it's nice to know getScripture intends to send json of known type
+            ),
+        }));
+        return scr;
+    } catch (e) {
+        console.log(e);
+        return [
+            {
+                chapter,
+                contents: [
+                    {
+                        text: `Could not get contents of ${shortName} ${getTextFromScrRef(
+                            { book: bookNum, chapter, verse: -1 },
+                        )}.`,
+                    },
+                ],
+            },
+        ];
+    }
+};
+
+/**
+ * Gets the specified Scripture chapter in the specified book from the specified project in HTML
+ * @param shortName the short name of the project
+ * @param bookNum number of book to get
+ * @param chapter number of chapter to get. Defaults to -1 meaning the whole book
+ * @returns Promise with specified chapter or book if chapter not specified
+ */
+export const getScriptureUsx = async (
+    shortName: string,
+    bookNum: number,
+    chapter = -1,
+): Promise<ScriptureChapterString[]> => {
+    try {
+        return await fetch(
+            `http://localhost:5122/api/scriptureText/GetScriptureUsx/${shortName}/${bookNum}/${chapter}`,
+            {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+            },
+        ).then((response) => response.json());
+    } catch (e) {
+        console.log(e);
+        return [
+            {
+                chapter,
+                contents: `Could not get raw usx contents of ${shortName} ${getTextFromScrRef(
+                    { book: bookNum, chapter, verse: -1 },
+                )}.`,
+            },
+        ];
+    }
+};
+
+/**
+ * Gets the specified Scripture chapter in the specified book from the specified project in HTML
+ * @param shortName the short name of the project
+ * @param bookNum number of book to get
+ * @param chapter number of chapter to get. Defaults to -1 meaning the whole book
+ * @returns Promise with specified chapter or book if chapter not specified
+ */
+export const getScriptureRaw = async (
+    shortName: string,
+    bookNum: number,
+    chapter = -1,
+): Promise<ScriptureChapterString[]> => {
+    try {
+        return await fetch(
+            `http://localhost:5122/api/scriptureText/GetScriptureRaw/${shortName}/${bookNum}/${chapter}`,
+            {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+            },
+        ).then((response) => response.json());
+    } catch (e) {
+        console.log(e);
+        return [
+            {
+                chapter,
+                contents: `Could not get raw usfm contents of ${shortName} ${getTextFromScrRef(
+                    { book: bookNum, chapter, verse: -1 },
+                )}.`,
+            },
+        ];
+    }
 };
 
 /**
  * Gets the specified Scripture stylesheeet from the specified project
  * @param shortName the short name of the project
  * @returns Promise with specified Scripture stylesheet
- */
+
 export const getScriptureStyle = async (shortName: string): Promise<string> => {
     return window.electronAPI.scripture.getScriptureStyle(shortName);
+};
+ */
+
+export const getScriptureStyle = async (
+    shortName: string,
+    bookNum: number,
+): Promise<string> => {
+    try {
+        return await fetch(
+            `http://localhost:5122/api/scriptureText/GetScriptureStyle/${shortName}/${bookNum}`,
+            {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+            },
+        ).then((response) => response.json());
+    } catch (e) {
+        console.log(e);
+        return `Could not get the css style for ${shortName}`;
+    }
 };
 
 /**

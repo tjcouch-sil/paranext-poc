@@ -47,11 +47,11 @@ export function ScriptureTextPanelHOC<T extends ScriptureTextPanelHOCProps>(
             useCallback(async () => {
                 // TODO: Fix RTL scripture style sheets
                 if (!shortName) return undefined;
-                const style = await getScriptureStyle(shortName);
+                const style = await getScriptureStyle(shortName, book);
                 return shortName !== 'OHEB' && shortName !== 'zzz1'
                     ? style
                     : undefined;
-            }, [shortName]),
+            }, [shortName, book]),
         );
 
         /** Get the whole contents of the current book */

@@ -1,4 +1,4 @@
-import {
+﻿import {
     getScriptureHtml,
     getScriptureRaw,
     getScriptureUsx,
