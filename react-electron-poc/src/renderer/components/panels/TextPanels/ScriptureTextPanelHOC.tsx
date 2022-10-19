@@ -19,13 +19,18 @@ import {
 import usePromise from 'renderer/hooks/usePromise';
 import useStyle from 'renderer/hooks/useStyle';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
+/** Functions that are props for ScriptureTextPanels */
+export interface ScriptureTextPanelFunctions {
+    updateScrRef: (newScrRef: ScriptureReference) => void;
+}
+
+/** Props for ScriptureTextPanels */
 export interface ScriptureTextPanelHOCProps
     extends ScriptureReference,
+        ScriptureTextPanelFunctions,
         ResourceInfo,
         PropsWithChildren {
     scrChapters: ScriptureChapter[];
-    updateScrRef: (newScrRef: ScriptureReference) => void;
     useVirtualization?: boolean;
     browseBook?: boolean;
     onFocus: () => Promise<void>;
