@@ -19,15 +19,18 @@ export const getScripture = async (
 ): Promise<ScriptureChapterContent[]> => {
     const startGet = performance.now();
     try {
-        const scrChapterContents =
-            chapter >= 0
-                ? await window.electronAPI.scripture
-                      .getScriptureChapter(shortName, bookNum, chapter)
-                      .then((result) => [result])
-                : await window.electronAPI.scripture.getScriptureBook(
-                      shortName,
-                      bookNum,
-                  );
+        const scrChapterContents = await fetch(
+            `http://localhost:5122/api/scriptureText/GetScripture/${shortName}/${bookNum}/${chapter}`,
+            {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+            },
+        ).then(
+            (response) => response.json() as Promise<ScriptureChapterContent[]>,
+        );
         const startParse = performance.now();
         const scrChapterContentsParsed = scrChapterContents.map(
             (scrChapterContent) => ({
@@ -98,19 +101,17 @@ export const writeScripture = async (
                 performance.now() - start
             } ms`,
         );
-        if (chapter >= 0)
-            await window.electronAPI.scripture.writeScriptureChapter(
-                shortName,
-                bookNum,
-                chapter,
-                contentsJSON[0],
-            );
-        else
-            await window.electronAPI.scripture.writeScriptureBook(
-                shortName,
-                bookNum,
-                contentsJSON,
-            );
+        await fetch(
+            `http://localhost:5122/api/scriptureText/WriteScripture/${shortName}/${bookNum}/${chapter}`,
+            {
+                method: 'PUT',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(contentsJSON),
+            },
+        )
         console.debug(
             `Performance<ScriptureService.writeScripture(${shortName}, ${bookNum}, ${chapter})>: took ${
                 performance.now() - start
@@ -126,7 +127,6 @@ export const writeScripture = async (
         console.log(e);
         return false;
     }
-    // Make sure to stringify the contents before sending them over
 };
 
 /**
@@ -161,7 +161,7 @@ export const getScriptureRaw = async (
         ];
     }
 };
-*/
+ */
 
 /**
  * Gets the specified Scripture chapter in the specified book from the specified project in USX
@@ -169,7 +169,7 @@ export const getScriptureRaw = async (
  * @param bookNum number of book to get
  * @param chapter number of chapter to get. Defaults to -1 meaning the whole book
  * @returns Promise with specified chapter or book if chapter not specified
- */
+
 export const getScriptureUsx = async (
     shortName: string,
     bookNum: number,
@@ -196,6 +196,7 @@ export const getScriptureUsx = async (
         ];
     }
 };
+ */
 
 /**
  * Gets the specified Scripture chapter in the specified book from the specified project in HTML
@@ -239,11 +240,43 @@ export const getScriptureHtml = async (
  * @param chapter number of chapter to get. Defaults to -1 meaning the whole book
  * @returns Promise with specified chapter or book if chapter not specified
  */
+export const getScriptureHtml = async (
+    shortName: string,
+    bookNumber: number,
+    chapterNumber = -1,
+): Promise<string> => {
+    return fetch(
+        `http://localhost:5122/api/scriptureText/GetScriptureText/${shortName}/${bookNumber}/${chapterNumber}`,
+        {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+            },
+        },
+    )
+        .then((response) => response.json())
+        .catch((error) =>
+            console.error(
+                `Unable to get the ${shortName} project to display.`,
+                error,
+            ),
+        );
+};
+
+/**
+ * Gets the specified Scripture chapter in the specified book from the specified project in HTML
+ * @param shortName the short name of the project
+ * @param bookNum number of book to get
+ * @param chapter number of chapter to get. Defaults to -1 meaning the whole book
+ * @returns Promise with specified chapter or book if chapter not specified
+ */
 export const getScriptureJsonFromUsx = async (
     shortName: string,
     bookNum: number,
     chapter = -1,
 ): Promise<ScriptureChapterContent[]> => {
+    const startGet = performance.now();
     try {
         const scrChapterContents = await fetch(
             `http://localhost:5122/api/scriptureText/GetScriptureJsonFromUsx/${shortName}/${bookNum}/${chapter}`,
@@ -257,14 +290,33 @@ export const getScriptureJsonFromUsx = async (
         ).then(
             (response) => response.json() as Promise<ScriptureChapterContent[]>,
         );
-        const scr = scrChapterContents.map((scrChapterContent) => ({
-            ...scrChapterContent,
-            contents: JSON.parse(
-                scrChapterContent.contents as unknown as string, // Parsing from string, but it's nice to know getScripture intends to send json of known type
-            ),
-        }));
-        return scr;
+        const startParse = performance.now();
+        const scrChapterContentsParsed = scrChapterContents.map(
+            (scrChapterContent) => ({
+                ...scrChapterContent,
+                contents: JSON.parse(
+                    scrChapterContent.contents as unknown as string, // Parsing from string, but it's nice to know getScripture intends to send json of known type
+                ),
+            }),
+        );
+        const end = performance.now();
+        console.debug(
+            `Performance<ScriptureService.getScriptureJsonFromUsx(${shortName}, ${bookNum}, ${chapter})>: Parsing JSON took ${
+                end - startParse
+            } ms`,
+        );
+        console.debug(
+            `Performance<ScriptureService.getScriptureJsonFromUsx(${shortName}, ${bookNum}, ${chapter})>: took ${
+                end - startGet
+            } ms`,
+        );
+        return scrChapterContentsParsed;
     } catch (e) {
+        console.debug(
+            `Performance<ScriptureService.getScriptureJsonFromUsx(${shortName}, ${bookNum}, ${chapter})>: Exception took ${
+                performance.now() - startGet
+            } ms`,
+        );
         console.log(e);
         return [
             {
@@ -383,6 +435,16 @@ export const getScriptureStyle = async (
         return `Could not get the css style for ${shortName}`;
     }
 };
+
+/**
+ * Gets the specified Scripture stylesheeet from the specified project
+ * @param shortName the short name of the project
+ * @returns Promise with specified Scripture stylesheet
+
+export const getScriptureStyle = async (shortName: string): Promise<string> => {
+    return window.electronAPI.scripture.getScriptureStyle(shortName);
+};
+ */
 
 /**
  * Gets information about the resource with the specified short name
