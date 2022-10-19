@@ -15,10 +15,22 @@
 .scr-toolbar .input-area {
     color: white;
     display: inline-block;
+    vertical-align: middle;
 }
 
 .scr-toolbar .selector-area span {
     margin: 0px 5px;
+    display: inline-block;
+    width: 3ch;
+    text-align: right;
+}
+
+.scr-toolbar .selector-area span.book {
+    width: 10ch;
+}
+
+.scr-toolbar .selector-area span.chapter {
+    width: 4ch
 }
 
 .scr-toolbar .selector-area .change-btn {
@@ -41,8 +53,8 @@
 .scr-toolbar .selector-area .splitter {
     margin: 0px;
     width: 1px;
-    display: inline-block;
     box-sizing: border-box;
+    width: auto;
 }
 
 .scr-toolbar .selector-area .splitter.changed {
@@ -73,6 +85,7 @@
     padding: 5px 10px;
     background-color: #505070;
     color: white;
+    border-radius: 5px;
 }
 
 .scr-toolbar input,

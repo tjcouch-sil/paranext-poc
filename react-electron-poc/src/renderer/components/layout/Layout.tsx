@@ -14,9 +14,12 @@ import { PanelManager } from '@components/panels/PanelManager';
 import { getSetting, setSetting } from '@services/SettingsService';
 import { offsetChapter, offsetVerse } from '@util/ScriptureUtil';
 import isHotkey from 'is-hotkey';
+import { ScriptureTextPanelSlate } from '@components/panels/TextPanels/ScriptureTextPanelSlate';
 
 /** Key for saving scrRef setting */
 const scrRefSettingKey = 'scrRef';
+/** Key for saving browseBook setting */
+const useVirtualizationSettingKey = 'useVirtualization';
 /** Key for saving browseBook setting */
 const browseBookSettingKey = 'browseBook';
 
@@ -41,6 +44,19 @@ const Layout = () => {
 
         panelManager.current?.updateScrRef(newScrRef);
     }, []);
+
+    const [useVirtualization, setUseVirtualization] = useState<boolean>(
+        getSetting<boolean>(useVirtualizationSettingKey) || false,
+    );
+    const updateUseVirtualization = useCallback(
+        (newUseVirtualization: boolean) => {
+            setUseVirtualization(newUseVirtualization);
+            setSetting(useVirtualizationSettingKey, newUseVirtualization);
+
+            panelManager.current?.updateUseVirtualization(newUseVirtualization);
+        },
+        [],
+    );
 
     const [browseBook, setBrowseBook] = useState<boolean>(
         getSetting<boolean>(browseBookSettingKey) || false,
@@ -121,6 +137,7 @@ const Layout = () => {
                     editable: false,
                     ...scrRef,
                     updateScrRef,
+                    useVirtualization,
                     browseBook,
                 } as ScriptureTextPanelHtmlProps,
             );
@@ -131,6 +148,7 @@ const Layout = () => {
                     editable: false,
                     ...scrRef,
                     updateScrRef,
+                    useVirtualization,
                     browseBook,
                 } as ScriptureTextPanelHtmlProps,
                 {
@@ -147,6 +165,7 @@ const Layout = () => {
                     editable: true,
                     ...scrRef,
                     updateScrRef,
+                    useVirtualization,
                     browseBook,
                 } as ScriptureTextPanelHtmlProps,
                 {
@@ -163,6 +182,7 @@ const Layout = () => {
                     editable: false,
                     ...scrRef,
                     updateScrRef,
+                    useVirtualization,
                     browseBook,
                 } as ScriptureTextPanelHtmlProps,
                 {
@@ -179,6 +199,7 @@ const Layout = () => {
                     editable: true,
                     ...scrRef,
                     updateScrRef,
+                    useVirtualization,
                     browseBook,
                 } as ScriptureTextPanelHtmlProps,
                 {
@@ -195,6 +216,7 @@ const Layout = () => {
                     editable: true,
                     ...scrRef,
                     updateScrRef,
+                    useVirtualization,
                     browseBook,
                 } as ScriptureTextPanelHtmlProps,
                 {
@@ -205,22 +227,34 @@ const Layout = () => {
                 },
             );
         },
-        [scrRef, updateScrRef, browseBook],
+        [scrRef, updateScrRef, useVirtualization, browseBook],
     );
 
     return (
         <div className="layout">
             <div className="layout-bar">
                 <ScrRefSelector scrRef={scrRef} handleSubmit={updateScrRef} />
-                <span className="layout-checkbox">
-                    Edit whole book
-                    <input
-                        type="checkbox"
-                        checked={browseBook}
-                        onChange={(event) =>
-                            updateBrowseBook(event.target.checked)
-                        }
-                    />
+                <span className="settings">
+                    <span className="layout-checkbox">
+                        Use Virtualization
+                        <input
+                            type="checkbox"
+                            checked={useVirtualization}
+                            onChange={(event) =>
+                                updateUseVirtualization(event.target.checked)
+                            }
+                        />
+                    </span>
+                    <span className="layout-checkbox">
+                        Edit whole book
+                        <input
+                            type="checkbox"
+                            checked={browseBook}
+                            onChange={(event) =>
+                                updateBrowseBook(event.target.checked)
+                            }
+                        />
+                    </span>
                 </span>
             </div>
             <div className="layout-dock">

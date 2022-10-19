@@ -105,6 +105,24 @@ export class PanelManager {
         });
     }
 
+    updateUseVirtualization(newUseVirtualization: boolean): void {
+        this.dockview.api.panels.forEach((panel) => {
+            const panelPropsUpdated = {
+                ...panel.params,
+                useVirtualization: newUseVirtualization,
+            };
+            panel.update({
+                params: {
+                    params: panelPropsUpdated,
+                    title: PanelManager.generatePanelTitle(
+                        this.panelsInfo.get(panel.id),
+                        panelPropsUpdated,
+                    ),
+                },
+            });
+        });
+    }
+
     updateBrowseBook(newBrowseBook: boolean): void {
         this.dockview.api.panels.forEach((panel) => {
             const panelPropsUpdated = {

@@ -223,19 +223,21 @@ async function handleGetScriptureBook(
                             0,
                         );
                         resolve(
-                            filesContents.map(
-                                (fileContents, i) =>
-                                    ({
-                                        chapter: parseInt(
-                                            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                                            scrFilePaths[i].match(
-                                                regexpScrFileName,
-                                            )![2],
-                                            10,
-                                        ),
-                                        contents: fileContents,
-                                    } as ScriptureChapter),
-                            ),
+                            filesContents
+                                .map(
+                                    (fileContents, i) =>
+                                        ({
+                                            chapter: parseInt(
+                                                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                                                scrFilePaths[i].match(
+                                                    regexpScrFileName,
+                                                )![2],
+                                                10,
+                                            ),
+                                            contents: fileContents,
+                                        } as ScriptureChapter),
+                                )
+                                .sort((a, b) => a.chapter - b.chapter),
                         );
                     } catch (e) {
                         console.log(e);

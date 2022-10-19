@@ -14,6 +14,7 @@ import {
     memo,
     PropsWithChildren,
     useCallback,
+    useEffect,
     useState,
 } from 'react';
 import usePromise from 'renderer/hooks/usePromise';
@@ -26,6 +27,7 @@ export interface ScriptureTextPanelHOCProps
         PropsWithChildren {
     scrChapters: ScriptureChapter[];
     updateScrRef: (newScrRef: ScriptureReference) => void;
+    useVirtualization?: boolean;
     browseBook?: boolean;
     onFocus: () => Promise<void>;
 }

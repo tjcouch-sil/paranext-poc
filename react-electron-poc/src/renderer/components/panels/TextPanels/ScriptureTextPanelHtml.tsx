@@ -9,7 +9,7 @@ import {
     parseVerse,
 } from '@util/ScriptureUtil';
 import { isValidValue } from '@util/Util';
-import { EventHandler, useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import ContentEditable, { ContentEditableEvent } from 'react-contenteditable';
 import {
     ScriptureTextPanelHOC,

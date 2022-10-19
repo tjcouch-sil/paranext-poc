@@ -1,4 +1,9 @@
-import { ScriptureReference } from '@shared/data/ScriptureTypes';
+import {
+    CustomElement,
+    FormattedText,
+    ScriptureContent,
+    ScriptureReference,
+} from '@shared/data/ScriptureTypes';
 import { isString, isValidValue } from './Util';
 
 const scrBookNames: string[][] = [
@@ -135,17 +140,45 @@ export const parseChapter = (chapterText: string): number | undefined => {
     return parseVerse(chapterText);
 };
 
-const regexpScrRef = /([^ ]+) ([^:]+):(.+)/;
-export const getScrRefFromText = (refText: string): ScriptureReference => {
+const regexpScrRefFull = /([^ ]+) ([^:]+):(.+)/;
+const regexpScrRefChapter = /([^ ]+) ([^:]+)/;
+const regexpScrRefBook = /([^ ]+)/;
+export const getScrRefFromText = (
+    refText: string,
+    defaultChapter = 1,
+    defaultVerse = 1,
+): ScriptureReference => {
+    // No text entered. Return error
     if (!refText) return { book: -1, chapter: -1, verse: -1 };
-    const scrRefMatch = refText.match(regexpScrRef);
-    if (!scrRefMatch || scrRefMatch.length < 4)
-        return { book: -1, chapter: -1, verse: -1 };
-    return {
-        book: getBookNumFromName(scrRefMatch[1]),
-        chapter: parseInt(scrRefMatch[2], 10),
-        verse: parseInt(scrRefMatch[3], 10),
-    };
+    const scrRefMatchFull = refText.match(regexpScrRefFull);
+    // If we have the whole reference, use it
+    if (scrRefMatchFull && scrRefMatchFull.length === 4)
+        return {
+            book: getBookNumFromName(scrRefMatchFull[1]),
+            chapter: parseInt(scrRefMatchFull[2], 10),
+            verse: parseInt(scrRefMatchFull[3], 10),
+        };
+
+    const scrRefMatchChapter = refText.match(regexpScrRefChapter);
+    // If we have the reference to the chapter, use it
+    if (scrRefMatchChapter && scrRefMatchChapter.length === 3)
+        return {
+            book: getBookNumFromName(scrRefMatchChapter[1]),
+            chapter: parseInt(scrRefMatchChapter[2], 10),
+            verse: defaultVerse,
+        };
+
+    const scrRefMatchBook = refText.match(regexpScrRefBook);
+    // If we have the reference to the book, use it
+    if (scrRefMatchBook && scrRefMatchBook.length === 2)
+        return {
+            book: getBookNumFromName(scrRefMatchBook[1]),
+            chapter: defaultChapter,
+            verse: defaultVerse,
+        };
+
+    // Nothing matched. Return error
+    return { book: -1, chapter: -1, verse: -1 };
 };
 
 export const getTextFromScrRef = (scrRef: ScriptureReference): string =>
@@ -170,4 +203,143 @@ export const areScrRefsEqual = (
         scrRef1Final.chapter === scrRef2Final.chapter &&
         scrRef1Final.verse === scrRef2Final.verse
     );
+};
+
+// SLATE SCRIPTURE UTIL FUNCTIONS //
+
+export const ScriptureContentIsElement = (
+    content: ScriptureContent,
+): content is CustomElement => (content as CustomElement).type !== undefined;
+
+export const ScriptureContentIsText = (
+    content: ScriptureContent,
+): content is FormattedText => (content as FormattedText).text !== undefined;
+
+export const ScriptureElementHasChildren = (content: CustomElement) =>
+    content.children && content.children.length > 0;
+
+/**
+ * Gets the first matching element depth-first in the supplied Scripture contents.
+ * TODO: Guarantee this successfully finds the last match if reverse is true. Currently it considers
+ * the element as you're stepping down before it considers the bottom element, so it could not find the first match
+ * @param contents Scripture contents to search
+ * @param match function that determines what to search for. Returns true if the element matches
+ * @param reverse whether to look from the end instead of from the start. Defaults to false or searching forward from the start
+ * @returns first matching element if found, undefined otherwise
+ */
+export const getElementInScriptureContents = (
+    contents: ScriptureContent[],
+    match: (e: CustomElement) => boolean,
+    reverse = false,
+): CustomElement | undefined => {
+    if (!contents) return undefined;
+
+    // Find first top-level element (skip text nodes)
+    let firstElement: CustomElement | undefined;
+    let firstElementIndex = reverse ? contents.length - 1 : 0;
+    while (
+        reverse ? firstElementIndex >= 0 : firstElementIndex < contents.length
+    ) {
+        if (ScriptureContentIsElement(contents[firstElementIndex])) {
+            firstElement = contents[firstElementIndex] as CustomElement;
+            break;
+        }
+        if (reverse) firstElementIndex -= 1;
+        else firstElementIndex += 1;
+    }
+
+    // If there are no elements in the content, there is not a match
+    if (!firstElement) return undefined;
+
+    const root = { children: contents } as CustomElement;
+
+    // Get the first content entry and step down depth-first through the content to find a match
+    const nodesOnPath: ScriptureContent[] = [root, firstElement];
+    while (nodesOnPath.length > 1) {
+        // Get the deepest node so far
+        const node = nodesOnPath[nodesOnPath.length - 1];
+
+        if (ScriptureContentIsElement(node)) {
+            // Check to see if the current element is a match
+            if (match(node)) {
+                // Found the first matching element!
+                return node;
+            }
+            // Not a match, so try its children
+            if (ScriptureElementHasChildren(node))
+                // Element has children, so try children
+                nodesOnPath.push(
+                    node.children[reverse ? node.children.length - 1 : 0],
+                );
+        }
+
+        // This node is not the first match and has no children, so walk up the tree trying siblings
+        if (
+            !ScriptureContentIsElement(node) ||
+            !ScriptureElementHasChildren(node)
+        ) {
+            // Try next sibling of the current node if available. Otherwise try parent's next sibling, etc
+            do {
+                const finalNode = nodesOnPath[nodesOnPath.length - 1];
+
+                // Remove this final node
+                nodesOnPath.pop();
+
+                if (nodesOnPath.length > 0) {
+                    const parentNode = nodesOnPath[
+                        nodesOnPath.length - 1
+                    ] as CustomElement;
+
+                    // Get the index of the finalNode in the parentNode
+                    const finalNodeIndex = parentNode.children.findIndex(
+                        (childNode) => childNode === finalNode,
+                    );
+
+                    // Add the final node's next (previous if reverse) sibling if available
+                    if (
+                        finalNodeIndex >= 0 &&
+                        (reverse
+                            ? finalNodeIndex > 0
+                            : finalNodeIndex < parentNode.children.length - 1)
+                    ) {
+                        nodesOnPath.push(
+                            parentNode.children[
+                                reverse
+                                    ? finalNodeIndex - 1
+                                    : finalNodeIndex + 1
+                            ],
+                        );
+                        break;
+                    }
+                }
+            } while (nodesOnPath.length > 0);
+        }
+    }
+
+    return undefined;
+};
+
+/**
+ * Find the last verse number in the Scripture contents
+ * @param contents Scripture content to search for verse number
+ * @param defaultVerse the verse to return if no verse found. Defaults to 0
+ * @returns verse number or defaultVerse if not found
+ */
+export const getLastVerseInScriptureContents = (
+    contents: ScriptureContent[],
+    defaultVerse = 0,
+) => {
+    const matchingNode = getElementInScriptureContents(
+        contents,
+        (e) => e.type === 'verse',
+        true,
+    );
+    // For now, let's just assume the first child in the verse is the verse number instead of getting the whole text representation of all children
+    if (matchingNode && ScriptureElementHasChildren(matchingNode)) {
+        const verse = parseVerse(
+            (matchingNode.children[0] as FormattedText).text,
+        );
+        if (isValidValue(verse)) return verse;
+    }
+    return defaultVerse;
 };

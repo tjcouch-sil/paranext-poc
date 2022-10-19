@@ -27,12 +27,22 @@ export const getScripture = async (
                       shortName,
                       bookNum,
                   );
-        return scrChapterContents.map((scrChapterContent) => ({
-            ...scrChapterContent,
-            contents: JSON.parse(
-                scrChapterContent.contents as unknown as string, // Parsing from string, but it's nice to know getScripture intends to send json of known type
-            ),
-        }));
+        const start = performance.now();
+        const scrChapterContentsParsed = scrChapterContents.map(
+            (scrChapterContent) => ({
+                ...scrChapterContent,
+                contents: JSON.parse(
+                    scrChapterContent.contents as unknown as string, // Parsing from string, but it's nice to know getScripture intends to send json of known type
+                ),
+            }),
+        );
+        const end = performance.now();
+        console.log(
+            `Performance: Parsing JSON for getScripture(${shortName}, ${bookNum}, ${chapter}) took ${
+                end - start
+            } ms`,
+        );
+        return scrChapterContentsParsed;
     } catch (e) {
         console.log(e);
         return [
