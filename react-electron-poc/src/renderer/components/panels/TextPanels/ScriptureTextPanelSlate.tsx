@@ -1,7 +1,8 @@
-import { getScripture } from '@services/ScriptureService';
+import { getScripture, writeScripture } from '@services/ScriptureService';
 import {
     ChapterElementProps,
     CharElementProps,
+    CustomDescendant,
     CustomElement,
     CustomElementProps,
     CustomSlateEditor,
@@ -51,10 +52,11 @@ import {
     useSlate,
 } from 'slate-react';
 import {
-    getLastVerseInScriptureContents,
+    chunkScriptureChapter,
     getTextFromScrRef,
     parseChapter,
     parseVerse,
+    unchunkScriptureContent,
 } from '@util/ScriptureUtil';
 import { withHistory } from 'slate-history';
 import isHotkey from 'is-hotkey';
@@ -196,14 +198,76 @@ const EditorElements: { [type: string]: ElementInfo } = {
         validStyles: [
             { style: 'p' },
             { style: 'q' },
+            { style: 'q1' },
             { style: 'q2' },
+            { style: 'q3' },
+            { style: 'q4' },
+            { style: 'qr' },
+            { style: 'd' },
+            { style: 'sp' },
             { style: 'b' },
+            { style: 'pb' },
+            { style: 'h' },
+            { style: 'rem' },
+            { style: 'toc' },
+            { style: 'toc1' },
+            { style: 'toc2' },
+            { style: 'toc3' },
+            { style: 'imt' },
+            { style: 'imt1' },
+            { style: 'imt2' },
+            { style: 'imt3' },
+            { style: 'imt4' },
+            { style: 'imte' },
+            { style: 'imte1' },
+            { style: 'imte2' },
+            { style: 'mt' },
+            { style: 'mt1' },
+            { style: 'mt2' },
+            { style: 'mt3' },
+            { style: 'mt4' },
+            { style: 'mte' },
+            { style: 'mte1' },
+            { style: 'mte2' },
+            { style: 'ms' },
+            { style: 'ms1' },
+            { style: 'mr' },
+            { style: 'r' },
+            { style: 'is' },
+            { style: 'is1' },
+            { style: 'is2' },
+            { style: 's' },
+            { style: 's1' },
+            { style: 's2' },
+            { style: 'iot' },
+            { style: 'io' },
+            { style: 'io1' },
+            { style: 'io2' },
+            { style: 'io3' },
+            { style: 'io4' },
+            { style: 'lit' },
+            { style: 'id' },
         ],
     },
     char: {
         component: CharElement,
         inline: true,
-        validStyles: [{ style: 'nd', canClose: true }],
+        validStyles: [
+            { style: 'nd', canClose: true },
+            { style: 'bk', canClose: true },
+            { style: 'pn', canClose: true },
+            { style: 'wj', canClose: true },
+            { style: 'k', canClose: true },
+            { style: 'ord', canClose: true },
+            { style: 'add', canClose: true },
+            { style: 'no', canClose: true },
+            { style: 'it', canClose: true },
+            { style: 'bd', canClose: true },
+            { style: 'bdit', canClose: true },
+            { style: 'em', canClose: true },
+            { style: 'sc', canClose: true },
+            { style: 'sup', canClose: true },
+        ],
     },
     chapter: {
         component: ChapterElement,
@@ -574,31 +638,33 @@ const EST_CHUNK_HEIGHT = 710;
 const SLATE_VIRTUALIZED_LOAD_TIME = 200;
 
 /**
- * Get the id for the ScriptureContnetChunkInfo div holding the contents of the editor chunk
+ * Get the id for the ScriptureContetChunkInfo div holding the contents of the editor chunk
  * @param editorGuid Unique ID for this editor
- * @param chapter Chapter number
- * @param chunkNum Chunk number within this chapter
+ * @param chunkIndex Index of chunk in the virtualized list
  * @returns Id string for div holding the editor chunk contents
  */
 const getScriptureChunkEditorSlateId = (
     editorGuid: string,
-    chapter: number,
-    chunkNum: number,
-) => `scrChunkEd-${editorGuid}-${chapter}-${chunkNum}`;
+    chunkIndex: number,
+) => `scrChunkEd-${editorGuid}-${chunkIndex}`;
 
 interface ScriptureChunkEditorSlateProps
     extends Omit<ScriptureTextPanelSlateProps, 'scrChapters' | 'onFocus'> {
-    virtualizedIndex: number;
+    chunkIndex: number;
     virtualizedStyle: CSSProperties;
     editorGuid: string;
     scrChapterChunk: ScriptureContentChunk;
     searchString: string | null;
     notifyUpdatedScrRef: () => void;
+    updateScrChapterChunk: (
+        chunkIndex: number,
+        updatedScrChapterChunk: ScriptureContentChunk,
+    ) => void;
 }
 
 const ScriptureChunkEditorSlate = memo(
     ({
-        virtualizedIndex,
+        chunkIndex,
         virtualizedStyle,
         editorGuid,
         editable,
@@ -610,10 +676,24 @@ const ScriptureChunkEditorSlate = memo(
         scrChapterChunk,
         searchString,
         notifyUpdatedScrRef,
+        updateScrChapterChunk,
     }: ScriptureChunkEditorSlateProps) => {
         // Slate editor
         // TODO: Put in a useEffect listening for scrChapters and create editors for the number of chapters
         const [editor] = useState<CustomSlateEditor>(createSlateEditor);
+
+        /** When the contents are changed, update the chapter chunk */
+        const onChange = useCallback(
+            (value: CustomDescendant[]) => {
+                // Filter out changes that are just selection changes - thanks to the Slate tutorial https://docs.slatejs.org/walkthroughs/06-saving-to-a-database
+                if (editor.operations.some((op) => op.type !== 'set_selection'))
+                    updateScrChapterChunk(chunkIndex, {
+                        ...scrChapterChunk,
+                        contents: value,
+                    });
+            },
+            [editor, updateScrChapterChunk, chunkIndex, scrChapterChunk],
+        );
 
         // Focus the editor when we close the search bar
         // TODO: Could do this directly on the hotkey
@@ -839,13 +919,13 @@ const ScriptureChunkEditorSlate = memo(
         return (
             <div style={virtualizedStyle}>
                 <div
-                    id={getScriptureChunkEditorSlateId(
-                        editorGuid,
-                        chapter,
-                        virtualizedIndex,
-                    )}
+                    id={getScriptureChunkEditorSlateId(editorGuid, chunkIndex)}
                 >
-                    <Slate editor={editor} value={[{ text: 'Loading' }]}>
+                    <Slate
+                        editor={editor}
+                        value={[{ text: 'Loading' }]}
+                        onChange={onChange}
+                    >
                         <Editable
                             readOnly={!editable}
                             renderElement={renderElement}
@@ -904,7 +984,7 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
     (props: ScriptureTextPanelSlateProps) => {
         const { scrChapters, onFocus, ...scrChunkEditorSlateProps } = props;
 
-        const { book, chapter, verse, useVirtualization } =
+        const { shortName, book, chapter, verse, useVirtualization } =
             scrChunkEditorSlateProps;
 
         // Search string for search highlighting. When null, don't show the search box. When '' or other, show the search box
@@ -942,7 +1022,8 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
         /** When we get new Scripture project contents, partition the chapters into smaller chunks and create an editor for each chunk */
         const scrChaptersChunked = useMemo<ScriptureContentChunk[]>(() => {
             if (scrChapters && scrChapters.length > 0) {
-                return scrChapters.flatMap((scrChapter) => {
+                const start = performance.now();
+                const scrChapterChunks = scrChapters.flatMap((scrChapter) => {
                     // TODO: When loading, the contents come as a string. Consider how to improve the loading value in ScriptureTextPanelHOC
                     const scrChapterContents = isString(scrChapter.contents)
                         ? [
@@ -952,30 +1033,22 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
                           ]
                         : scrChapter.contents;
 
+                    // If not virtualizing, create one chunk per chapter
                     const chunkSize = useVirtualization
                         ? CHUNK_SIZE
                         : scrChapterContents.length;
 
-                    const chapterChunks: ScriptureContentChunk[] = [];
-                    for (
-                        let i = 0;
-                        i < Math.ceil(scrChapterContents.length / chunkSize);
-                        i++
-                    ) {
-                        const chunkContents = scrChapterContents.slice(
-                            i * chunkSize,
-                            i * chunkSize + chunkSize,
-                        );
-                        chapterChunks.push({
-                            chapter: scrChapter.chapter,
-                            chunkNum: i,
-                            finalVerse:
-                                getLastVerseInScriptureContents(chunkContents),
-                            contents: chunkContents,
-                        });
-                    }
-                    return chapterChunks;
+                    return chunkScriptureChapter(
+                        { ...scrChapter, contents: scrChapterContents },
+                        chunkSize,
+                    );
                 });
+                console.log(
+                    `Performance: chunking scrChapters took ${
+                        performance.now() - start
+                    } ms`,
+                );
+                return scrChapterChunks;
             }
             return [];
         }, [scrChapters, useVirtualization]);
@@ -988,22 +1061,26 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
         const editorGuid = useRef<string>(newGuid().substring(0, 8));
 
         /** Invalidate virtualized-list-cached chunk heights and get again from our cache or recalculate from DOM */
-        const onItemsRendered = ({
-            overscanStartIndex,
-        }: ListOnItemsRenderedProps) => {
-            if (virtualizedList.current)
-                virtualizedList.current.resetAfterIndex(overscanStartIndex);
-        };
+        const onItemsRendered = useCallback(
+            ({ overscanStartIndex }: ListOnItemsRenderedProps) => {
+                if (virtualizedList.current)
+                    virtualizedList.current.resetAfterIndex(overscanStartIndex);
+            },
+            [],
+        );
 
         /**
          * Invalidate virtualized-list-cached chunk heights and get again from our cache or recalculate from DOM
          * @param chunkIndex the chunk index at and after which to invalidate chunk heights. Defaults to 0 (all chunks)
          */
-        const invalidateVirtualizedListCachedHeights = (chunkIndex = 0) => {
-            onItemsRendered({
-                overscanStartIndex: chunkIndex >= 0 ? chunkIndex : 0,
-            } as ListOnItemsRenderedProps);
-        };
+        const invalidateVirtualizedListCachedHeights = useCallback(
+            (chunkIndex = 0) => {
+                onItemsRendered({
+                    overscanStartIndex: chunkIndex >= 0 ? chunkIndex : 0,
+                } as ListOnItemsRenderedProps);
+            },
+            [onItemsRendered],
+        );
 
         /** At startup, calculate editor chunk heights in the DOM */
         useEffect(() => {
@@ -1011,7 +1088,7 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
                 invalidateVirtualizedListCachedHeights,
                 SLATE_VIRTUALIZED_LOAD_TIME,
             );
-        }, []);
+        }, [invalidateVirtualizedListCachedHeights]);
 
         /** Our cache of height of each editor chunk if measured in the DOM. Does not include estimates unlike the virtualized-list-cached heights */
         const editorChunkHeights = useRef<(ChunkHeight | undefined)[]>([]);
@@ -1021,29 +1098,34 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
          * @param chunkIndex index of the chunk to clear
          * @param hard if true, completely deletes the cached height. If false (default), marks it stale for recalculating next time the chunk is in the DOM
          */
-        const invalidateCachedChunkHeight = (
-            chunkIndex: number,
-            hard = false,
-        ) => {
-            // Invalidate all chunk heights
-            if (chunkIndex < 0) {
-                if (!hard) {
-                    editorChunkHeights.current.forEach((editorChunkHeight) => {
-                        if (editorChunkHeight && !editorChunkHeight.stale)
-                            editorChunkHeight.stale = true;
-                    });
-                } else editorChunkHeights.current = [];
-            }
-            // Invalidate a particular chunk height
-            else if (!hard) {
-                const cachedChunkHeight =
-                    editorChunkHeights.current[chunkIndex];
-                if (cachedChunkHeight) cachedChunkHeight.stale = true;
-            } else {
-                editorChunkHeights.current[chunkIndex] = undefined;
-            }
-            invalidateVirtualizedListCachedHeights(chunkIndex);
-        };
+        const invalidateCachedChunkHeight = useCallback(
+            (chunkIndex: number, hard = false) => {
+                // Invalidate all chunk heights
+                if (chunkIndex < 0) {
+                    if (!hard) {
+                        editorChunkHeights.current.forEach(
+                            (editorChunkHeight) => {
+                                if (
+                                    editorChunkHeight &&
+                                    !editorChunkHeight.stale
+                                )
+                                    editorChunkHeight.stale = true;
+                            },
+                        );
+                    } else editorChunkHeights.current = [];
+                }
+                // Invalidate a particular chunk height
+                else if (!hard) {
+                    const cachedChunkHeight =
+                        editorChunkHeights.current[chunkIndex];
+                    if (cachedChunkHeight) cachedChunkHeight.stale = true;
+                } else {
+                    editorChunkHeights.current[chunkIndex] = undefined;
+                }
+                invalidateVirtualizedListCachedHeights(chunkIndex);
+            },
+            [invalidateVirtualizedListCachedHeights],
+        );
 
         /**
          * Current scrollOffset aka viewport position for the virtualized view.
@@ -1052,26 +1134,22 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
         const virtualizedScrollOffset = useRef<number>(0);
 
         /** Keep track of current offset */
-        const onScroll = ({ scrollOffset }: ListOnScrollProps) => {
+        const onScroll = useCallback(({ scrollOffset }: ListOnScrollProps) => {
             virtualizedScrollOffset.current = scrollOffset;
-        };
+        }, []);
 
         /**
          * Get the size of the editor chunk for virtualization. Gets size from the DOM or estimates size
          * @param chunkIndex chunk index for the editor chunk
          * @returns height of editor chunk
          */
-        const getChunkHeight = (chunkIndex: number) => {
+        const getChunkHeight = useCallback((chunkIndex: number) => {
             const cachedChunkHeight = editorChunkHeights.current[chunkIndex];
             if (cachedChunkHeight && !cachedChunkHeight.stale)
                 return cachedChunkHeight.height;
 
             const editorChunk = document.getElementById(
-                getScriptureChunkEditorSlateId(
-                    editorGuid.current,
-                    chapter,
-                    chunkIndex,
-                ),
+                getScriptureChunkEditorSlateId(editorGuid.current, chunkIndex),
             );
             if (editorChunk) {
                 const editorChunkHeight = editorChunk.scrollHeight;
@@ -1110,7 +1188,7 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
                 }
             }
             return cachedChunkHeight?.height || EST_CHUNK_HEIGHT;
-        };
+        }, []);
 
         /** Delay invalidating cached chunk heights partially to reduce lag
          * and partially because there is a problem where the elements may be
@@ -1137,6 +1215,60 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
         const notifyUpdatedScrRef = useCallback(() => {
             didIUpdateScrRef.current = true;
         }, []);
+
+        /**
+         * Updates the Scripture chunk at the provided index with updated contents and saves the edited chapter.
+         * DOES NOT update the chunk's reference in order to avoid React re-rendering. Could potentially pose some issues somewhere or another
+         * @param chunkIndex which chunk index had a change
+         * @param scrChapterChunk the updated Scripture chunk
+         */
+        const updateScrChapterChunk = useCallback(
+            (
+                chunkIndex: number,
+                updatedScrChapterChunk: ScriptureContentChunk,
+            ) => {
+                const editedScrChapterChunk = scrChaptersChunked[chunkIndex];
+                const editedChapter = editedScrChapterChunk.chapter;
+                editedScrChapterChunk.contents =
+                    updatedScrChapterChunk.contents;
+
+                const start = performance.now();
+                // Reassemble the edited chapter and send it to the backend to save (no need to save the whole book)
+                // Get the chunks for the chapter that was edited
+                const editedScrChapterChunks = scrChaptersChunked.filter(
+                    (chapterChunk) => chapterChunk.chapter === editedChapter,
+                );
+
+                // Reassemble the chunks into scrChapters and write
+                const editedScrChaptersUnchunked: ScriptureChapterContent[] = [
+                    unchunkScriptureContent(
+                        editedScrChapterChunks,
+                        editedChapter,
+                    ),
+                ];
+
+                console.log(
+                    `Performance: Unchunking Scripture Chapter ${editedChapter} for saving took ${
+                        performance.now() - start
+                    } ms`,
+                );
+
+                // Send the chapter to the backend for saving
+                writeScripture(
+                    shortName,
+                    book,
+                    editedChapter,
+                    editedScrChaptersUnchunked,
+                );
+
+                // Invalidate the updated chunk's cached height so we recalculate in case we added a line or something
+                // TODO: setTimeout required because we need to wait for Slate to update the editor chunk to the new height. Clean this up by listening for the end of slate changes somehow?
+                setTimeout(() => {
+                    invalidateCachedChunkHeight(chunkIndex);
+                }, 1);
+            },
+            [scrChaptersChunked, shortName, book, invalidateCachedChunkHeight],
+        );
 
         // When the scrRef changes, tell the virtualized list to scroll to the appropriate chunk
         // TODO: When you figure out how not to recreate the editors every time the scrRef changes, allow the chunks to scroll to the scrRefs for themselves (as in non-virtualized)
@@ -1224,7 +1356,7 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
                     attributes={{} as never}
                 >
                     <ScriptureChunkEditorSlate
-                        virtualizedIndex={index}
+                        chunkIndex={index}
                         virtualizedStyle={style}
                         editorGuid={editorGuid.current}
                         scrChapterChunk={scrChapterChunk}
@@ -1232,6 +1364,7 @@ export const ScriptureTextPanelSlate = ScriptureTextPanelHOC(
                         {...scrChunkEditorSlateProps}
                         searchString={searchString}
                         notifyUpdatedScrRef={notifyUpdatedScrRef}
+                        updateScrChapterChunk={updateScrChapterChunk}
                     />
                 </EditorElement>
             );

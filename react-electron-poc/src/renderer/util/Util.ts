@@ -45,6 +45,26 @@ export function debounce<T extends (...args: unknown[]) => void>(
     }) as T;
 }
 
+/**
+ * Groups each item in the array of items into a map according to the keySelector
+ * @param items array of items to group by
+ * @param keySelector function to run on each item to get the key for the group to which it belongs
+ * @returns map of keys to groups of items
+ */
+export function groupBy<K, V>(
+    items: V[],
+    keySelector: (item: V) => K,
+): Map<K, Array<V>> {
+    const map = new Map();
+    items.forEach((item) => {
+        const key = keySelector(item);
+        const group = map.get(key);
+        if (group) group.push(item);
+        else map.set(key, [item]);
+    });
+    return map;
+}
+
 /** string[] of element tags that cannot have contents */
 export const voidElements: string[] = [
     'area',

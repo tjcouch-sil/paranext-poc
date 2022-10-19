@@ -164,6 +164,41 @@ async function getFilesText(filePaths: string[], delay = 0): Promise<string[]> {
     );
 }
 
+/**
+ * Writes the string to a file asynchronously. Delays 1ms or more if desired
+ * @param filePath Path to file from assets
+ * @param fileContents string to write into the file
+ * @param delay delay before resolving promise in ms
+ * @returns promise that resolves after delay ms and then writing the fil
+ */
+async function writeFileText(
+    filePath: string,
+    fileContents: string,
+    delay = 0,
+): Promise<void> {
+    return delayPromise<void>((resolve, reject) => {
+        const start = performance.now();
+        fs.writeFile(getAssetPath(filePath), fileContents, (err) => {
+            if (err) reject(err.message);
+            else resolve();
+            console.log(
+                `Writing ${filePath} took ${performance.now() - start} ms`,
+            );
+        });
+    }, delay);
+}
+
+/* async function writeFilesText(
+    files: { filePath: string; fileContents: string }[],
+    delay = 0,
+): Promise<void[]> {
+    return Promise.all(
+        files.map(({ filePath, fileContents }) =>
+            writeFileText(filePath, fileContents, delay),
+        ),
+    );
+} */
+
 /** Simulating how long it may take Paratext to load and serve the Scriptures */
 const getScriptureDelay = 75;
 /** Simulating how long it may take Paratext to serve the resource info */
@@ -283,6 +318,38 @@ async function handleGetScriptureChapter(
     }
 }
 
+async function handleWriteScriptureBook(
+    _event: IpcMainInvokeEvent,
+    _fileExtension: string,
+    _shortName: string,
+    _bookNum: number,
+    _contents: ScriptureChapter[],
+): Promise<void> {
+    throw new Error(
+        'writeScriptureBook was deemed not necessary for this POC and was not implemented',
+    );
+}
+
+async function handleWriteScriptureChapter(
+    _event: IpcMainInvokeEvent,
+    fileExtension: string,
+    shortName: string,
+    bookNum: number,
+    chapter: number,
+    contents: ScriptureChapter,
+): Promise<void> {
+    try {
+        return await writeFileText(
+            `testScripture/${shortName}/${bookNum}-${chapter}.${fileExtension}`,
+            contents.contents as string,
+            getScriptureDelay,
+        );
+    } catch (e) {
+        console.log(e);
+        throw new Error(`Failed to write ${shortName} ${bookNum} ${chapter}`);
+    }
+}
+
 /** These test files are from breakpointing at UsfmSinglePaneControl.cs at the line that gets Css in LoadUsfm. */
 async function handleGetScriptureStyle(
     _event: IpcMainInvokeEvent,
@@ -359,6 +426,27 @@ const ipcHandlers: {
         bookNum: number,
         chapter: number,
     ) => handleGetScriptureChapter(event, 'json', shortName, bookNum, chapter),
+    'ipc-scripture:writeScriptureBook': (
+        event,
+        shortName: string,
+        bookNum: number,
+        contents: ScriptureChapter[],
+    ) => handleWriteScriptureBook(event, 'json', shortName, bookNum, contents),
+    'ipc-scripture:writeScriptureChapter': (
+        event,
+        shortName: string,
+        bookNum: number,
+        chapter: number,
+        contents: ScriptureChapter,
+    ) =>
+        handleWriteScriptureChapter(
+            event,
+            'json',
+            shortName,
+            bookNum,
+            chapter,
+            contents,
+        ),
     'ipc-scripture:getScriptureBookRaw': (
         event,
         shortName: string,
