@@ -1331,7 +1331,13 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
                 invalidateCachedChunkHeight(chunkIndex);
             }, 1);
         },
-        [scrChaptersChunked, shortName, book, invalidateCachedChunkHeight],
+        [
+            scrChaptersChunked,
+            scrChapters,
+            shortName,
+            book,
+            invalidateCachedChunkHeight,
+        ],
     );
 
     // When the scrRef changes, tell the virtualized list to scroll to the appropriate chunk
