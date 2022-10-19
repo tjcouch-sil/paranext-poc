@@ -61,7 +61,19 @@ export type CustomSlateEditor = {
 /** Information about a chunk of Scripture content. Found on the slate editor */
 export type ScriptureContentChunkInfo = {
     chapter: number;
+    /** Which chunk in the chapter this chunk is. NOT the virtualized chunk index */
     chunkNum: number;
+    /**
+     * The first occurring verse contained by this chunk (first verse marker in this chunk).
+     * The previous chunk's finalVerse may be spilling over into this chunk's content above this chunk's startingVerse.
+     * E.g. startingVerse 3, finalVerse 5: there may be some of verse 2 at the top of this chunk, and there may be some of verse 5 at the top of the next chunk.
+     * */
+    startingVerse: number;
+    /**
+     * The last occurring verse contained by this chunk (last verse marker in this chunk).
+     * This chunk's finalVerse content may be spilling over into the next chunk's content above its startingVerse.
+     * E.g. startingVerse 3, finalVerse 5: there may be some of verse 2 at the top of this chunk, and there may be some of verse 5 at the top of the next chunk.
+     */
     finalVerse: number;
 };
 

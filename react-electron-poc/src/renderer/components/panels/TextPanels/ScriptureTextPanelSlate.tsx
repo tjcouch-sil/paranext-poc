@@ -313,6 +313,7 @@ const withCustomSlateEditor = (
 const withScrChunkEditor = (editor: CustomSlateEditor): CustomSlateEditor => {
     editor.chapter = -1;
     editor.chunkNum = -1;
+    editor.startingVerse = -1;
     editor.finalVerse = -1;
     return editor;
 };
@@ -786,15 +787,16 @@ const ScriptureChunkEditorSlate = memo(
             // TODO: For some reason, the onSelect callback doesn't always have the most up-to-date editor.selection.
             // As such, I added a setTimeout, which is gross. Please fix this hacky setTimeout
             // One possible solution would be to listen for mouse clicks and arrow key events and see if editor.selection is updated by then.
-            // Or use onChange and keep track of selection vs previous selection if selection is updated.
+            // Or use onChange and check if one of the operations is a select operation
             // Or try useSlateSelection hook again
             setTimeout(() => {
                 if (editor.selection) {
                     // Set reference to the current verse
                     // Get our selected chapter
                     const selectedChapter = editor.chapter;
-                    // Intro material should show as verse 0, so allow 0
-                    let selectedVerse = 0;
+                    // If we don't find a verse, the selection is at the beginning of this chunk
+                    const chunkBeginningVerse = editor.startingVerse - 1;
+                    let selectedVerse = chunkBeginningVerse;
 
                     // Get the selected node
                     let nodeEntry: NodeEntry<Node> | undefined = Editor.node(
@@ -806,20 +808,22 @@ const ScriptureChunkEditorSlate = memo(
                     while (nodeEntry && !Editor.isEditor(nodeEntry[0])) {
                         const [node, path] = nodeEntry as NodeEntry<Node>;
                         if (Element.isElement(node)) {
-                            if (selectedVerse <= 0 && node.type === 'verse') {
+                            if (
+                                selectedVerse <= chunkBeginningVerse &&
+                                node.type === 'verse'
+                            ) {
                                 // It's a verse, so try to parse its text and use that as the verse
                                 const verseText = Node.string(node);
                                 const verseNum = parseVerse(verseText);
                                 if (isValidValue(verseNum)) {
                                     selectedVerse = verseNum;
+                                    // We got our results! Done
+                                    break;
                                 }
                             }
                         }
 
-                        if (selectedVerse >= 1) {
-                            // We got our results! Done
-                            break;
-                        } else if (Path.hasPrevious(path)) {
+                        if (Path.hasPrevious(path)) {
                             // This node has a previous sibling. Get the lowest node of the previous sibling and try again
                             nodeEntry = Editor.last(
                                 editor,
@@ -881,6 +885,7 @@ const ScriptureChunkEditorSlate = memo(
                 // Update ScriptureContentChunkInfo
                 editor.chapter = scrChapterChunk.chapter;
                 editor.chunkNum = scrChapterChunk.chunkNum;
+                editor.startingVerse = scrChapterChunk.startingVerse;
                 editor.finalVerse = scrChapterChunk.finalVerse;
                 editor.editable = editable;
 
@@ -905,6 +910,7 @@ const ScriptureChunkEditorSlate = memo(
                     // Make sure this is the right chapter and chunk for the verse
                     if (
                         chapter === editor.chapter &&
+                        verse >= editor.startingVerse &&
                         verse <= editor.finalVerse
                     ) {
                         // Make a match function that matches on the chapter node if verse 0 or the verse node otherwise
@@ -1008,6 +1014,7 @@ const getScrRefChunkIndex = (
     scrChaptersChunked.findIndex(
         (scrChapterChunk) =>
             chapter === scrChapterChunk.chapter &&
+            verse >= scrChapterChunk.startingVerse &&
             verse <= scrChapterChunk.finalVerse,
     );
 
@@ -1252,7 +1259,7 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
 
     /**
      * Updates the Scripture chunk at the provided index with updated contents and saves the edited chapter.
-     * DOES NOT update the chunk's reference in order to avoid React re-rendering. Could potentially pose some issues somewhere or another
+     * TODO: Currently DOES NOT update the chunk's reference in order to avoid React re-rendering. Probably should update or send operations to a store or something for multi-editor support
      * @param chunkIndex which chunk index had a change
      * @param scrChapterChunk the updated Scripture chunk
      */
@@ -1362,11 +1369,11 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
                     // Estimate where the verse is in the chunk and scroll there
                     if (virtualizedList.current) {
                         const scrChapterChunk = scrChaptersChunked[chunkIndex];
-                        const startingVerse =
+                        /** The first verse this chunk contains that you can scroll to. The first chunk in a chapter has extra content at the start "verse 0", so it needs an extra */
+                        const firstScrollVerse =
                             scrChapterChunk.chunkNum === 0
                                 ? 0
-                                : scrChaptersChunked[chunkIndex - 1]
-                                      .finalVerse + 1;
+                                : scrChapterChunk.startingVerse;
                         const editorChunkHeight =
                             editorChunkHeights.current[chunkIndex];
                         if (editorChunkHeight)
@@ -1386,10 +1393,10 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
                                         Math.max(
                                             0,
                                             virtualizedListState.scrollOffset +
-                                                ((verse - startingVerse) /
+                                                ((verse - firstScrollVerse) /
                                                     (scrChapterChunk.finalVerse +
                                                         1 -
-                                                        startingVerse)) *
+                                                        firstScrollVerse)) *
                                                     editorChunkHeight.height -
                                                 (virtualizedList.current.props
                                                     .height as number) /
