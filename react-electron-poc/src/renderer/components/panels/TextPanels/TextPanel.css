@@ -12,10 +12,18 @@
     flex-direction: column;
 }
 
+.text-panel.slate.virtualized {
+    overflow: hidden;
+}
+
 .text-panel-slate-editor {
     width: 100%;
     flex-grow: 1;
     overflow-y: auto;
+}
+
+.text-panel-slate-editor.virtualized {
+    overflow: hidden;
 }
 
 .scr-toolbar.text-panel-search .input-area {

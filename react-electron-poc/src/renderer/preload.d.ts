@@ -18,11 +18,40 @@ declare global {
                     bookNum: number,
                     chapter: number,
                 ): Promise<ScriptureChapterContent>;
+                getScriptureJSONFromUsxBook(
+                    shortName: string,
+                    bookNum: number,
+                ): Promise<ScriptureChapterContent[]>;
+                getScriptureJSONFromUsxChapter(
+                    shortName: string,
+                    bookNum: number,
+                    chapter: number,
+                ): Promise<ScriptureChapterContent>;
+                writeScriptureBook(
+                    shortName: string,
+                    bookNum: number,
+                    contents: ScriptureChapterContent[],
+                ): Promise<void>;
+                writeScriptureChapter(
+                    shortName: string,
+                    bookNum: number,
+                    chapter: number,
+                    contents: ScriptureChapterContent,
+                ): Promise<void>;
                 getScriptureBookRaw(
                     shortName: string,
                     bookNum: number,
                 ): Promise<ScriptureChapterString[]>;
                 getScriptureChapterRaw(
+                    shortName: string,
+                    bookNum: number,
+                    chapter: number,
+                ): Promise<ScriptureChapterString>;
+                getScriptureBookUsx(
+                    shortName: string,
+                    bookNum: number,
+                ): Promise<ScriptureChapterString[]>;
+                getScriptureChapterUsx(
                     shortName: string,
                     bookNum: number,
                     chapter: number,

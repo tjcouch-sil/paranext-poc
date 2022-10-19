@@ -15,6 +15,12 @@ module.exports = {
         'no-console': 'off',
         'react/require-default-props': 'off',
         'no-plusplus': ['error', { allowForLoopAfterthoughts: true }],
+        'jsx-a11y/label-has-associated-control': [
+            'error',
+            {
+                assert: 'either',
+            },
+        ],
         // This is already a Typescript rule, so we don't need it to be reported twice
         '@typescript-eslint/no-unused-vars': 'off',
     },

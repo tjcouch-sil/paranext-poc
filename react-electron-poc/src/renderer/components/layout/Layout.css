@@ -11,6 +11,8 @@ body {
     display: flex;
     flex-direction: column;
     background-color: #1c1c2a;
+    font-size: 11pt;
+    font-family: sans-serif;
 }
 
 .layout .layout-bar {
@@ -20,7 +22,13 @@ body {
     align-items: center;
 }
 
-.layout .layout-bar .layout-checkbox {
+.layout .layout-bar .settings {
+    display: flex;
+    justify-content: end;
+    flex-wrap: wrap;
+}
+
+.layout .layout-bar .layout-interactive {
     background-color: #1c1c2a;
     color: #505070;
     border-radius: 5px;
@@ -28,6 +36,41 @@ body {
     padding: 3px;
     margin: 4px;
     flex-shrink: 0;
+    display: inline-block;
+}
+
+.layout .layout-bar .layout-interactive:hover,
+.layout .layout-bar .layout-interactive:hover .embedded-input {
+    background-color: #505070;
+    color: white;
+}
+
+.layout .layout-bar .layout-interactive .embedded-input {
+    margin: 0px;
+    height: 10px;
+    width: 4ch;
+    border: 0px solid;
+    outline: 0px solid;
+    font-size: 11pt;
+    font-family: sans-serif;
+    text-align: right;
+}
+
+.layout .layout-bar .layout-interactive .tab-type-select {
+    margin: 0px 3px;
+    padding: 1px;
+    height: auto;
+    width: 10.25ch;
+    text-align: center;
+}
+
+.layout .layout-bar .layout-interactive .tab-type-select:hover,
+.layout .layout-bar .layout-interactive .tab-type-select:focus {
+    outline: 1px solid white;
+}
+
+.layout .layout-bar .add-tab {
+    padding: 5px 10px;
 }
 
 .layout .layout-dock {
@@ -42,4 +85,9 @@ body {
 }
 .groupview.inactive-group > .tabs-and-actions-container {
     border-bottom: 2px solid #000c18;
+}
+
+.tabs-and-actions-container .tabs-container .tab {
+    flex-shrink: 1;
+    min-width: 32px !important;
 }

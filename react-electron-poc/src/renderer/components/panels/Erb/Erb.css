@@ -2,7 +2,7 @@
  * @NOTE: Prepend a `~` to css file paths that are in your node_modules
  *        See https://github.com/webpack-contrib/sass-loader#imports
  */
-.wrapper {
+.erb-wrapper {
     position: relative;
     color: white;
     height: 100%;
@@ -13,14 +13,21 @@
         #7a2c9e 129.35%
     );
     font-family: sans-serif;
-    overflow-y: hidden;
+    overflow: hidden;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
-button {
+.content-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.erb-wrapper button {
     background-color: white;
+    color: black;
     padding: 10px 20px;
     border-radius: 10px;
     border: none;
@@ -32,38 +39,81 @@ button {
     opacity: 0.9;
 }
 
-button:enabled {
+.erb-wrapper button:enabled {
     cursor: pointer;
 }
 
-button:hover:enabled {
+.erb-wrapper button:hover:enabled {
     transform: scale(1.05);
     opacity: 1;
 }
 
-li {
+.erb-wrapper .images,
+.erb-wrapper .icon-frame {
+    position: relative;
+}
+
+.erb-wrapper .pt-logo {
+    position: absolute;
+    top: 50px;
+    left: 55px;
+}
+
+/** Credit to Andreas Wik for spin https://awik.io/rotate-element-indefinitely-css-animation/ */
+.erb-wrapper .spin {
+    animation: spin 25s infinite linear;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg)
+    }
+    to {
+        transform: rotate(360deg)
+    }
+}
+
+.erb-wrapper .pulse {
+    animation: pulse 3s infinite cubic-bezier(0.445, 0.05, 0.55, 0.95);
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.erb-wrapper li {
     list-style: none;
 }
 
-a {
+.erb-wrapper a {
     text-decoration: none;
     height: fit-content;
     width: fit-content;
     margin: 10px;
 }
 
-a:hover {
+.erb-wrapper a:hover {
     opacity: 1;
     text-decoration: none;
 }
 
-.Hello {
+.erb-wrapper .Hello {
     display: flex;
     justify-content: center;
     align-items: center;
-    margin: 20px 0;
+    margin: 50px 0;
 }
 
-.erb-title {
-    width: 100%;
+.erb-wrapper .erb-title {
+    width: 95%;
 }

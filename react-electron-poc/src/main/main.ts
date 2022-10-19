@@ -71,7 +71,7 @@ const createWindow = async () => {
         show: false,
         width: 1024,
         height: 728,
-        icon: getAssetPath('icon.png'),
+        icon: getAssetPath('pt-react.png'),
         webPreferences: {
             preload: app.isPackaged
                 ? path.join(__dirname, 'preload.js')
@@ -164,6 +164,41 @@ async function getFilesText(filePaths: string[], delay = 0): Promise<string[]> {
     );
 }
 
+/**
+ * Writes the string to a file asynchronously. Delays 1ms or more if desired
+ * @param filePath Path to file from assets
+ * @param fileContents string to write into the file
+ * @param delay delay before resolving promise in ms
+ * @returns promise that resolves after delay ms and then writing the fil
+ */
+async function writeFileText(
+    filePath: string,
+    fileContents: string,
+    delay = 0,
+): Promise<void> {
+    return delayPromise<void>((resolve, reject) => {
+        const start = performance.now();
+        fs.writeFile(getAssetPath(filePath), fileContents, (err) => {
+            if (err) reject(err.message);
+            else resolve();
+            console.log(
+                `Writing ${filePath} took ${performance.now() - start} ms`,
+            );
+        });
+    }, delay);
+}
+
+/* async function writeFilesText(
+    files: { filePath: string; fileContents: string }[],
+    delay = 0,
+): Promise<void[]> {
+    return Promise.all(
+        files.map(({ filePath, fileContents }) =>
+            writeFileText(filePath, fileContents, delay),
+        ),
+    );
+} */
+
 /** Simulating how long it may take Paratext to load and serve the Scriptures */
 const getScriptureDelay = 75;
 /** Simulating how long it may take Paratext to serve the resource info */
@@ -218,24 +253,30 @@ async function handleGetScriptureBook(
                                 (dirent) =>
                                     `testScripture/${shortName}/${dirent.name}`,
                             );
+                        if (scrFilePaths.length <= 0)
+                            throw new Error(
+                                `No chapters found for ${shortName} book ${bookNum} .${fileExtension}`,
+                            );
                         const filesContents = await getFilesText(
                             scrFilePaths,
                             0,
                         );
                         resolve(
-                            filesContents.map(
-                                (fileContents, i) =>
-                                    ({
-                                        chapter: parseInt(
-                                            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                                            scrFilePaths[i].match(
-                                                regexpScrFileName,
-                                            )![2],
-                                            10,
-                                        ),
-                                        contents: fileContents,
-                                    } as ScriptureChapter),
-                            ),
+                            filesContents
+                                .map(
+                                    (fileContents, i) =>
+                                        ({
+                                            chapter: parseInt(
+                                                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                                                scrFilePaths[i].match(
+                                                    regexpScrFileName,
+                                                )![2],
+                                                10,
+                                            ),
+                                            contents: fileContents,
+                                        } as ScriptureChapter),
+                                )
+                                .sort((a, b) => a.chapter - b.chapter),
                         );
                     } catch (e) {
                         console.log(e);
@@ -278,6 +319,38 @@ async function handleGetScriptureChapter(
     } catch (e) {
         console.log(e);
         throw new Error(`No data for ${shortName} ${bookNum} ${chapter}`);
+    }
+}
+
+async function handleWriteScriptureBook(
+    _event: IpcMainInvokeEvent,
+    _fileExtension: string,
+    _shortName: string,
+    _bookNum: number,
+    _contents: ScriptureChapter[],
+): Promise<void> {
+    throw new Error(
+        'writeScriptureBook was deemed not necessary for this POC and was not implemented',
+    );
+}
+
+async function handleWriteScriptureChapter(
+    _event: IpcMainInvokeEvent,
+    fileExtension: string,
+    shortName: string,
+    bookNum: number,
+    chapter: number,
+    contents: ScriptureChapter,
+): Promise<void> {
+    try {
+        return await writeFileText(
+            `testScripture/${shortName}/${bookNum}-${chapter}.${fileExtension}`,
+            contents.contents as string,
+            getScriptureDelay,
+        );
+    } catch (e) {
+        console.log(e);
+        throw new Error(`Failed to write ${shortName} ${bookNum} ${chapter}`);
     }
 }
 
@@ -357,12 +430,55 @@ const ipcHandlers: {
         bookNum: number,
         chapter: number,
     ) => handleGetScriptureChapter(event, 'json', shortName, bookNum, chapter),
+    'ipc-scripture:getScriptureJSONFromUsxBook': (
+        event,
+        shortName: string,
+        bookNum: number,
+    ) => handleGetScriptureBook(event, 'json', shortName, bookNum),
+    'ipc-scripture:getScriptureJSONFromUsxChapter': (
+        event,
+        shortName: string,
+        bookNum: number,
+        chapter: number,
+    ) => handleGetScriptureChapter(event, 'json', shortName, bookNum, chapter),
+    'ipc-scripture:writeScriptureBook': (
+        event,
+        shortName: string,
+        bookNum: number,
+        contents: ScriptureChapter[],
+    ) => handleWriteScriptureBook(event, 'json', shortName, bookNum, contents),
+    'ipc-scripture:writeScriptureChapter': (
+        event,
+        shortName: string,
+        bookNum: number,
+        chapter: number,
+        contents: ScriptureChapter,
+    ) =>
+        handleWriteScriptureChapter(
+            event,
+            'json',
+            shortName,
+            bookNum,
+            chapter,
+            contents,
+        ),
     'ipc-scripture:getScriptureBookRaw': (
         event,
         shortName: string,
         bookNum: number,
-    ) => handleGetScriptureBook(event, 'usx', shortName, bookNum),
+    ) => handleGetScriptureBook(event, 'usfm', shortName, bookNum),
     'ipc-scripture:getScriptureChapterRaw': (
+        event,
+        shortName: string,
+        bookNum: number,
+        chapter: number,
+    ) => handleGetScriptureChapter(event, 'usfm', shortName, bookNum, chapter),
+    'ipc-scripture:getScriptureBookUsx': (
+        event,
+        shortName: string,
+        bookNum: number,
+    ) => handleGetScriptureBook(event, 'usx', shortName, bookNum),
+    'ipc-scripture:getScriptureChapterUsx': (
         event,
         shortName: string,
         bookNum: number,

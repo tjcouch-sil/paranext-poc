@@ -7,6 +7,9 @@ import {
     offsetBook,
     offsetChapter,
     offsetVerse,
+    FIRST_SCR_BOOK_NUM,
+    FIRST_SCR_CHAPTER_NUM,
+    FIRST_SCR_VERSE_NUM,
 } from '@util/ScriptureUtil';
 import React, { useCallback, useEffect, useState } from 'react';
 import './Components.css';
@@ -46,66 +49,88 @@ export default ({ scrRef, handleSubmit }: ScrRefSelectorProps) => {
             <span
                 className={`selector-area${isScrRefChanged ? ' changed' : ''}`}
             >
-                <span>{getBookLongNameFromNum(scrRef.book)}</span>
-                <button
-                    type="button"
-                    className="change-btn left"
-                    onClick={() => handleSubmit(offsetBook(scrRef, -1))}
-                    disabled={isScrRefChanged}
-                >
-                    &lt;
-                </button>
-                <span
-                    className={`splitter${isScrRefChanged ? ' changed' : ''}`}
-                />
-                <button
-                    type="button"
-                    className="change-btn"
-                    onClick={() => handleSubmit(offsetBook(scrRef, 1))}
-                    disabled={isScrRefChanged}
-                >
-                    &gt;
-                </button>
-                <span>{scrRef.chapter}:</span>
-                <button
-                    type="button"
-                    className="change-btn left"
-                    onClick={() => handleSubmit(offsetChapter(scrRef, -1))}
-                    disabled={isScrRefChanged}
-                >
-                    &lt;
-                </button>
-                <span
-                    className={`splitter${isScrRefChanged ? ' changed' : ''}`}
-                />
-                <button
-                    type="button"
-                    className="change-btn"
-                    onClick={() => handleSubmit(offsetChapter(scrRef, 1))}
-                    disabled={isScrRefChanged}
-                >
-                    &gt;
-                </button>
+                <span className="book">
+                    {getBookLongNameFromNum(scrRef.book)}
+                </span>
+                <span className="change-btns">
+                    <button
+                        type="button"
+                        className="change-btn left"
+                        onClick={() => handleSubmit(offsetBook(scrRef, -1))}
+                        disabled={
+                            isScrRefChanged || scrRef.book <= FIRST_SCR_BOOK_NUM
+                        }
+                    >
+                        &lt;
+                    </button>
+                    <span
+                        className={`splitter${
+                            isScrRefChanged ? ' changed' : ''
+                        }`}
+                    />
+                    <button
+                        type="button"
+                        className="change-btn"
+                        onClick={() => handleSubmit(offsetBook(scrRef, 1))}
+                        disabled={isScrRefChanged}
+                    >
+                        &gt;
+                    </button>
+                </span>
+                <span className="chapter">{scrRef.chapter}:</span>
+                <span className="change-btns">
+                    <button
+                        type="button"
+                        className="change-btn left"
+                        onClick={() => handleSubmit(offsetChapter(scrRef, -1))}
+                        disabled={
+                            isScrRefChanged ||
+                            scrRef.chapter <= FIRST_SCR_CHAPTER_NUM
+                        }
+                    >
+                        &lt;
+                    </button>
+                    <span
+                        className={`splitter${
+                            isScrRefChanged ? ' changed' : ''
+                        }`}
+                    />
+                    <button
+                        type="button"
+                        className="change-btn"
+                        onClick={() => handleSubmit(offsetChapter(scrRef, 1))}
+                        disabled={isScrRefChanged}
+                    >
+                        &gt;
+                    </button>
+                </span>
                 <span>{scrRef.verse}</span>
-                <button
-                    type="button"
-                    className="change-btn left"
-                    onClick={() => handleSubmit(offsetVerse(scrRef, -1))}
-                    disabled={isScrRefChanged}
-                >
-                    &lt;
-                </button>
-                <span
-                    className={`splitter${isScrRefChanged ? ' changed' : ''}`}
-                />
-                <button
-                    type="button"
-                    className="change-btn"
-                    onClick={() => handleSubmit(offsetVerse(scrRef, 1))}
-                    disabled={isScrRefChanged}
-                >
-                    &gt;
-                </button>
+                <span className="change-btns">
+                    <button
+                        type="button"
+                        className="change-btn left"
+                        onClick={() => handleSubmit(offsetVerse(scrRef, -1))}
+                        disabled={
+                            isScrRefChanged ||
+                            scrRef.verse <= FIRST_SCR_VERSE_NUM
+                        }
+                    >
+                        &lt;
+                    </button>
+                    <span
+                        className={`splitter${
+                            isScrRefChanged ? ' changed' : ''
+                        }`}
+                    />
+                    <button
+                        type="button"
+                        className="change-btn"
+                        onClick={() => handleSubmit(offsetVerse(scrRef, 1))}
+                        disabled={isScrRefChanged}
+                    >
+                        &gt;
+                    </button>
+                </span>
             </span>
             <span className="input-area">
                 <input
