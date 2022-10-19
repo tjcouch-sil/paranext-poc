@@ -1,5 +1,5 @@
 import './Layout.css';
-import { DockviewReact, DockviewReadyEvent, IDockviewPanel } from 'dockview';
+import { DockviewReact, DockviewReadyEvent } from 'dockview';
 import '@node_modules/dockview/dist/styles/dockview.css';
 import { DockViewPanels } from '@components/panels/Panels';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -7,7 +7,6 @@ import {
     getAllResourceInfo,
     getResourceInfo,
 } from '@services/ScriptureService';
-import { ScriptureTextPanelStringProps } from '@components/panels/TextPanels/ScriptureTextPanelHtml';
 import { ResourceInfo, ScriptureReference } from '@shared/data/ScriptureTypes';
 import ScrRefSelector from '@components/ScrRefSelector';
 import {
@@ -18,10 +17,15 @@ import {
     PANEL_TYPE_RANDOM_SCRIPTURE,
 } from '@components/panels/PanelManager';
 import { getSetting, setSetting } from '@services/SettingsService';
-import { offsetChapter, offsetVerse } from '@util/ScriptureUtil';
+import {
+    offsetChapter,
+    offsetVerse,
+    startChangeScrRef,
+} from '@util/ScriptureUtil';
 import isHotkey from 'is-hotkey';
 import { ScriptureTextPanelSlateProps } from '@components/panels/TextPanels/ScriptureTextPanelSlate';
 import { isValidValue } from '@util/Util';
+import DefaultTabHeader from '@components/DefaultTabHeader';
 
 /** Key for saving scrRef setting */
 const scrRefSettingKey = 'scrRef';
@@ -38,8 +42,6 @@ const isHotkeyPreviousChapter = isHotkey('mod+alt+ArrowUp');
 const isHotkeyNextChapter = isHotkey('mod+alt+ArrowDown');
 const isHotkeyPreviousVerse = isHotkey('mod+alt+ArrowLeft');
 const isHotkeyNextVerse = isHotkey('mod+alt+ArrowRight');
-
-export const startChangeScrRef = { lastChangeTime: performance.now() };
 
 const Layout = () => {
     const panelManager = useRef<PanelManager | undefined>(undefined);
@@ -240,6 +242,7 @@ const Layout = () => {
                 )
                 .catch((r) => console.log(r));
 
+            if (panelManager.current) panelManager.current.dispose();
             panelManager.current = new PanelManager(event);
 
             /* // Add the default tabs
@@ -444,6 +447,7 @@ const Layout = () => {
                     className="dockview-theme-abyss"
                     onReady={onReady}
                     components={DockViewPanels}
+                    defaultTabComponent={DefaultTabHeader}
                 />
             </div>
         </div>

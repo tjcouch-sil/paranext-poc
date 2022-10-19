@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="232"
+   height="232"
+   viewBox="0 0 232 232"
+   fill="none"
+   version="1.1"
+   id="svg3655"
+   sodipodi:docname="icon-frame.svg"
+   inkscape:version="1.2.1 (9c6d41e410, 2022-07-14)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview3657"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#505050"
+     showgrid="false"
+     inkscape:zoom="2.4504907"
+     inkscape:cx="71.006185"
+     inkscape:cy="108.75373"
+     inkscape:window-width="1920"
+     inkscape:window-height="991"
+     inkscape:window-x="-9"
+     inkscape:window-y="-9"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg3655" />
+  <path
+     d="M 231.5,1 V 0.5 H 231 1 0.5 V 1 231 231.5 H 1 231 231.5 V 231 Z m -191,24 c 0,8.0082 -6.4918,14.5 -14.5,14.5 -8.0082,0 -14.5,-6.4918 -14.5,-14.5 0,-8.0082 6.4918,-14.5 14.5,-14.5 8.0082,0 14.5,6.4918 14.5,14.5 z m 180,0 c 0,8.0082 -6.492,14.5 -14.5,14.5 -8.008,0 -14.5,-6.4918 -14.5,-14.5 0,-8.0082 6.492,-14.5 14.5,-14.5 8.008,0 14.5,6.4918 14.5,14.5 z m -180,180 c 0,8.008 -6.4918,14.5 -14.5,14.5 -8.0082,0 -14.5,-6.492 -14.5,-14.5 0,-8.008 6.4918,-14.5 14.5,-14.5 8.0082,0 14.5,6.492 14.5,14.5 z m 180,0 c 0,8.008 -6.492,14.5 -14.5,14.5 -8.008,0 -14.5,-6.492 -14.5,-14.5 0,-8.008 6.492,-14.5 14.5,-14.5 8.008,0 14.5,6.492 14.5,14.5 z m -11,-94 c 0,51.639 -41.861,93.5 -93.5,93.5 -51.6387,0 -93.5,-41.861 -93.5,-93.5 0,-51.6387 41.8613,-93.5 93.5,-93.5 51.639,0 93.5,41.8613 93.5,93.5 z"
+     fill="#ffffff"
+     stroke="#ffffff"
+     id="path3620"
+     style="filter:url(#filter0_b)" />
+  <defs
+     id="defs3653">
+    <filter
+       id="filter0_b"
+       x="-4"
+       y="-4"
+       width="240"
+       height="240"
+       filterUnits="userSpaceOnUse"
+       color-interpolation-filters="sRGB">
+      <feFlood
+         flood-opacity="0"
+         result="BackgroundImageFix"
+         id="feFlood3644" />
+      <feGaussianBlur
+         in="BackgroundImage"
+         stdDeviation="2"
+         id="feGaussianBlur3646" />
+      <feComposite
+         in2="SourceAlpha"
+         operator="in"
+         result="effect1_backgroundBlur"
+         id="feComposite3648" />
+      <feBlend
+         mode="normal"
+         in="SourceGraphic"
+         in2="effect1_backgroundBlur"
+         result="shape"
+         id="feBlend3650" />
+    </filter>
+  </defs>
+</svg>

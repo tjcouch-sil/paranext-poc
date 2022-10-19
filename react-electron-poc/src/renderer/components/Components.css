@@ -2,6 +2,14 @@
     outline: 0px solid transparent;
 }
 
+button {
+    padding: 5px 10px;
+    background-color: #505070;
+    color: white;
+    border-radius: 5px;
+    font-size: 11pt;
+}
+
 button:enabled {
     cursor: pointer;
 }
@@ -92,14 +100,6 @@ button:hover:enabled {
     outline: 1px solid white;
 }
 
-button {
-    padding: 5px 10px;
-    background-color: #505070;
-    color: white;
-    border-radius: 5px;
-    font-size: 11pt;
-}
-
 .scr-toolbar input,
 button:disabled,
 .scr-toolbar .selector-area .change-btn:disabled {
@@ -116,4 +116,40 @@ button:disabled {
 button:hover:enabled {
     background-color: #8a8aac;
     color: white;
+}
+
+.tab-header {
+    display: flex;
+    padding: 0px 8px;
+    align-items: center;
+    height: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.tab-header .pt-logo {
+    width: 16px;
+    margin: 0px 4px 0px 4px;
+}
+
+.tab-header .default-wrapper {
+    flex-grow: 0;
+    flex-shrink: 1;
+    min-width: 0px;
+}
+
+/* Override dockview's tab padding so we can add our own at a higher level */
+.tab-header .default-wrapper .dockview-react-tab {
+    padding: 0px;
+}
+
+.tab-header .default-wrapper .dockview-react-tab .dockview-react-tab-title {
+    padding-left: 0px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tab.inactive-tab:not(:hover) .tab-header .default-wrapper .dockview-react-tab-action {
+    display: none;
 }

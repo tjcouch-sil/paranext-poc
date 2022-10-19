@@ -61,6 +61,7 @@ import {
     getTextFromScrRef,
     parseChapter,
     parseVerse,
+    startChangeScrRef,
     unchunkScriptureContent,
 } from '@util/ScriptureUtil';
 import { withHistory } from 'slate-history';
@@ -77,7 +78,6 @@ import {
     ScriptureTextPanelHOC,
     ScriptureTextPanelHOCProps,
 } from './ScriptureTextPanelHOC';
-import { startChangeScrRef } from '@components/layout/Layout';
 
 // Slate components
 

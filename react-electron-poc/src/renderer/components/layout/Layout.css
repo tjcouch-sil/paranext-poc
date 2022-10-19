@@ -86,3 +86,8 @@ body {
 .groupview.inactive-group > .tabs-and-actions-container {
     border-bottom: 2px solid #000c18;
 }
+
+.tabs-and-actions-container .tabs-container .tab {
+    flex-shrink: 1;
+    min-width: 32px !important;
+}

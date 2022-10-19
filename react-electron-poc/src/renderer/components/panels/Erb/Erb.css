@@ -48,6 +48,17 @@
     opacity: 1;
 }
 
+.erb-wrapper .images,
+.erb-wrapper .icon-frame {
+    position: relative;
+}
+
+.erb-wrapper .pt-logo {
+    position: absolute;
+    top: 50px;
+    left: 55px;
+}
+
 /** Credit to Andreas Wik for spin https://awik.io/rotate-element-indefinitely-css-animation/ */
 .erb-wrapper .spin {
     animation: spin 25s infinite linear;

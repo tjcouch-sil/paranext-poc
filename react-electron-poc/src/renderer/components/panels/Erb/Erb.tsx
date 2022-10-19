@@ -1,5 +1,6 @@
 import './Erb.css';
-import icon from '@assets/icon.svg';
+import iconFrame from '@assets/icon-frame.svg';
+import ptLogo from '@assets/pt-react.svg';
 
 export interface ErbProps {
     display: string;
@@ -10,7 +11,20 @@ export const Erb = ({ display = 'electron-react-boilerplate' }: ErbProps) => {
         <div className="erb-wrapper">
             <div className="content-wrapper">
                 <div className="Hello">
-                    <img width="200" alt="icon" src={icon} className="spin" />
+                    <div className="images">
+                        <img
+                            width="250"
+                            alt="iconFrame"
+                            src={iconFrame}
+                            className="icon-frame"
+                        />
+                        <img
+                            width="140"
+                            alt="ptLogo"
+                            src={ptLogo}
+                            className="pt-logo spin"
+                        />
+                    </div>
                 </div>
                 <svg className="erb-title pulse" viewBox="0 0 194 21">
                     <text x="0" y="15" fontWeight="Bold" fill="white">
