@@ -462,7 +462,6 @@ const withScrMarkers = (editor: CustomSlateEditor): CustomSlateEditor => {
                             const markerElement = Editor.above(editor, {
                                 match: (n) =>
                                     Element.isElement(n) &&
-                                    // n.type !== 'editor' &&
                                     n.type === elementType &&
                                     n.style === markerStyle,
                             });
@@ -846,12 +845,6 @@ const ScriptureChunkEditorSlate = memo(
                         virtualizedIndex,
                     )}
                 >
-                    {/* -------------------
-                    {`${
-                        scrChapterChunk.chunkNum
-                    }/${virtualizedIndex}: ${JSON.stringify(
-                        scrChapterChunk.contents,
-                    ).substring(0, 20)}`} */}
                     <Slate editor={editor} value={[{ text: 'Loading' }]}>
                         <Editable
                             readOnly={!editable}
