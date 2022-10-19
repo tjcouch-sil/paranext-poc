@@ -666,6 +666,7 @@ interface ScriptureChunkEditorSlateProps
     updateScrChapterChunk: (
         chunkIndex: number,
         updatedScrChapterChunk: ScriptureContentChunk,
+        startKeyDown: number,
     ) => void;
 }
 
@@ -707,15 +708,28 @@ const ScriptureChunkEditorSlate = memo(
             [scrChapterChunk],
         );
 
+        /** performance.now() at the last time the keyDown event was run */
+        const startKeyDown = useRef<number>(performance.now());
+        const onKeyDown = useCallback(
+            (_e: React.KeyboardEvent<HTMLDivElement>) => {
+                startKeyDown.current = performance.now();
+            },
+            [],
+        );
+
         /** When the contents are changed, update the chapter chunk */
         const onChange = useCallback(
             (value: CustomDescendant[]) => {
                 // Filter out changes that are just selection changes - thanks to the Slate tutorial https://docs.slatejs.org/walkthroughs/06-saving-to-a-database
                 if (editor.operations.some((op) => op.type !== 'set_selection'))
-                    updateScrChapterChunk(chunkIndex, {
-                        ...scrChapterChunk,
-                        contents: value,
-                    });
+                    updateScrChapterChunk(
+                        chunkIndex,
+                        {
+                            ...scrChapterChunk,
+                            contents: value,
+                        },
+                        startKeyDown.current,
+                    );
             },
             [editor, updateScrChapterChunk, chunkIndex, scrChapterChunk],
         );
@@ -964,6 +978,7 @@ const ScriptureChunkEditorSlate = memo(
                             decorate={decorate}
                             onSelect={onSelect}
                             onClick={onClick}
+                            onKeyDown={onKeyDown}
                         />
                     </Slate>
                 </div>
@@ -1249,8 +1264,18 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
      * @param scrChapterChunk the updated Scripture chunk
      */
     const updateScrChapterChunk = useCallback(
-        (chunkIndex: number, updatedScrChapterChunk: ScriptureContentChunk) => {
+        (
+            chunkIndex: number,
+            updatedScrChapterChunk: ScriptureContentChunk,
+            startKeyDown: number,
+        ) => {
             const startWriteScripture = performance.now();
+
+            console.debug(
+                `Performance<ScriptureTextPanelSlate.updateScrChapterChunk>: keyDown to starting updateScrChapterChunk took ${
+                    startWriteScripture - startKeyDown
+                } ms`,
+            );
 
             const editedScrChapterChunk = scrChaptersChunked[chunkIndex];
             const editedChapter = editedScrChapterChunk.chapter;
@@ -1294,8 +1319,10 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
                 .then((success) => {
                     console.debug(
                         `Performance<ScriptureTextPanelSlate.updateScrChapterChunk>: writeScripture resolved with success = ${success} and took ${
+                            performance.now() - startKeyDown
+                        } ms from keyDown and ${
                             performance.now() - startWriteScripture
-                        } ms`,
+                        } ms from starting updateScrChapterChunk`,
                     );
                     return undefined;
                 })
