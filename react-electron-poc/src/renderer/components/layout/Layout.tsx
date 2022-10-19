@@ -2,7 +2,13 @@ import './Layout.css';
 import { DockviewReact, DockviewReadyEvent } from 'dockview';
 import '@node_modules/dockview/dist/styles/dockview.css';
 import { DockViewPanels } from '@components/panels/Panels';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import {
     getAllResourceInfo,
     getResourceInfo,
@@ -15,6 +21,7 @@ import {
     DIRECTIONS,
     PanelManager,
     PANEL_TYPE_RANDOM_SCRIPTURE,
+    SerializedPanelManager,
 } from '@components/panels/PanelManager';
 import { getSetting, setSetting } from '@services/SettingsService';
 import {
@@ -26,6 +33,7 @@ import isHotkey from 'is-hotkey';
 import { ScriptureTextPanelSlateProps } from '@components/panels/TextPanels/ScriptureTextPanelSlate';
 import { isValidValue } from '@util/Util';
 import DefaultTabHeader from '@components/DefaultTabHeader';
+import { ScriptureTextPanelFunctions } from '@components/panels/TextPanels/ScriptureTextPanelHOC';
 
 /** Key for saving scrRef setting */
 const scrRefSettingKey = 'scrRef';
@@ -37,6 +45,10 @@ const browseBookSettingKey = 'browseBook';
 const startingTabsSettingKey = 'startingTabs';
 /** Key for saving newTabType setting */
 const newTabTypeSettingKey = 'newTabType';
+/** Key for saving rememberLayout */
+const rememberLayoutSettingKey = 'rememberLayout';
+/** Key for saving savedLayout */
+const savedLayoutSettingKey = 'savedLayout';
 
 const isHotkeyPreviousChapter = isHotkey('mod+alt+ArrowUp');
 const isHotkeyNextChapter = isHotkey('mod+alt+ArrowDown');
@@ -107,6 +119,28 @@ const Layout = () => {
         setNewTabType(newNewTabType);
         setSetting(newTabTypeSettingKey, newNewTabType);
     }, []);
+
+    // Whether the panels from the previous session are restored on startup
+    const [rememberLayout, setRememberLayout] = useState<boolean>(() => {
+        const rememberLayoutSaved = getSetting<boolean>(
+            rememberLayoutSettingKey,
+        );
+        if (isValidValue(rememberLayoutSaved)) return rememberLayoutSaved;
+        return true;
+    });
+    const updateRememberLayout = useCallback((newRememberLayout: boolean) => {
+        setRememberLayout(newRememberLayout);
+        setSetting(rememberLayoutSettingKey, newRememberLayout);
+    }, []);
+
+    /** Whether the layout has been loaded yet */
+    const layoutLoaded = useRef<boolean>(false);
+
+    /** Functions that are props for panels */
+    const panelFunctions = useMemo<ScriptureTextPanelFunctions>(
+        () => ({ updateScrRef }),
+        [updateScrRef],
+    );
 
     /** All Resource Information on available resources */
     const allResourceInfo = useRef<ResourceInfo[]>([]);
@@ -179,9 +213,9 @@ const Layout = () => {
                             shortName: resource.shortName,
                             editable: resource.editable,
                             ...scrRef,
-                            updateScrRef,
                             useVirtualization,
                             browseBook,
+                            ...panelFunctions,
                         } as ScriptureTextPanelSlateProps,
                         rootPanel
                             ? {
@@ -201,7 +235,7 @@ const Layout = () => {
                 }
             }
         },
-        [newTabType, browseBook, scrRef, updateScrRef, useVirtualization],
+        [newTabType, browseBook, scrRef, useVirtualization, panelFunctions],
     );
 
     const onReady = useCallback(
@@ -221,12 +255,29 @@ const Layout = () => {
                             .join('\n')}`,
                     );
 
+                    // Load tabs
                     if (panelManager.current) {
-                        // Add tabs to get up to the correct number of starting tabs
-                        while (
-                            panelManager.current.panelsInfo.size < startingTabs
-                        )
-                            addTab();
+                        if (rememberLayout) {
+                            // Load up the saved layout
+                            const savedLayout =
+                                getSetting<SerializedPanelManager>(
+                                    savedLayoutSettingKey,
+                                );
+                            if (savedLayout)
+                                panelManager.current.fromJSON(
+                                    savedLayout,
+                                    panelFunctions,
+                                );
+                        } else {
+                            // Add tabs to get up to the correct number of starting tabs
+                            while (
+                                panelManager.current.panelsInfo.size <
+                                startingTabs
+                            )
+                                addTab();
+                        }
+
+                        layoutLoaded.current = true;
                     }
 
                     return undefined;
@@ -245,8 +296,30 @@ const Layout = () => {
             if (panelManager.current) panelManager.current.dispose();
             panelManager.current = new PanelManager(event);
         },
-        [startingTabs, addTab],
+        [startingTabs, rememberLayout, panelFunctions, addTab],
     );
+
+    // Register an event listener to save the layout before closing
+    useEffect(() => {
+        if (!rememberLayout) return () => {};
+
+        const saveLayout = () => {
+            if (layoutLoaded.current && panelManager.current) {
+                // Save layout before closing if it has loaded up
+                setSetting<SerializedPanelManager>(
+                    savedLayoutSettingKey,
+                    // Need to make a toJSON in panelManager so it saves panelInfo
+                    panelManager.current.toJSON(),
+                );
+            }
+        };
+
+        window.addEventListener('beforeunload', saveLayout);
+
+        return () => {
+            window.removeEventListener('beforeunload', saveLayout);
+        };
+    }, [rememberLayout]);
 
     return (
         <div className="layout">
@@ -282,16 +355,30 @@ const Layout = () => {
                     Tab
                 </button>
                 <span className="settings">
+                    {!rememberLayout && (
+                        <label className="layout-interactive">
+                            Starting Tabs:
+                            <input
+                                type="number"
+                                className="layout-interactive embedded-input"
+                                value={startingTabs}
+                                onChange={(
+                                    e: React.ChangeEvent<HTMLInputElement>,
+                                ) =>
+                                    updateStartingTabs(
+                                        parseInt(e.target.value, 10),
+                                    )
+                                }
+                            />
+                        </label>
+                    )}
                     <label className="layout-interactive">
-                        Starting Tabs:
+                        Remember Layout
                         <input
-                            type="number"
-                            className="layout-interactive embedded-input"
-                            value={startingTabs}
-                            onChange={(
-                                e: React.ChangeEvent<HTMLInputElement>,
-                            ) =>
-                                updateStartingTabs(parseInt(e.target.value, 10))
+                            type="checkbox"
+                            checked={rememberLayout}
+                            onChange={(event) =>
+                                updateRememberLayout(event.target.checked)
                             }
                         />
                     </label>

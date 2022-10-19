@@ -7,9 +7,13 @@ import {
     IDockviewPanel,
     Direction,
     IDisposable,
+    SerializedDockview,
 } from 'dockview';
 import { PanelType, SCRIPTURE_PANEL_TYPES } from './Panels';
-import { ScriptureTextPanelHOCProps } from './TextPanels/ScriptureTextPanelHOC';
+import {
+    ScriptureTextPanelFunctions,
+    ScriptureTextPanelHOCProps,
+} from './TextPanels/ScriptureTextPanelHOC';
 
 export const DIRECTIONS: Direction[] = [
     'left',
@@ -31,6 +35,11 @@ export interface PanelInfo {
     type: PanelType;
     /** The title for the panel. Set if provided, undefined if generated */
     title?: string;
+}
+
+export interface SerializedPanelManager {
+    panelsInfo: PanelInfo[];
+    dockview: SerializedDockview;
 }
 
 /** How long in ms to wait after a panel is removed to delete its panelInfo */
@@ -232,5 +241,63 @@ export class PanelManager {
                 },
             });
         });
+    }
+
+    updatePanelFunctions(panelFunctions: ScriptureTextPanelFunctions): void {
+        this.dockview.api.panels.forEach((panel) => {
+            const panelPropsUpdated = {
+                ...panel.params,
+                ...panelFunctions,
+            };
+            panel.update({
+                params: {
+                    params: panelPropsUpdated,
+                    title: PanelManager.generatePanelTitle(
+                        this.panelsInfo.get(panel.id),
+                        panelPropsUpdated,
+                    ),
+                },
+            });
+        });
+    }
+
+    /**
+     * Serialize this PanelManager's state to an object.
+     * NOTE: This does not actually use a JSON string but an object. This is named to match the dockview api.
+     * WARNING: This does not serialize functions from the object. You must provide those when deserializing.
+     */
+    toJSON(): SerializedPanelManager {
+        return {
+            // All the panels that aren't removed or being considered for removal so we don't get any recently closed panels.
+            // This will also unfortunately miss all the recently moved panels, but that's probably less likely than recently closed.
+            panelsInfo: Array.from(this.panelsInfo.values()).filter(
+                (panelInfo) => !this.removedPanelTimeouts.has(panelInfo.id),
+            ),
+            dockview: this.dockview.api.toJSON(),
+        };
+    }
+
+    /**
+     * Deserialize this PanelManager's state from an object.
+     * NOTE: This does not actually use a JSON string but an object. This is named to match the dockview api.
+     * WARNING: This does not deserialize functions from the object. You must provide those with panelFunctions.
+     * @param serializedPanelManager the PanelManager state
+     * @param panelFunctions the functions to insert into the params (props) for each panel because we cannot serialize functions
+     * @throws error if there are already panels added because that's not really in scope right now.
+     */
+    fromJSON(
+        serializedPanelManager: SerializedPanelManager,
+        panelFunctions: ScriptureTextPanelFunctions,
+    ): void {
+        if (this.panelsInfo.size > 0)
+            throw new Error(
+                'Cannot deserialize from a PanelManager that already has panels!',
+            );
+
+        serializedPanelManager.panelsInfo.forEach((panelInfo) =>
+            this.panelsInfo.set(panelInfo.id, panelInfo),
+        );
+        this.dockview.api.fromJSON(serializedPanelManager.dockview);
+        this.updatePanelFunctions(panelFunctions);
     }
 }

@@ -619,7 +619,7 @@ const renderElement = (
     props: MyRenderElementProps<CustomElement>,
 ): JSX.Element => {
     return createElement(
-        (EditorElements[props.element.type].component ||
+        (EditorElements[props.element.type]?.component ||
             DefaultElement) as FunctionComponent,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         props as any,
