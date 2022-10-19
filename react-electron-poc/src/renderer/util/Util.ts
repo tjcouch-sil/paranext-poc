@@ -65,6 +65,20 @@ export function groupBy<K, V>(
     return map;
 }
 
+/**
+ * HTML Encodes the provided string.
+ * Thanks to Pointy at https://stackoverflow.com/a/11561642/8535752
+ * @param str string to HTML encode
+ * @returns HTML-encoded string
+ */
+export const htmlEncode = (str: string): string =>
+    str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/'/g, '&#39;')
+        .replace(/"/g, '&#34;');
+
 /** string[] of element tags that cannot have contents */
 export const voidElements: string[] = [
     'area',

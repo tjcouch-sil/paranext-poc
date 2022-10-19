@@ -1,9 +1,30 @@
 import { ScriptureReference } from '@shared/data/ScriptureTypes';
 import { getTextFromScrRef } from '@util/ScriptureUtil';
 import { newGuid } from '@util/Util';
-import { DockviewReadyEvent, AddPanelOptions } from 'dockview';
-import { PanelType } from './Panels';
+import {
+    DockviewReadyEvent,
+    AddPanelOptions,
+    IDockviewPanel,
+    Direction,
+    IDisposable,
+} from 'dockview';
+import { PanelType, SCRIPTURE_PANEL_TYPES } from './Panels';
 import { ScriptureTextPanelHOCProps } from './TextPanels/ScriptureTextPanelHOC';
+
+export const DIRECTIONS: Direction[] = [
+    'left',
+    'right',
+    'above',
+    'below',
+    'within',
+];
+
+export const PANEL_TYPE_RANDOM_SCRIPTURE = 'ScriptureTextPanelRandom';
+export type AddPanelType = PanelType | typeof PANEL_TYPE_RANDOM_SCRIPTURE;
+export const ADD_SCRIPTURE_PANEL_TYPES: AddPanelType[] = [
+    PANEL_TYPE_RANDOM_SCRIPTURE,
+    ...SCRIPTURE_PANEL_TYPES,
+];
 
 export interface PanelInfo {
     id: string;
@@ -12,14 +33,66 @@ export interface PanelInfo {
     title?: string;
 }
 
+/** How long in ms to wait after a panel is removed to delete its panelInfo */
+const REMOVE_PANEL_TIMEOUT = 10;
+
 /** Dockview Panel builder for our panels */
 // eslint-disable-next-line import/prefer-default-export
 export class PanelManager {
     /** Map of panel id to information about that panel (particularly useful for generating title) */
     panelsInfo: Map<string, PanelInfo>;
 
+    /**
+     * Map of panel id for potentially removed panels to the timeout to delete them.
+     * Needed because moving a panel deletes it and re-adds it, and we want to keep panelInfo around for moved panels
+     */
+    removedPanelTimeouts: Map<string, NodeJS.Timeout>;
+
+    eventListeners: IDisposable[];
+
     constructor(readonly dockview: DockviewReadyEvent) {
         this.panelsInfo = new Map<string, PanelInfo>();
+        this.removedPanelTimeouts = new Map<string, NodeJS.Timeout>();
+
+        // Add event listeners to dockview
+        this.eventListeners = [];
+        this.eventListeners.push(
+            dockview.api.onDidRemovePanel((panel) => {
+                const existingTimeout = this.removedPanelTimeouts.get(panel.id);
+                if (existingTimeout) {
+                    clearTimeout(existingTimeout);
+                    console.error(
+                        'PanelManager.removedPanelTimeouts already has a remove timeout for this panel! Clearing and setting a new timeout.',
+                    );
+                }
+                // When a panel is removed, mark it to be deleted but wait before deleting it. The panel may have been moved and will be readded in a moment
+                this.removedPanelTimeouts.set(
+                    panel.id,
+                    setTimeout(() => {
+                        this.panelsInfo.delete(panel.id);
+                        this.removedPanelTimeouts.delete(panel.id);
+                        console.log(`PanelInfo removed for ${panel.id}`);
+                    }, REMOVE_PANEL_TIMEOUT),
+                );
+            }),
+        );
+        this.eventListeners.push(
+            dockview.api.onDidAddPanel((panel) => {
+                // If there was a timeout to remove this panels' info, this panel was likely moved.
+                // Clear the timeout so we don't remove its panelInfo
+                const existingTimeout = this.removedPanelTimeouts.get(panel.id);
+                if (existingTimeout) {
+                    clearTimeout(existingTimeout);
+                    this.removedPanelTimeouts.delete(panel.id);
+                    console.log(`Timeout removed for ${panel.id}`);
+                }
+            }),
+        );
+    }
+
+    dispose() {
+        this.eventListeners.forEach((eventListener) => eventListener.dispose());
+        this.removedPanelTimeouts.forEach((timeout) => clearTimeout(timeout));
     }
 
     static generatePanelTitle(
@@ -32,12 +105,14 @@ export class PanelManager {
 
         if (panelInfo.type.startsWith('ScriptureTextPanel')) {
             const scrPanelProps = panelProps as ScriptureTextPanelHOCProps;
-            return `${scrPanelProps.shortName}: ${getTextFromScrRef({
+            return `${scrPanelProps.editable ? '[' : ''}${
+                scrPanelProps.shortName
+            }: ${getTextFromScrRef({
                 book: scrPanelProps.book,
                 chapter: scrPanelProps.chapter,
                 verse: -1,
-            })}${scrPanelProps.editable ? ' Editable' : ''}${
-                panelInfo.type === 'ScriptureTextPanelSlate' ? ' Slate' : ''
+            })} ${panelInfo.type.replace('ScriptureTextPanel', '')}${
+                scrPanelProps.editable ? ']' : ''
             }`;
         }
         return panelInfo.type;
@@ -71,20 +146,38 @@ export class PanelManager {
 
     /** Creates a new panel and adds it to the view */
     addPanel(
-        panelType: PanelType,
+        panelType: AddPanelType,
         panelProps: object = {},
         addPanelOptions: Omit<
             AddPanelOptions,
             'id' | 'component' | 'params'
         > = {},
     ) {
+        const addPanelType =
+            panelType === PANEL_TYPE_RANDOM_SCRIPTURE
+                ? SCRIPTURE_PANEL_TYPES[
+                      Math.floor(Math.random() * SCRIPTURE_PANEL_TYPES.length)
+                  ]
+                : panelType;
         const [panelInfo, panelOptions] = PanelManager.buildPanel(
-            panelType,
+            addPanelType,
             panelProps,
             addPanelOptions,
         );
         this.panelsInfo.set(panelInfo.id, panelInfo);
         return this.dockview.api.addPanel(panelOptions);
+    }
+
+    getPanel(id: string): IDockviewPanel | undefined {
+        return this.dockview.api.panels.find((panel) => panel.id === id);
+    }
+
+    getScriptureTextPanelProps(
+        id: string,
+    ): ScriptureTextPanelHOCProps | undefined {
+        if (this.panelsInfo.get(id)?.type.startsWith('ScriptureTextPanel'))
+            return this.getPanel(id)?.params as ScriptureTextPanelHOCProps;
+        return undefined;
     }
 
     updateScrRef(newScrRef: ScriptureReference): void {

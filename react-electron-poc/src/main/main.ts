@@ -71,7 +71,7 @@ const createWindow = async () => {
         show: false,
         width: 1024,
         height: 728,
-        icon: getAssetPath('icon.png'),
+        icon: getAssetPath('pt-react.png'),
         webPreferences: {
             preload: app.isPackaged
                 ? path.join(__dirname, 'preload.js')
@@ -253,6 +253,10 @@ async function handleGetScriptureBook(
                                 (dirent) =>
                                     `testScripture/${shortName}/${dirent.name}`,
                             );
+                        if (scrFilePaths.length <= 0)
+                            throw new Error(
+                                `No chapters found for ${shortName} book ${bookNum} .${fileExtension}`,
+                            );
                         const filesContents = await getFilesText(
                             scrFilePaths,
                             0,
@@ -426,6 +430,17 @@ const ipcHandlers: {
         bookNum: number,
         chapter: number,
     ) => handleGetScriptureChapter(event, 'json', shortName, bookNum, chapter),
+    'ipc-scripture:getScriptureJSONFromUsxBook': (
+        event,
+        shortName: string,
+        bookNum: number,
+    ) => handleGetScriptureBook(event, 'json', shortName, bookNum),
+    'ipc-scripture:getScriptureJSONFromUsxChapter': (
+        event,
+        shortName: string,
+        bookNum: number,
+        chapter: number,
+    ) => handleGetScriptureChapter(event, 'json', shortName, bookNum, chapter),
     'ipc-scripture:writeScriptureBook': (
         event,
         shortName: string,
@@ -451,8 +466,19 @@ const ipcHandlers: {
         event,
         shortName: string,
         bookNum: number,
-    ) => handleGetScriptureBook(event, 'usx', shortName, bookNum),
+    ) => handleGetScriptureBook(event, 'usfm', shortName, bookNum),
     'ipc-scripture:getScriptureChapterRaw': (
+        event,
+        shortName: string,
+        bookNum: number,
+        chapter: number,
+    ) => handleGetScriptureChapter(event, 'usfm', shortName, bookNum, chapter),
+    'ipc-scripture:getScriptureBookUsx': (
+        event,
+        shortName: string,
+        bookNum: number,
+    ) => handleGetScriptureBook(event, 'usx', shortName, bookNum),
+    'ipc-scripture:getScriptureChapterUsx': (
         event,
         shortName: string,
         bookNum: number,
