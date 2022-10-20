@@ -39,3 +39,12 @@
 .text-panel .search-result {
     background-color: #ffdd1e;
 }
+
+/* Overriding hard-coded styles set in the USX Editor */
+.text-panel .usxEditor {
+    width: auto !important;
+}
+
+.text-panel .usxMainEditor {
+    border: 0px solid !important;
+}

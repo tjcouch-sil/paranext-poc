@@ -193,7 +193,7 @@ interface ElementInfo {
 }
 
 /** All available elements for use in slate editor */
-const EditorElements: { [type: string]: ElementInfo } = {
+export const EditorElements: { [type: string]: ElementInfo } = {
     verse: {
         component: VerseElement,
         inline: true,
