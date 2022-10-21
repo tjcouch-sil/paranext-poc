@@ -145,12 +145,26 @@ const CharElement = memo((props: MyRenderElementProps<CharElementProps>) => (
     <InlineElement {...props} closingMarker />
 ));
 
+/** performance.now() at the last time the keyDown event was run on a Slate editor */
+const startKeyDown = { lastChangeTime: performance.now() };
+
 /** Renders a chapter number */
 const ChapterElement = memo(
-    (props: MyRenderElementProps<ChapterElementProps>) => (
+    (props: MyRenderElementProps<ChapterElementProps>) => {
+        useLayoutEffect(() => {
+            const end = performance.now();
+            console.debug(
+                `Performance<ChapterElement>: finished rendering at ${end} ms from start, ${
+                    end - startChangeScrRef.lastChangeTime
+                } ms from changing scrRef, and ${
+                    end - startKeyDown.lastChangeTime
+                } ms from keyDown.`,
+            );
+        }, [props.children]);
+
         // eslint-disable-next-line react/jsx-props-no-spreading
-        <BlockElement {...props} />
-    ),
+        return <BlockElement {...props} />;
+    },
 );
 
 /** Overall chapter editor element */
@@ -666,7 +680,6 @@ interface ScriptureChunkEditorSlateProps
     updateScrChapterChunk: (
         chunkIndex: number,
         updatedScrChapterChunk: ScriptureContentChunk,
-        startKeyDown: number,
     ) => void;
 }
 
@@ -698,38 +711,31 @@ const ScriptureChunkEditorSlate = memo(
             [],
         );
 
-        useLayoutEffect(
-            () =>
-                console.debug(
-                    `Performance<ScriptureChunkEditorSlate>: finished rendering ${
-                        performance.now() - startChangeScrRef.lastChangeTime
-                    } ms from changing scrRef.`,
-                ),
-            [scrChapterChunk],
-        );
-
         /** performance.now() at the last time the keyDown event was run */
-        const startKeyDown = useRef<number>(performance.now());
-        const onKeyDown = useCallback(
-            (_e: React.KeyboardEvent<HTMLDivElement>) => {
-                startKeyDown.current = performance.now();
-            },
-            [],
-        );
+        const onKeyDown = useCallback(() => {
+            startKeyDown.lastChangeTime = performance.now();
+        }, []);
+
+        useLayoutEffect(() => {
+            const end = performance.now();
+            console.debug(
+                `Performance<ScriptureChunkEditorSlate>: finished rendering ${
+                    end - startChangeScrRef.lastChangeTime
+                } ms from changing scrRef and ${
+                    end - startKeyDown.lastChangeTime
+                } ms from keyDown.`,
+            );
+        }, [scrChapterChunk]);
 
         /** When the contents are changed, update the chapter chunk */
         const onChange = useCallback(
             (value: CustomDescendant[]) => {
                 // Filter out changes that are just selection changes - thanks to the Slate tutorial https://docs.slatejs.org/walkthroughs/06-saving-to-a-database
                 if (editor.operations.some((op) => op.type !== 'set_selection'))
-                    updateScrChapterChunk(
-                        chunkIndex,
-                        {
-                            ...scrChapterChunk,
-                            contents: value,
-                        },
-                        startKeyDown.current,
-                    );
+                    updateScrChapterChunk(chunkIndex, {
+                        ...scrChapterChunk,
+                        contents: value,
+                    });
             },
             [editor, updateScrChapterChunk, chunkIndex, scrChapterChunk],
         );
@@ -1264,16 +1270,12 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
      * @param scrChapterChunk the updated Scripture chunk
      */
     const updateScrChapterChunk = useCallback(
-        (
-            chunkIndex: number,
-            updatedScrChapterChunk: ScriptureContentChunk,
-            startKeyDown: number,
-        ) => {
+        (chunkIndex: number, updatedScrChapterChunk: ScriptureContentChunk) => {
             const startWriteScripture = performance.now();
 
             console.debug(
                 `Performance<ScriptureTextPanelSlate.updateScrChapterChunk>: keyDown to starting updateScrChapterChunk took ${
-                    startWriteScripture - startKeyDown
+                    startWriteScripture - startKeyDown.lastChangeTime
                 } ms`,
             );
 
@@ -1319,7 +1321,7 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
                 .then((success) => {
                     console.debug(
                         `Performance<ScriptureTextPanelSlate.updateScrChapterChunk>: writeScripture resolved with success = ${success} and took ${
-                            performance.now() - startKeyDown
+                            performance.now() - startKeyDown.lastChangeTime
                         } ms from keyDown and ${
                             performance.now() - startWriteScripture
                         } ms from starting updateScrChapterChunk`,

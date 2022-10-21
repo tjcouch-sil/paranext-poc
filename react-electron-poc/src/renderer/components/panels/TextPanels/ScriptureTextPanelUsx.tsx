@@ -1,7 +1,15 @@
 import { getScriptureUsx } from '@services/ScriptureService';
 import { ScriptureChapterString } from '@shared/data/ScriptureTypes';
+import { startChangeScrRef } from '@util/ScriptureUtil';
 import { htmlEncode } from '@util/Util';
-import { useLayoutEffect } from 'react';
+import {
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import UsxEditor from 'usxeditor';
 import {
     ScriptureTextPanelHOC,
@@ -42,15 +50,85 @@ const ScriptureTextPanelUsxEditor = ({
         [],
     );
 
+    /** performance.now() at the last time the keyDown event was run */
+    const startKeyDown = useRef<number>(performance.now());
+    const onKeyDown = useCallback((_e: React.KeyboardEvent<HTMLDivElement>) => {
+        startKeyDown.current = performance.now();
+    }, []);
+
+    // Hold scrChapters that we can edit in this USX Editor
+    const [editableScrChapters, setEditableScrChapters] = useState<
+        ScriptureChapterString[]
+    >([...scrChapters]);
+    // Update the editable scrChapters when scrChapters changes
+    useEffect(() => {
+        setEditableScrChapters([...scrChapters]);
+    }, [scrChapters]);
+
+    useLayoutEffect(() => {
+        const end = performance.now();
+        console.debug(
+            `Performance<ScriptureTextPanelUsxEditor>: finished rendering at ${end} ms from start, ${
+                end - startChangeScrRef.lastChangeTime
+            } ms from changing scrRef, and ${
+                end - startKeyDown.current
+            } ms from keyDown.`,
+        );
+    }, [editableScrChapters]);
+
+    const onUsxChanged = useCallback(
+        (editedChapter: number, updatedContents: string) => {
+            const startWriteScripture = performance.now();
+
+            console.debug(
+                `Performance<ScriptureTextPanelUsxEditor.onUsxChanged>: keyDown to starting onUsxChanged took ${
+                    startWriteScripture - startKeyDown.current
+                } ms`,
+            );
+
+            setEditableScrChapters((currentEditableScrChapters) => {
+                const editedScrChapterIndex =
+                    currentEditableScrChapters.findIndex(
+                        (editableScrChapter) =>
+                            editableScrChapter.chapter === editedChapter,
+                    );
+
+                if (editedScrChapterIndex >= 0) {
+                    const editedScrChapters = [...currentEditableScrChapters];
+                    const editedScrChapter =
+                        editedScrChapters[editedScrChapterIndex];
+                    editedScrChapters[editedScrChapterIndex] = {
+                        ...editedScrChapter,
+                        contents: updatedContents,
+                    };
+                    return editedScrChapters;
+                }
+                return currentEditableScrChapters;
+            });
+        },
+        [setEditableScrChapters],
+    );
+
+    /** Memoized functions to set the editableScrChapter contents so we avoid rerendering the USX Editor when we can */
+    const onUsxChangedPerScrChapter = useMemo<
+        ((updatedContents: string) => void)[]
+    >(() => {
+        return scrChapters.map(
+            (scrChapter) => (updatedContents: string) =>
+                onUsxChanged(scrChapter.chapter, updatedContents),
+        );
+    }, [scrChapters, onUsxChanged]);
+
     return (
-        <div className="text-panel" onFocus={onFocus}>
-            {scrChapters.map((scrChapter) => (
+        // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+        <div className="text-panel" onFocus={onFocus} onKeyDown={onKeyDown}>
+            {scrChapters.map((scrChapter, ind) => (
                 <UsxEditor
                     key={scrChapter.chapter}
                     usx={scrChapter.contents}
                     paraMap={UsxEditorParaMap}
                     charMap={UsxEditorCharMap}
-                    onUsxChanged={() => {}}
+                    onUsxChanged={onUsxChangedPerScrChapter[ind]}
                 />
             ))}
         </div>
