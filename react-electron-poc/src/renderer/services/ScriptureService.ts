@@ -175,16 +175,29 @@ export const getScriptureUsx = async (
     bookNum: number,
     chapter = -1,
 ): Promise<ScriptureChapterString[]> => {
+    const startGet = performance.now();
     try {
-        return chapter >= 0
-            ? await window.electronAPI.scripture
-                  .getScriptureChapterUsx(shortName, bookNum, chapter)
-                  .then((result) => [result])
-            : await window.electronAPI.scripture.getScriptureBookUsx(
-                  shortName,
-                  bookNum,
-              );
+        const scrChapterContents =
+            chapter >= 0
+                ? await window.electronAPI.scripture
+                      .getScriptureChapterUsx(shortName, bookNum, chapter)
+                      .then((result) => [result])
+                : await window.electronAPI.scripture.getScriptureBookUsx(
+                      shortName,
+                      bookNum,
+                  );
+        console.debug(
+            `Performance<ScriptureService.getScriptureUsx(${shortName}, ${bookNum}, ${chapter})>: took ${
+                performance.now() - startGet
+            } ms`,
+        );
+        return scrChapterContents;
     } catch (e) {
+        console.debug(
+            `Performance<ScriptureService.getScripture(${shortName}, ${bookNum}, ${chapter})>: Exception took ${
+                performance.now() - startGet
+            } ms`,
+        );
         console.log(e);
         return [
             {

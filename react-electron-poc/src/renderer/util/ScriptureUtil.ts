@@ -373,6 +373,7 @@ export const chunkScriptureChapter = (
     chunkSize: number,
 ): ScriptureContentChunk[] => {
     const chapterChunks: ScriptureContentChunk[] = [];
+    let prevFinalVerse = 0;
     for (
         let i = 0;
         i < Math.ceil(scrChapter.contents.length / chunkSize);
@@ -382,12 +383,15 @@ export const chunkScriptureChapter = (
             i * chunkSize,
             i * chunkSize + chunkSize,
         );
+        const finalVerse = getLastVerseInScriptureContents(chunkContents);
         chapterChunks.push({
             chapter: scrChapter.chapter,
             chunkNum: i,
-            finalVerse: getLastVerseInScriptureContents(chunkContents),
+            startingVerse: prevFinalVerse + 1,
+            finalVerse,
             contents: chunkContents,
         });
+        prevFinalVerse = finalVerse;
     }
     return chapterChunks;
 };

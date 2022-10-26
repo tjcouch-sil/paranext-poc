@@ -43,12 +43,17 @@ const useVirtualizationSettingKey = 'useVirtualization';
 const browseBookSettingKey = 'browseBook';
 /** Key for saving startingTabs setting */
 const startingTabsSettingKey = 'startingTabs';
+/** Key for saving newTabShortName setting */
+const newTabShortNameSettingKey = 'newTabShortName';
 /** Key for saving newTabType setting */
 const newTabTypeSettingKey = 'newTabType';
 /** Key for saving rememberLayout */
 const rememberLayoutSettingKey = 'rememberLayout';
 /** Key for saving savedLayout */
 const savedLayoutSettingKey = 'savedLayout';
+
+/** Key for picking a random shortName for opening a new Scripture panel */
+const SHORT_NAME_RANDOM = 'Random';
 
 const isHotkeyPreviousChapter = isHotkey('mod+alt+ArrowUp');
 const isHotkeyNextChapter = isHotkey('mod+alt+ArrowDown');
@@ -110,6 +115,15 @@ const Layout = () => {
         setSetting(startingTabsSettingKey, newStartingTabs);
     }, []);
 
+    // Selected tab shortName to open on startup or when clicking Add Tab
+    const [newTabShortName, setNewTabShortName] = useState<string>(
+        getSetting<string>(newTabShortNameSettingKey) || SHORT_NAME_RANDOM,
+    );
+    const updateNewTabShortName = useCallback((newNewTabShortName: string) => {
+        setNewTabShortName(newNewTabShortName);
+        setSetting(newTabShortNameSettingKey, newNewTabShortName);
+    }, []);
+
     // Selected tab type to open on startup or when clicking Add Tab
     const [newTabType, setNewTabType] = useState<AddPanelType>(
         getSetting<AddPanelType>(newTabTypeSettingKey) ||
@@ -128,10 +142,17 @@ const Layout = () => {
         if (isValidValue(rememberLayoutSaved)) return rememberLayoutSaved;
         return true;
     });
-    const updateRememberLayout = useCallback((newRememberLayout: boolean) => {
-        setRememberLayout(newRememberLayout);
-        setSetting(rememberLayoutSettingKey, newRememberLayout);
-    }, []);
+    const updateRememberLayout = useCallback(
+        (newRememberLayout: boolean) => {
+            setRememberLayout(newRememberLayout);
+            setSetting(rememberLayoutSettingKey, newRememberLayout);
+            if (!newRememberLayout && panelManager.current) {
+                // Starting Tabs is now available again. Set to current number of open panels
+                updateStartingTabs(panelManager.current.panelsInfo.size);
+            }
+        },
+        [updateStartingTabs],
+    );
 
     /** Whether the layout has been loaded yet */
     const layoutLoaded = useRef<boolean>(false);
@@ -142,8 +163,8 @@ const Layout = () => {
         [updateScrRef],
     );
 
-    /** All Resource Information on available resources */
-    const allResourceInfo = useRef<ResourceInfo[]>([]);
+    // All Resource Information on available resources
+    const [allResourceInfo, setAllResourceInfo] = useState<ResourceInfo[]>([]);
 
     /** Handle keyboard events for the whole application */
     useEffect(() => {
@@ -167,41 +188,60 @@ const Layout = () => {
     }, [scrRef, updateScrRef]);
 
     const addTab = useCallback(
-        (panelType: AddPanelType = newTabType) => {
+        (
+            panelType: AddPanelType = newTabType,
+            shortName = newTabShortName,
+            availableResourceInfo = allResourceInfo,
+        ) => {
             if (panelManager.current) {
-                // Get all resources that are open and are editable (don't want two of the same resource open for now)
-                const resourcesInUse: Set<string> = new Set<string>();
-
                 const panelsInfo = Array.from(
                     panelManager.current.panelsInfo.values(),
                 );
-                // eslint-disable-next-line no-restricted-syntax
-                panelsInfo.forEach((panelInfo) => {
-                    const panelProps =
-                        // We just checked that panelManager.current is defined. This is just a typescript issue
-                        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                        panelManager.current!.getScriptureTextPanelProps(
-                            panelInfo.id,
-                        );
-                    if (panelProps?.editable) {
-                        resourcesInUse.add(panelProps.shortName);
-                    }
-                });
 
-                // Get all available resources to open (closed or editable)
-                const availableResources = allResourceInfo.current.filter(
-                    (resourceInfo) =>
-                        !resourceInfo.editable ||
-                        !resourcesInUse.has(resourceInfo.shortName),
-                );
+                let resource: ResourceInfo | undefined;
 
-                if (availableResources.length > 0) {
-                    const resource =
-                        availableResources[
-                            Math.floor(
-                                Math.random() * availableResources.length,
-                            )
-                        ];
+                // Get the selected resource if specified and available
+                if (shortName !== SHORT_NAME_RANDOM) {
+                    resource = availableResourceInfo.find(
+                        (resourceInfo) => resourceInfo.shortName === shortName,
+                    );
+                }
+
+                // If we didn't find a specified resource, get a random one
+                if (!resource) {
+                    // Get all resources that are open and are editable (don't want two of the same resource open for now)
+                    const resourcesInUse: Set<string> = new Set<string>();
+
+                    panelsInfo.forEach((panelInfo) => {
+                        const panelProps =
+                            // We just checked that panelManager.current is defined. This is just a typescript issue
+                            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                            panelManager.current!.getScriptureTextPanelProps(
+                                panelInfo.id,
+                            );
+                        if (panelProps?.editable) {
+                            resourcesInUse.add(panelProps.shortName);
+                        }
+                    });
+
+                    // Get all available resources to open (closed or editable)
+                    const availableResources = availableResourceInfo.filter(
+                        (resourceInfo) =>
+                            !resourceInfo.editable ||
+                            !resourcesInUse.has(resourceInfo.shortName),
+                    );
+
+                    if (availableResources.length > 0)
+                        resource =
+                            availableResources[
+                                Math.floor(
+                                    Math.random() * availableResources.length,
+                                )
+                            ];
+                }
+
+                // If we decided on a resource, open it
+                if (resource) {
                     const rootPanel =
                         panelsInfo[
                             Math.floor(Math.random() * panelsInfo.length)
@@ -235,7 +275,15 @@ const Layout = () => {
                 }
             }
         },
-        [newTabType, browseBook, scrRef, useVirtualization, panelFunctions],
+        [
+            newTabType,
+            newTabShortName,
+            allResourceInfo,
+            browseBook,
+            scrRef,
+            useVirtualization,
+            panelFunctions,
+        ],
     );
 
     const onReady = useCallback(
@@ -243,7 +291,7 @@ const Layout = () => {
             // Test resource info api
             getAllResourceInfo()
                 .then((retrievedResourceInfo) => {
-                    allResourceInfo.current = retrievedResourceInfo;
+                    setAllResourceInfo(retrievedResourceInfo);
                     console.log(
                         `All Resource Info:\n${retrievedResourceInfo
                             .map(
@@ -254,6 +302,16 @@ const Layout = () => {
                             )
                             .join('\n')}`,
                     );
+
+                    // If new tab shortName is not in the available resources, reset to Random
+                    if (
+                        newTabShortName !== SHORT_NAME_RANDOM &&
+                        !retrievedResourceInfo.some(
+                            (resourceInfo) =>
+                                resourceInfo.shortName === newTabShortName,
+                        )
+                    )
+                        updateNewTabShortName(SHORT_NAME_RANDOM);
 
                     // Load tabs
                     if (panelManager.current) {
@@ -274,7 +332,11 @@ const Layout = () => {
                                 panelManager.current.panelsInfo.size <
                                 startingTabs
                             )
-                                addTab();
+                                addTab(
+                                    undefined,
+                                    undefined,
+                                    retrievedResourceInfo,
+                                );
                         }
 
                         layoutLoaded.current = true;
@@ -296,7 +358,14 @@ const Layout = () => {
             if (panelManager.current) panelManager.current.dispose();
             panelManager.current = new PanelManager(event);
         },
-        [startingTabs, rememberLayout, panelFunctions, addTab],
+        [
+            newTabShortName,
+            updateNewTabShortName,
+            rememberLayout,
+            startingTabs,
+            panelFunctions,
+            addTab,
+        ],
     );
 
     // Register an event listener to save the layout before closing
@@ -336,7 +405,29 @@ const Layout = () => {
                 >
                     Add
                     <select
-                        className="layout-interactive embedded-input tab-type-select"
+                        className="layout-interactive embedded-input tab-select"
+                        onClick={(e: React.MouseEvent<HTMLSelectElement>) => {
+                            // Do not add a tab when we click the dropdown
+                            e.stopPropagation();
+                        }}
+                        value={newTabShortName}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                            updateNewTabShortName(e.target.value)
+                        }
+                    >
+                        {[
+                            SHORT_NAME_RANDOM,
+                            ...allResourceInfo.map(
+                                (resourceInfo) => resourceInfo.shortName,
+                            ),
+                        ].map((addPanelShortName) => (
+                            <option value={addPanelShortName}>
+                                {addPanelShortName}
+                            </option>
+                        ))}
+                    </select>
+                    <select
+                        className="layout-interactive embedded-input tab-select"
                         onClick={(e: React.MouseEvent<HTMLSelectElement>) => {
                             // Do not add a tab when we click the dropdown
                             e.stopPropagation();
