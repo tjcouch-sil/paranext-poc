@@ -111,7 +111,7 @@ export const writeScripture = async (
                 },
                 body: JSON.stringify(contentsJSON),
             },
-        )
+        );
         console.debug(
             `Performance<ScriptureService.writeScripture(${shortName}, ${bookNum}, ${chapter})>: took ${
                 performance.now() - start
