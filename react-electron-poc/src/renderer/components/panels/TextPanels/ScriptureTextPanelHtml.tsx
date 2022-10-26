@@ -13,7 +13,13 @@ import {
     parseVerse,
 } from '@util/ScriptureUtil';
 import { htmlEncode, isValidValue } from '@util/Util';
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useRef,
+    useState,
+} from 'react';
 import ContentEditable, { ContentEditableEvent } from 'react-contenteditable';
 import {
     ScriptureTextPanelHOC,
@@ -276,8 +282,8 @@ export const ScriptureTextPanelUsfm = ScriptureTextPanelHOC(
     getScriptureRaw,
 );
 
-/** Scripture text panel that displays USX Scripture */
-export const ScriptureTextPanelUsx = ScriptureTextPanelHOC(
+/** Scripture text panel that displays USX Scripture strings */
+export const ScriptureTextPanelUsxString = ScriptureTextPanelHOC(
     ScriptureTextPanelString,
     async (shortName, bookNum, chapter) => {
         const scr = await getScriptureUsx(shortName, bookNum, chapter);

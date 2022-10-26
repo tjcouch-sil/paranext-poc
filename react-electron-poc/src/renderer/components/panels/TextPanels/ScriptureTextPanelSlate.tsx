@@ -84,7 +84,12 @@ import {
 /* Renders markers' \marker text with the marker style */
 const Marker = ({ style, closingMarker = false }: MarkerProps) => {
     const slate = useSlate();
-    return slate.editable ? (
+
+    // Only show the marker if the editor is editable and the marker style is defined
+    // Any floating text without a specific paragraph marker needs a paragraph wrapper around it,
+    // and that paragraph wrapper will not have a style.
+    // This can happen if you try to type stuff after a one-word block element
+    return slate.editable && style ? (
         <span className="marker" contentEditable={false}>
             {`\\${style}${closingMarker ? '' : ' '}`}
         </span>
@@ -145,12 +150,26 @@ const CharElement = memo((props: MyRenderElementProps<CharElementProps>) => (
     <InlineElement {...props} closingMarker />
 ));
 
+/** performance.now() at the last time the keyDown event was run on a Slate editor */
+const startKeyDown = { lastChangeTime: performance.now() };
+
 /** Renders a chapter number */
 const ChapterElement = memo(
-    (props: MyRenderElementProps<ChapterElementProps>) => (
+    (props: MyRenderElementProps<ChapterElementProps>) => {
+        useLayoutEffect(() => {
+            const end = performance.now();
+            console.debug(
+                `Performance<ChapterElement>: finished rendering at ${end} ms from start, ${
+                    end - startChangeScrRef.lastChangeTime
+                } ms from changing scrRef, and ${
+                    end - startKeyDown.lastChangeTime
+                } ms from keyDown.`,
+            );
+        }, [props.children]);
+
         // eslint-disable-next-line react/jsx-props-no-spreading
-        <BlockElement {...props} />
-    ),
+        return <BlockElement {...props} />;
+    },
 );
 
 /** Overall chapter editor element */
@@ -193,7 +212,7 @@ interface ElementInfo {
 }
 
 /** All available elements for use in slate editor */
-const EditorElements: { [type: string]: ElementInfo } = {
+export const EditorElements: { [type: string]: ElementInfo } = {
     verse: {
         component: VerseElement,
         inline: true,
@@ -277,7 +296,7 @@ const EditorElements: { [type: string]: ElementInfo } = {
     },
     chapter: {
         component: ChapterElement,
-        validStyles: [{ style: 'c' }],
+        validStyles: [{ style: 'c', oneWord: true }],
     },
     editor: { component: EditorElement },
 };
@@ -403,14 +422,65 @@ const withScrMarkers = (editor: CustomSlateEditor): CustomSlateEditor => {
     };
 
     editor.insertText = (text) => {
+        // TODO: Scan through the text, replace all markers, and insert rest of the text instead of only working on space
         const { selection } = editor;
 
-        // Insert markers like \nd
-        // TODO: Scan through the text, replace all markers, and insert rest of the text instead of only working on space
+        // Do special things when the user enters a space
         if (text.endsWith(' ') && selection && Range.isCollapsed(selection)) {
-            // Determine if we inserted a marker
             const [selectedNode] = Editor.node(editor, selection.anchor);
             if (Text.isText(selectedNode)) {
+                // Get the marker style of the element we're in
+                let parentEditorElementEntry: ElementInfo | undefined;
+                let parentMarkerStyleInfo: StyleInfo | undefined;
+                const parentElementEntry = Editor.above(editor, {
+                    match: (n) => !Editor.isEditor(n) && Element.isElement(n),
+                });
+                if (parentElementEntry) {
+                    // We already checked that it is an element, so cast to NodeEntry<Element>
+                    const [parentElement] =
+                        parentElementEntry as NodeEntry<Element>;
+
+                    // Get the marker style for the parent
+                    parentEditorElementEntry =
+                        EditorElements[parentElement.type];
+                    if (
+                        parentEditorElementEntry &&
+                        parentEditorElementEntry.validStyles
+                    ) {
+                        parentMarkerStyleInfo =
+                            parentEditorElementEntry.validStyles.find(
+                                (styleInfo) =>
+                                    styleInfo.style === parentElement.style,
+                            );
+                    }
+                }
+
+                if (parentMarkerStyleInfo?.oneWord) {
+                    // We're in a oneWord element, so come out of it
+                    // We know parentEditorElementEntry is defined because its child, parentMarkerStyleInfo is defined
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    if (!parentEditorElementEntry!.inline)
+                        // Insert new para with no style
+                        Transforms.insertNodes(
+                            editor,
+                            {
+                                type: 'para',
+                                style: undefined,
+                                children: [{ text: '' }],
+                            } as CustomElement,
+                            { at: selection },
+                        );
+
+                    // If inline, come out of the element. If block, go to new line
+                    Transforms.move(editor, {
+                        distance: 1,
+                        unit: 'offset',
+                    });
+
+                    // Don't insert the space or do anything else because we did what we needed to do
+                    return;
+                }
+                // Insert new markers like \nd, \nd*, and \p
                 // Figure out if the text before the offset has a backslash
                 const backslashOffset = selectedNode.text.lastIndexOf(
                     '\\',
@@ -487,7 +557,27 @@ const withScrMarkers = (editor: CustomSlateEditor): CustomSlateEditor => {
                                     ? blockParentLastNode.text.length
                                     : 0;
 
-                                if (markerStyleInfo?.oneWord) {
+                                // Get the last point of the block element (last text position)
+                                const blockParentLastPoint: Point = {
+                                    path: blockParentLastPath,
+                                    offset: lastNodeOffset,
+                                };
+
+                                // If selection is at the end of the block or this is a oneWord marker, insert the marker at the current location
+                                if (
+                                    Point.equals(
+                                        backslashPoint,
+                                        blockParentLastPoint,
+                                    ) ||
+                                    markerStyleInfo?.oneWord
+                                ) {
+                                    // Determine if the selection is the end of this text node
+                                    const atEndOfText = Editor.isEnd(
+                                        editor,
+                                        backslashPoint,
+                                        selection.anchor.path,
+                                    );
+
                                     // Add new marker at backslash position
                                     Transforms.insertNodes(
                                         editor,
@@ -498,13 +588,18 @@ const withScrMarkers = (editor: CustomSlateEditor): CustomSlateEditor => {
                                         } as CustomElement,
                                         { at: backslashPoint },
                                     );
+
+                                    // Inserting the oneWord node will put the cursor after the node if there is more text after the cursor
+                                    // but before the node if the cursor is at the end of the text node,
+                                    // so move the cursor forward if we are at the end of the text and backward otherwise.
                                     Transforms.move(editor, {
                                         distance: 1,
                                         unit: 'offset',
-                                        reverse: true,
+                                        reverse: !atEndOfText,
                                     });
                                 } else {
-                                    // Wrap from selection to block element in element associated with the marker
+                                    // If inline, wrapNodes - wrap from selection to end of this block element in element associated with the marker
+                                    // If block, setNodes - change the current block if selected start of line or wrap from selection to end of this block element in element associated with the marker
                                     const transform = elementInfo.inline
                                         ? Transforms.wrapNodes
                                         : Transforms.setNodes;
@@ -517,10 +612,7 @@ const withScrMarkers = (editor: CustomSlateEditor): CustomSlateEditor => {
                                         {
                                             at: {
                                                 anchor: backslashPoint,
-                                                focus: {
-                                                    path: blockParentLastPath,
-                                                    offset: lastNodeOffset,
-                                                },
+                                                focus: blockParentLastPoint,
                                             },
                                             split: true,
                                         },
@@ -540,52 +632,67 @@ const withScrMarkers = (editor: CustomSlateEditor): CustomSlateEditor => {
                             if (markerElement) {
                                 const [, markerElementPath] = markerElement;
 
-                                // Unwrap the marker element
-                                Editor.withoutNormalizing(editor, () => {
-                                    Transforms.unwrapNodes(editor, {
-                                        at: markerElementPath,
+                                // Determine if the selection is the end of the marker's node
+                                const atEndOfMarker = Editor.isEnd(
+                                    editor,
+                                    backslashPoint,
+                                    markerElementPath,
+                                );
+
+                                if (atEndOfMarker) {
+                                    // If we're at the end of the marker already, just move the cursor out of the marker
+                                    Transforms.move(editor, {
+                                        distance: 1,
+                                        unit: 'offset',
                                     });
+                                } else {
+                                    // Unwrap the marker element at the selection and wrap it again to the selection and no further
+                                    Editor.withoutNormalizing(editor, () => {
+                                        Transforms.unwrapNodes(editor, {
+                                            at: markerElementPath,
+                                        });
 
-                                    // Following is an example of modifying a path when unwrapping in case we need it in the future. I was just curious and played around. We don't need it here, though, because I just get the editor.selection again
-                                    // Remove one path level at the unwrapped marker's path because we just removed it
-                                    // Have to clone and splice a separate array because it looks like editor.selection.anchor is set up to be non-configurable https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Errors/Non_configurable_array_element
-                                    // But somehow assigning to backslashPoint.path still doesn't change its value, so this doesn't actually work
-                                    /* const newPath = [
-                                        ...backslashPoint.path,
-                                    ];
-                                    newPath.splice(
-                                        markerElementPath.length,
-                                        1,
-                                    );
-                                    backslashPoint.path = newPath; */
-
-                                    // Wrap from the marker element's start position to updated selection position (need to get updated selection position because unwrapping removed the path at index of length of markerElementPath)
-                                    if (editor.selection) {
-                                        Transforms.wrapNodes(
-                                            editor,
-                                            {
-                                                type: elementType,
-                                                style: markerStyle,
-                                                children: [],
-                                            } as CustomElement,
-                                            {
-                                                at: {
-                                                    anchor: {
-                                                        path: markerElementPath,
-                                                        offset: 0, // We aren't normalizing, so the markerElementPath is now the contents of the unwrapped node
-                                                    },
-                                                    focus: editor.selection
-                                                        .anchor,
-                                                },
-                                                split: true,
-                                            },
+                                        // Following is an example of modifying a path when unwrapping in case we need it in the future. I was just curious and played around. We don't need it here, though, because I just get the editor.selection again
+                                        // Remove one path level at the unwrapped marker's path because we just removed it
+                                        // Have to clone and splice a separate array because it looks like editor.selection.anchor is set up to be non-configurable https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Errors/Non_configurable_array_element
+                                        // But somehow assigning to backslashPoint.path still doesn't change its value, so this doesn't actually work
+                                        /* const newPath = [
+                                            ...backslashPoint.path,
+                                        ];
+                                        newPath.splice(
+                                            markerElementPath.length,
+                                            1,
                                         );
-                                    }
-                                });
+                                        backslashPoint.path = newPath; */
+
+                                        // Wrap from the marker element's start position to updated selection position (need to get updated selection position because unwrapping removed the path at index of length of markerElementPath)
+                                        if (editor.selection) {
+                                            Transforms.wrapNodes(
+                                                editor,
+                                                {
+                                                    type: elementType,
+                                                    style: markerStyle,
+                                                    children: [],
+                                                } as CustomElement,
+                                                {
+                                                    at: {
+                                                        anchor: {
+                                                            path: markerElementPath,
+                                                            offset: 0, // We aren't normalizing, so the markerElementPath is now the contents of the unwrapped node. Adjacent text nodes were not merged
+                                                        },
+                                                        focus: editor.selection
+                                                            .anchor,
+                                                    },
+                                                    split: true,
+                                                },
+                                            );
+                                        }
+                                    });
+                                }
                             }
                         }
 
-                        // Don't insert the space
+                        // Don't insert the space because we added a marker
                         return;
                     }
                 }
@@ -666,7 +773,6 @@ interface ScriptureChunkEditorSlateProps
     updateScrChapterChunk: (
         chunkIndex: number,
         updatedScrChapterChunk: ScriptureContentChunk,
-        startKeyDown: number,
     ) => void;
 }
 
@@ -698,38 +804,31 @@ const ScriptureChunkEditorSlate = memo(
             [],
         );
 
-        useLayoutEffect(
-            () =>
-                console.debug(
-                    `Performance<ScriptureChunkEditorSlate>: finished rendering ${
-                        performance.now() - startChangeScrRef.lastChangeTime
-                    } ms from changing scrRef.`,
-                ),
-            [scrChapterChunk],
-        );
-
         /** performance.now() at the last time the keyDown event was run */
-        const startKeyDown = useRef<number>(performance.now());
-        const onKeyDown = useCallback(
-            (_e: React.KeyboardEvent<HTMLDivElement>) => {
-                startKeyDown.current = performance.now();
-            },
-            [],
-        );
+        const onKeyDown = useCallback(() => {
+            startKeyDown.lastChangeTime = performance.now();
+        }, []);
+
+        useLayoutEffect(() => {
+            const end = performance.now();
+            console.debug(
+                `Performance<ScriptureChunkEditorSlate>: finished rendering ${
+                    end - startChangeScrRef.lastChangeTime
+                } ms from changing scrRef and ${
+                    end - startKeyDown.lastChangeTime
+                } ms from keyDown.`,
+            );
+        }, [scrChapterChunk]);
 
         /** When the contents are changed, update the chapter chunk */
         const onChange = useCallback(
             (value: CustomDescendant[]) => {
                 // Filter out changes that are just selection changes - thanks to the Slate tutorial https://docs.slatejs.org/walkthroughs/06-saving-to-a-database
                 if (editor.operations.some((op) => op.type !== 'set_selection'))
-                    updateScrChapterChunk(
-                        chunkIndex,
-                        {
-                            ...scrChapterChunk,
-                            contents: value,
-                        },
-                        startKeyDown.current,
-                    );
+                    updateScrChapterChunk(chunkIndex, {
+                        ...scrChapterChunk,
+                        contents: value,
+                    });
             },
             [editor, updateScrChapterChunk, chunkIndex, scrChapterChunk],
         );
@@ -1264,16 +1363,12 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
      * @param scrChapterChunk the updated Scripture chunk
      */
     const updateScrChapterChunk = useCallback(
-        (
-            chunkIndex: number,
-            updatedScrChapterChunk: ScriptureContentChunk,
-            startKeyDown: number,
-        ) => {
+        (chunkIndex: number, updatedScrChapterChunk: ScriptureContentChunk) => {
             const startWriteScripture = performance.now();
 
             console.debug(
                 `Performance<ScriptureTextPanelSlate.updateScrChapterChunk>: keyDown to starting updateScrChapterChunk took ${
-                    startWriteScripture - startKeyDown
+                    startWriteScripture - startKeyDown.lastChangeTime
                 } ms`,
             );
 
@@ -1319,7 +1414,7 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
                 .then((success) => {
                     console.debug(
                         `Performance<ScriptureTextPanelSlate.updateScrChapterChunk>: writeScripture resolved with success = ${success} and took ${
-                            performance.now() - startKeyDown
+                            performance.now() - startKeyDown.lastChangeTime
                         } ms from keyDown and ${
                             performance.now() - startWriteScripture
                         } ms from starting updateScrChapterChunk`,
