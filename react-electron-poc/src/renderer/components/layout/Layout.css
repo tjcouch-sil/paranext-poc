@@ -56,16 +56,16 @@ body {
     text-align: right;
 }
 
-.layout .layout-bar .layout-interactive .tab-type-select {
+.layout .layout-bar .layout-interactive .tab-select {
     margin: 0px 3px;
     padding: 1px;
     height: auto;
-    width: 10.25ch;
+    width: 9.75ch;
     text-align: center;
 }
 
-.layout .layout-bar .layout-interactive .tab-type-select:hover,
-.layout .layout-bar .layout-interactive .tab-type-select:focus {
+.layout .layout-bar .layout-interactive .tab-select:hover,
+.layout .layout-bar .layout-interactive .tab-select:focus {
     outline: 1px solid white;
 }
 
