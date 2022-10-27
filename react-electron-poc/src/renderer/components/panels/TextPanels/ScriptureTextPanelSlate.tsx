@@ -995,6 +995,7 @@ const ScriptureChunkEditorSlate = memo(
                 // If content seems to be disappearing from what is received from getScripture to what is shown on the screen at startup,
                 // it would be good for debugging to look here. Maybe remove the normalization and see what happens.
                 // TODO: Right now, we normalize to add { text: "" } between in-line elements. Probably would be best to add these on the backend and pass them up
+                // TODO: Maybe remove this and do everything you need to do on the backend so we don't waste time force normalizing text when it has very few issues
                 Editor.normalize(editor, { force: true });
 
                 // TODO: Restore cursor to new ScrRef
