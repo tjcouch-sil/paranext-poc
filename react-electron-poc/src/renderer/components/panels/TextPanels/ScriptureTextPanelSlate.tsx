@@ -991,8 +991,11 @@ const ScriptureChunkEditorSlate = memo(
                 // Replace the editor's contents
                 editor.children = scrChapterChunk.contents as CustomElement[];
 
-                // TODO: May need to call Editor.normalize, potentially with option { force: true }
-                // Editor.normalize(editor);
+                // Normalize the input to make sure it conforms to Slate's expectations
+                // If content seems to be disappearing from what is received from getScripture to what is shown on the screen at startup,
+                // it would be good for debugging to look here. Maybe remove the normalization and see what happens.
+                // TODO: Right now, we normalize to add { text: "" } between in-line elements. Probably would be best to add these on the backend and pass them up
+                Editor.normalize(editor, { force: true });
 
                 // TODO: Restore cursor to new ScrRef
 
@@ -1513,11 +1516,13 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
         style,
     }: Omit<ListChildComponentProps, 'data'>) => {
         const scrChapterChunk = scrChaptersChunked[index];
+        const chunkKey = `${scrChapterChunk.chapter}-${scrChapterChunk.chunkNum}`;
         return (
             <EditorElement
+                key={chunkKey}
                 element={{
                     type: 'editor',
-                    number: `${scrChapterChunk.chapter}-${scrChapterChunk.chunkNum}`,
+                    number: chunkKey,
                     children: [],
                 }}
                 attributes={{} as never}

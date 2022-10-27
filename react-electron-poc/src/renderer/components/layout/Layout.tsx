@@ -421,7 +421,10 @@ const Layout = () => {
                                 (resourceInfo) => resourceInfo.shortName,
                             ),
                         ].map((addPanelShortName) => (
-                            <option value={addPanelShortName}>
+                            <option
+                                key={addPanelShortName}
+                                value={addPanelShortName}
+                            >
                                 {addPanelShortName}
                             </option>
                         ))}
@@ -438,7 +441,7 @@ const Layout = () => {
                         }
                     >
                         {ADD_SCRIPTURE_PANEL_TYPES.map((addPanelType) => (
-                            <option value={addPanelType}>
+                            <option key={addPanelType} value={addPanelType}>
                                 {addPanelType.replace('ScriptureTextPanel', '')}
                             </option>
                         ))}
