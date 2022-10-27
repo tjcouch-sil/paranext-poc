@@ -257,7 +257,7 @@ export const getScriptureHtml = async (
     shortName: string,
     bookNumber: number,
     chapterNumber = -1,
-): Promise<string> => {
+): Promise<ScriptureChapterContent[]> => {
     return fetch(
         `http://localhost:5122/api/scriptureText/GetScriptureText/${shortName}/${bookNumber}/${chapterNumber}`,
         {
