@@ -1,5 +1,3 @@
-import { isString } from '@util/Util';
-
 /** Whether this service is being set up or has finished setting up (does not return to false when initialized is true) */
 let initializing = false;
 /** Whether this service is finished setting up */
