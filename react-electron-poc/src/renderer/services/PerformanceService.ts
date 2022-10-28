@@ -31,7 +31,7 @@ const getWebserverStartTime = async (): Promise<number> => {
     // We already got the start time. Return the cached start time
     if (startTimes.webserver >= 0) return startTimes.webserver;
 
-    // Get electron's Start Time
+    // Get the webserver's Start Time
     try {
         const startTime = await window.electronAPI.webserver.getStartTime();
         startTimes.webserver = startTime;
