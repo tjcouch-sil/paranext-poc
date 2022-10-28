@@ -237,7 +237,8 @@
     },
     "win": {
       "target": [
-        "nsis"
+        "nsis",
+        "portable"
       ]
     },
     "linux": {
@@ -245,6 +246,9 @@
         "AppImage"
       ],
       "category": "Development"
+    },
+    "portable": {
+      "artifactName": "react-electron-poc_portable.exe"
     },
     "directories": {
       "app": "release/app",
