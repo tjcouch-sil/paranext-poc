@@ -70,6 +70,12 @@ declare global {
                 getAllResourceInfo(): Promise<ResourceInfo[]>;
                 setActiveResource(shortName: string): Promise<void>;
             };
+            electron: {
+                getStartTime(): Promise<number>;
+            };
+            webserver: {
+                getStartTime(): Promise<number>;
+            };
         };
         electron: {
             ipcRenderer: {

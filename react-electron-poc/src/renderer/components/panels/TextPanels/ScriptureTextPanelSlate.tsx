@@ -823,8 +823,13 @@ const ScriptureChunkEditorSlate = memo(
         /** When the contents are changed, update the chapter chunk */
         const onChange = useCallback(
             (value: CustomDescendant[]) => {
+                // Don't try to send update for chapter -1 when loading
+                // If we ever decide to send writes by book, this could become a problem.
                 // Filter out changes that are just selection changes - thanks to the Slate tutorial https://docs.slatejs.org/walkthroughs/06-saving-to-a-database
-                if (editor.operations.some((op) => op.type !== 'set_selection'))
+                if (
+                    editor.chapter >= 0 &&
+                    editor.operations.some((op) => op.type !== 'set_selection')
+                )
                     updateScrChapterChunk(chunkIndex, {
                         ...scrChapterChunk,
                         contents: value,

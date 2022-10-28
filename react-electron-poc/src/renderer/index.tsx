@@ -1,5 +1,12 @@
+import { StartTime } from '@shared/data/PerformanceTypes';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+
+// eslint-disable-next-line import/prefer-default-export
+export const rendererStartTime: StartTime = {
+    process: performance.timeOrigin,
+    entry: Date.now(),
+};
 
 const container = document.getElementById('root');
 const root = createRoot(container as HTMLElement);
