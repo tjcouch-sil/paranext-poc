@@ -1,12 +1,14 @@
-import { StartTime } from '@shared/data/PerformanceTypes';
 import { createRoot } from 'react-dom/client';
+import * as PerformanceService from '@services/PerformanceService';
 import App from './App';
 
-// eslint-disable-next-line import/prefer-default-export
-export const rendererStartTime: StartTime = {
-    process: performance.timeOrigin,
-    entry: Date.now(),
-};
+PerformanceService.performanceLog({
+    name: 'index.tsx',
+    operation: 'entered index code',
+    end: performance.now(),
+    reportStart: true,
+});
+PerformanceService.initialize();
 
 const container = document.getElementById('root');
 const root = createRoot(container as HTMLElement);

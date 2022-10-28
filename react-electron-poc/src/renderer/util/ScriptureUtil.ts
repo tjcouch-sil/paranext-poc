@@ -8,9 +8,6 @@ import {
 } from '@shared/data/ScriptureTypes';
 import { isString, isValidValue } from './Util';
 
-/** For performance calculations. Set to most recent time the Scripture Reference was changed */
-export const startChangeScrRef = { lastChangeTime: performance.now() };
-
 const scrBookNames: string[][] = [
     ['ERR', 'ERROR'],
     ['GEN', 'Genesis'],

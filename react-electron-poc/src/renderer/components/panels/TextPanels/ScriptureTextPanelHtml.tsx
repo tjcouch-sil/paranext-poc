@@ -1,3 +1,4 @@
+import { performanceLog } from '@services/PerformanceService';
 import {
     getScriptureHtml,
     getScriptureRaw,
@@ -55,10 +56,13 @@ const ScriptureTextPanelString = ({
 
     useLayoutEffect(
         () =>
-            console.debug(
-                `Performance<ScriptureTextPanelString>: finished rendering at ${performance.now()} ms from start.`,
-            ),
-        [],
+            performanceLog({
+                name: 'ScriptureTextPanelString',
+                operation: 'finished rendering',
+                end: performance.now(),
+                reportStart: true,
+            }),
+        [scrChapters],
     );
 
     // Make a ref for the Scripture that works with react-content-editable

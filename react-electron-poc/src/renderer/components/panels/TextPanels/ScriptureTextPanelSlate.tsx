@@ -61,7 +61,6 @@ import {
     getTextFromScrRef,
     parseChapter,
     parseVerse,
-    startChangeScrRef,
     unchunkScriptureContent,
 } from '@util/ScriptureUtil';
 import { withHistory } from 'slate-history';
@@ -74,6 +73,7 @@ import {
     VariableSizeList,
 } from 'react-window';
 import ReactVirtualizedAutoSizer from 'react-virtualized-auto-sizer';
+import { performanceLog, startKeyDown } from '@services/PerformanceService';
 import {
     ScriptureTextPanelHOC,
     ScriptureTextPanelHOCProps,
@@ -150,21 +150,18 @@ const CharElement = memo((props: MyRenderElementProps<CharElementProps>) => (
     <InlineElement {...props} closingMarker />
 ));
 
-/** performance.now() at the last time the keyDown event was run on a Slate editor */
-const startKeyDown = { lastChangeTime: performance.now() };
-
 /** Renders a chapter number */
 const ChapterElement = memo(
     (props: MyRenderElementProps<ChapterElementProps>) => {
         useLayoutEffect(() => {
-            const end = performance.now();
-            console.debug(
-                `Performance<ChapterElement>: finished rendering at ${end} ms from start, ${
-                    end - startChangeScrRef.lastChangeTime
-                } ms from changing scrRef, and ${
-                    end - startKeyDown.lastChangeTime
-                } ms from keyDown.`,
-            );
+            performanceLog({
+                name: 'ChapterElement',
+                operation: 'finished rendering',
+                end: performance.now(),
+                reportStart: true,
+                reportChangeScrRef: true,
+                reportKeyDown: true,
+            });
         }, [props.children]);
 
         // eslint-disable-next-line react/jsx-props-no-spreading
@@ -798,9 +795,12 @@ const ScriptureChunkEditorSlate = memo(
 
         useLayoutEffect(
             () =>
-                console.debug(
-                    `Performance<ScriptureChunkEditorSlate>: finished rendering at ${performance.now()} ms from start.`,
-                ),
+                performanceLog({
+                    name: 'ScriptureChunkEditorSlate',
+                    operation: 'finished rendering',
+                    end: performance.now(),
+                    reportStart: true,
+                }),
             [],
         );
 
@@ -810,14 +810,13 @@ const ScriptureChunkEditorSlate = memo(
         }, []);
 
         useLayoutEffect(() => {
-            const end = performance.now();
-            console.debug(
-                `Performance<ScriptureChunkEditorSlate>: finished rendering ${
-                    end - startChangeScrRef.lastChangeTime
-                } ms from changing scrRef and ${
-                    end - startKeyDown.lastChangeTime
-                } ms from keyDown.`,
-            );
+            performanceLog({
+                name: 'ScriptureChunkEditorSlate',
+                operation: 'finished rendering',
+                end: performance.now(),
+                reportChangeScrRef: true,
+                reportKeyDown: true,
+            });
         }, [scrChapterChunk]);
 
         /** When the contents are changed, update the chapter chunk */
@@ -1197,10 +1196,12 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
                     chunkSize,
                 );
             });
-            console.debug(
-                `Performance<ScriptureTextPanelSlate.scrChaptersChunked>: chunking scrChapters took ${
-                    performance.now() - start
-                } ms`,
+            performanceLog(
+                {
+                    name: 'ScriptureTextPanelSlate.scrChaptersChunked',
+                    operation: 'chunking scrChapters',
+                },
+                `took ${performance.now() - start} ms`,
             );
             return scrChapterChunks;
         }
@@ -1374,12 +1375,12 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
     const updateScrChapterChunk = useCallback(
         (chunkIndex: number, updatedScrChapterChunk: ScriptureContentChunk) => {
             const startWriteScripture = performance.now();
-
-            console.debug(
-                `Performance<ScriptureTextPanelSlate.updateScrChapterChunk>: keyDown to starting updateScrChapterChunk took ${
-                    startWriteScripture - startKeyDown.lastChangeTime
-                } ms`,
-            );
+            performanceLog({
+                name: 'ScriptureTextPanelSlate.updateScrChapterChunk',
+                operation: 'starting updateScrChapterChunk',
+                end: startWriteScripture,
+                reportKeyDown: true,
+            });
 
             const editedScrChapterChunk = scrChaptersChunked[chunkIndex];
             const editedChapter = editedScrChapterChunk.chapter;
@@ -1397,10 +1398,12 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
                 unchunkScriptureContent(editedScrChapterChunks, editedChapter),
             ];
 
-            console.debug(
-                `Performance<ScriptureTextPanelSlate.updateScrChapterChunk>: Unchunking Scripture Chapter ${editedChapter} for saving took ${
-                    performance.now() - startChunking
-                } ms`,
+            performanceLog(
+                {
+                    name: 'ScriptureTextPanelSlate.updateScrChapterChunk',
+                    operation: `Unchunking Scripture Chapter ${editedChapter} for saving`,
+                },
+                `took ${performance.now() - startChunking} ms`,
             );
 
             // Save the newly edited chapters in scrChapters
@@ -1421,11 +1424,16 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
                 editedScrChaptersUnchunked,
             )
                 .then((success) => {
-                    console.debug(
-                        `Performance<ScriptureTextPanelSlate.updateScrChapterChunk>: writeScripture resolved with success = ${success} and took ${
-                            performance.now() - startKeyDown.lastChangeTime
-                        } ms from keyDown and ${
-                            performance.now() - startWriteScripture
+                    const end = performance.now();
+                    performanceLog(
+                        {
+                            name: 'ScriptureTextPanelSlate.updateScrChapterChunk',
+                            operation: `writeScripture resolved with success = ${success}`,
+                            end,
+                            reportKeyDown: true,
+                        },
+                        `\n\tat ${
+                            end - startWriteScripture
                         } ms from starting updateScrChapterChunk`,
                     );
                     return undefined;

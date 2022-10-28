@@ -24,16 +24,13 @@ import {
     SerializedPanelManager,
 } from '@components/panels/PanelManager';
 import { getSetting, setSetting } from '@services/SettingsService';
-import {
-    offsetChapter,
-    offsetVerse,
-    startChangeScrRef,
-} from '@util/ScriptureUtil';
+import { offsetChapter, offsetVerse } from '@util/ScriptureUtil';
 import isHotkey from 'is-hotkey';
 import { ScriptureTextPanelSlateProps } from '@components/panels/TextPanels/ScriptureTextPanelSlate';
 import { isValidValue } from '@util/Util';
 import DefaultTabHeader from '@components/DefaultTabHeader';
 import { ScriptureTextPanelFunctions } from '@components/panels/TextPanels/ScriptureTextPanelHOC';
+import { startChangeScrRef } from '@services/PerformanceService';
 
 /** Key for saving scrRef setting */
 const scrRefSettingKey = 'scrRef';

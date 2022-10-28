@@ -4,6 +4,7 @@ import {
     ScriptureChapterString,
 } from '@shared/data/ScriptureTypes';
 import { getTextFromScrRef } from '@util/ScriptureUtil';
+import { performanceLog } from './PerformanceService';
 
 /**
  * Gets the specified Scripture chapter in the specified book from the specified project in Slate JSON
@@ -38,22 +39,28 @@ export const getScripture = async (
             }),
         );
         const end = performance.now();
-        console.debug(
-            `Performance<ScriptureService.getScripture(${shortName}, ${bookNum}, ${chapter})>: Parsing JSON took ${
-                end - startParse
-            } ms`,
+        performanceLog(
+            {
+                name: `ScriptureService.getScripture(${shortName}, ${bookNum}, ${chapter})`,
+                operation: 'Parsing JSON',
+            },
+            `took ${end - startParse} ms`,
         );
-        console.debug(
-            `Performance<ScriptureService.getScripture(${shortName}, ${bookNum}, ${chapter})>: took ${
-                end - startGet
-            } ms`,
+        performanceLog(
+            {
+                name: `ScriptureService.getScripture(${shortName}, ${bookNum}, ${chapter})`,
+                operation: '',
+            },
+            `took ${end - startGet} ms`,
         );
         return scrChapterContentsParsed;
     } catch (e) {
-        console.debug(
-            `Performance<ScriptureService.getScripture(${shortName}, ${bookNum}, ${chapter})>: Exception took ${
-                performance.now() - startGet
-            } ms`,
+        performanceLog(
+            {
+                name: `ScriptureService.getScripture(${shortName}, ${bookNum}, ${chapter})`,
+                operation: 'Exception',
+            },
+            `took ${performance.now() - startGet} ms`,
         );
         console.log(e);
         return [
@@ -93,10 +100,12 @@ export const writeScripture = async (
             ...content,
             contents: JSON.stringify(content.contents),
         })) as unknown as ScriptureChapterContent[];
-        console.debug(
-            `Performance<ScriptureService.writeScripture(${shortName}, ${bookNum}, ${chapter})>: Stringifying took ${
-                performance.now() - start
-            } ms`,
+        performanceLog(
+            {
+                name: `ScriptureService.writeScripture(${shortName}, ${bookNum}, ${chapter})`,
+                operation: 'Stringifying',
+            },
+            `took ${performance.now() - start} ms`,
         );
         if (chapter >= 0)
             await window.electronAPI.scripture.writeScriptureChapter(
@@ -111,17 +120,21 @@ export const writeScripture = async (
                 bookNum,
                 contentsJSON,
             );
-        console.debug(
-            `Performance<ScriptureService.writeScripture(${shortName}, ${bookNum}, ${chapter})>: took ${
-                performance.now() - start
-            } ms`,
+        performanceLog(
+            {
+                name: `ScriptureService.writeScripture(${shortName}, ${bookNum}, ${chapter})`,
+                operation: '',
+            },
+            `took ${performance.now() - start} ms`,
         );
         return true;
     } catch (e) {
-        console.debug(
-            `Performance<ScriptureService.writeScripture(${shortName}, ${bookNum}, ${chapter})>: Exception took ${
-                performance.now() - start
-            } ms`,
+        performanceLog(
+            {
+                name: `ScriptureService.writeScripture(${shortName}, ${bookNum}, ${chapter})`,
+                operation: 'Exception',
+            },
+            `took ${performance.now() - start} ms`,
         );
         console.log(e);
         return false;
@@ -186,17 +199,21 @@ export const getScriptureUsx = async (
                       shortName,
                       bookNum,
                   );
-        console.debug(
-            `Performance<ScriptureService.getScriptureUsx(${shortName}, ${bookNum}, ${chapter})>: took ${
-                performance.now() - startGet
-            } ms`,
+        performanceLog(
+            {
+                name: `ScriptureService.getScriptureUsx(${shortName}, ${bookNum}, ${chapter})`,
+                operation: '',
+            },
+            `took ${performance.now() - startGet} ms`,
         );
         return scrChapterContents;
     } catch (e) {
-        console.debug(
-            `Performance<ScriptureService.getScripture(${shortName}, ${bookNum}, ${chapter})>: Exception took ${
-                performance.now() - startGet
-            } ms`,
+        performanceLog(
+            {
+                name: `ScriptureService.getScriptureUsx(${shortName}, ${bookNum}, ${chapter})`,
+                operation: 'Exception',
+            },
+            `took ${performance.now() - startGet} ms`,
         );
         console.log(e);
         return [

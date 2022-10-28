@@ -14,15 +14,9 @@ import { app, BrowserWindow, shell, IpcMainInvokeEvent } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import { ResourceInfo, ScriptureChapter } from '@shared/data/ScriptureTypes';
-import { StartTime } from '@shared/data/PerformanceTypes';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import { ipcMain } from './electron-extensions';
-
-const electronStartTime: StartTime = {
-    process: performance.timeOrigin,
-    entry: Date.now(),
-};
 
 console.log(
     'Date.now()',
@@ -425,10 +419,8 @@ async function handleSetActiveResource(
     console.log('Set active resource: ', activeResource);
 }
 
-async function handleGetStartTime(
-    _event: IpcMainInvokeEvent,
-): Promise<StartTime> {
-    return electronStartTime;
+async function handleGetStartTime(_event: IpcMainInvokeEvent): Promise<number> {
+    return performance.timeOrigin;
 }
 
 /** Map from ipc channel to handler function */

@@ -1,13 +1,11 @@
+import { performanceLog, startKeyDown } from '@services/PerformanceService';
 import { getScriptureUsx } from '@services/ScriptureService';
 import { ScriptureChapterString } from '@shared/data/ScriptureTypes';
-import { startChangeScrRef } from '@util/ScriptureUtil';
-import { htmlEncode } from '@util/Util';
 import {
     useCallback,
     useEffect,
     useLayoutEffect,
     useMemo,
-    useRef,
     useState,
 } from 'react';
 import UsxEditor from 'usxeditor';
@@ -33,27 +31,23 @@ export interface ScriptureTextPanelUsxProps extends ScriptureTextPanelHOCProps {
  * Originally built for Scripture HTML, so, if something doesn't work, it probably doesn't work because it's not an HTML panel.
  */
 const ScriptureTextPanelUsxEditor = ({
-    shortName,
-    editable,
-    book,
-    chapter,
-    verse,
     scrChapters,
-    updateScrRef,
     onFocus,
 }: ScriptureTextPanelUsxProps) => {
     useLayoutEffect(
         () =>
-            console.debug(
-                `Performance<ScriptureTextPanelUsxEditor>: finished rendering at ${performance.now()} ms from start.`,
-            ),
-        [],
+            performanceLog({
+                name: 'ScriptureTextPanelUsxEditor',
+                operation: 'finished rendering',
+                end: performance.now(),
+                reportStart: true,
+            }),
+        [scrChapters],
     );
 
     /** performance.now() at the last time the keyDown event was run */
-    const startKeyDown = useRef<number>(performance.now());
-    const onKeyDown = useCallback((_e: React.KeyboardEvent<HTMLDivElement>) => {
-        startKeyDown.current = performance.now();
+    const onKeyDown = useCallback(() => {
+        startKeyDown.lastChangeTime = performance.now();
     }, []);
 
     // Hold scrChapters that we can edit in this USX Editor
@@ -66,25 +60,25 @@ const ScriptureTextPanelUsxEditor = ({
     }, [scrChapters]);
 
     useLayoutEffect(() => {
-        const end = performance.now();
-        console.debug(
-            `Performance<ScriptureTextPanelUsxEditor>: finished rendering at ${end} ms from start, ${
-                end - startChangeScrRef.lastChangeTime
-            } ms from changing scrRef, and ${
-                end - startKeyDown.current
-            } ms from keyDown.`,
-        );
+        performanceLog({
+            name: 'ScriptureTextPanelUsxEditor',
+            operation: 'finished rendering',
+            end: performance.now(),
+            reportStart: true,
+            reportChangeScrRef: true,
+            reportKeyDown: true,
+        });
     }, [editableScrChapters]);
 
     const onUsxChanged = useCallback(
         (editedChapter: number, updatedContents: string) => {
             const startWriteScripture = performance.now();
-
-            console.debug(
-                `Performance<ScriptureTextPanelUsxEditor.onUsxChanged>: keyDown to starting onUsxChanged took ${
-                    startWriteScripture - startKeyDown.current
-                } ms`,
-            );
+            performanceLog({
+                name: 'ScriptureTextPanelUsxEditor.onUsxChanged',
+                operation: 'starting onUsxChanged',
+                end: startWriteScripture,
+                reportKeyDown: true,
+            });
 
             setEditableScrChapters((currentEditableScrChapters) => {
                 const editedScrChapterIndex =
