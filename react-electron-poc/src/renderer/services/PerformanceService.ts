@@ -120,7 +120,7 @@ export const initialize = async (): Promise<void> => {
 
     initializing = true;
 
-    Promise.all([getElectronStartTime(), getWebserverStartTime()])
+    await Promise.all([getElectronStartTime(), getWebserverStartTime()])
         .then(() => {
             timeStartRendererSinceWebserver =
                 startTimes.renderer - startTimes.webserver;
