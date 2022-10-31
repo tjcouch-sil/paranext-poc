@@ -1,5 +1,14 @@
 import { createRoot } from 'react-dom/client';
+import * as PerformanceService from '@services/PerformanceService';
 import App from './App';
+
+PerformanceService.performanceLog({
+    name: 'index.tsx',
+    operation: 'entered index code',
+    end: performance.now(),
+    reportStart: true,
+});
+PerformanceService.initialize();
 
 const container = document.getElementById('root');
 const root = createRoot(container as HTMLElement);

@@ -18,6 +18,15 @@ import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import { ipcMain } from './electron-extensions';
 
+console.log(
+    'Date.now()',
+    Date.now(),
+    'performance.timeOrigin',
+    performance.timeOrigin,
+    'performance.now()',
+    performance.now(),
+);
+
 class AppUpdater {
     constructor() {
         log.transports.file.level = 'info';
@@ -410,6 +419,10 @@ async function handleSetActiveResource(
     console.log('Set active resource: ', activeResource);
 }
 
+async function handleGetStartTime(_event: IpcMainInvokeEvent): Promise<number> {
+    return performance.timeOrigin;
+}
+
 /** Map from ipc channel to handler function */
 const ipcHandlers: {
     [ipcHandle: string]: (
@@ -499,6 +512,8 @@ const ipcHandlers: {
     'ipc-scripture:getResourceInfo': handleGetResourceInfo,
     'ipc-scripture:getAllResourceInfo': handleGetAllResourceInfo,
     'ipc-scripture:setActiveResource': handleSetActiveResource,
+    'ipc-electron:getStartTime': handleGetStartTime,
+    'ipc-webserver:getStartTime': handleGetStartTime,
 };
 
 app.enableSandbox();
