@@ -64,8 +64,13 @@ export interface PerformanceLogOptions {
     reportKeyDown?: boolean;
 }
 
-const performanceLogQueue: { options: PerformanceLogOptions; args: any[] }[] =
-    [];
+const performanceLogQueue: {
+    options: PerformanceLogOptions;
+    args: unknown[];
+}[] = [];
+
+/** The amount of time in milliseconds that it took from starting the webserver to starting the renderer */
+let timeStartRendererSinceWebserver = 0;
 
 /**
  * Logs a performance metric on an operation. Takes the following form:
@@ -75,7 +80,7 @@ const performanceLogQueue: { options: PerformanceLogOptions; args: any[] }[] =
  */
 export const performanceLog = (
     options: PerformanceLogOptions,
-    ...args: any[]
+    ...args: unknown[]
 ) => {
     // Make sure end is defined, but only run performance.now() if it wasn't already run
     const end = options.end || performance.now();
@@ -100,15 +105,13 @@ export const performanceLog = (
                 ? `\n\tat ${end - startKeyDown.lastChangeTime} ms from keyDown`
                 : ''
         }`;
-        args.length > 0 ? console.debug(log, ...args) : console.debug(log);
+        if (args.length > 0) console.debug(log, ...args);
+        else console.debug(log);
     } else {
         // This service isn't finished initializing, so save the performance log for later
         performanceLogQueue.push({ options: { ...options, end }, args });
     }
 };
-
-/** The amount of time in milliseconds that it took from starting the webserver to starting the renderer */
-let timeStartRendererSinceWebserver = 0;
 
 /** Sets up the PerformanceService with start times */
 export const initialize = async (): Promise<void> => {
@@ -117,7 +120,7 @@ export const initialize = async (): Promise<void> => {
 
     initializing = true;
 
-    return Promise.all([getElectronStartTime(), getWebserverStartTime()])
+    await Promise.all([getElectronStartTime(), getWebserverStartTime()])
         .then(() => {
             timeStartRendererSinceWebserver =
                 startTimes.renderer - startTimes.webserver;
