@@ -151,6 +151,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
         setActiveResource: (shortName: string): Promise<void> =>
             ipcRenderer.invoke('ipc-scripture:setActiveResource', shortName),
     },
+    electron: {
+        getStartTime: (): Promise<number> =>
+            ipcRenderer.invoke('ipc-electron:getStartTime'),
+    },
+    webserver: {
+        getStartTime: (): Promise<number> =>
+            ipcRenderer.invoke('ipc-webserver:getStartTime'),
+    },
 });
 
 // TODO: Remove?

@@ -61,7 +61,6 @@ import {
     getTextFromScrRef,
     parseChapter,
     parseVerse,
-    startChangeScrRef,
     unchunkScriptureContent,
 } from '@util/ScriptureUtil';
 import { withHistory } from 'slate-history';
@@ -74,6 +73,7 @@ import {
     VariableSizeList,
 } from 'react-window';
 import ReactVirtualizedAutoSizer from 'react-virtualized-auto-sizer';
+import { performanceLog, startKeyDown } from '@services/PerformanceService';
 import {
     ScriptureTextPanelHOC,
     ScriptureTextPanelHOCProps,
@@ -150,21 +150,18 @@ const CharElement = memo((props: MyRenderElementProps<CharElementProps>) => (
     <InlineElement {...props} closingMarker />
 ));
 
-/** performance.now() at the last time the keyDown event was run on a Slate editor */
-const startKeyDown = { lastChangeTime: performance.now() };
-
 /** Renders a chapter number */
 const ChapterElement = memo(
     (props: MyRenderElementProps<ChapterElementProps>) => {
         useLayoutEffect(() => {
-            const end = performance.now();
-            console.debug(
-                `Performance<ChapterElement>: finished rendering at ${end} ms from start, ${
-                    end - startChangeScrRef.lastChangeTime
-                } ms from changing scrRef, and ${
-                    end - startKeyDown.lastChangeTime
-                } ms from keyDown.`,
-            );
+            performanceLog({
+                name: 'ChapterElement',
+                operation: 'finished rendering',
+                end: performance.now(),
+                reportStart: true,
+                reportChangeScrRef: true,
+                reportKeyDown: true,
+            });
         }, [props.children]);
 
         // eslint-disable-next-line react/jsx-props-no-spreading
@@ -798,9 +795,12 @@ const ScriptureChunkEditorSlate = memo(
 
         useLayoutEffect(
             () =>
-                console.debug(
-                    `Performance<ScriptureChunkEditorSlate>: finished rendering at ${performance.now()} ms from start.`,
-                ),
+                performanceLog({
+                    name: 'ScriptureChunkEditorSlate',
+                    operation: 'finished rendering',
+                    end: performance.now(),
+                    reportStart: true,
+                }),
             [],
         );
 
@@ -810,21 +810,25 @@ const ScriptureChunkEditorSlate = memo(
         }, []);
 
         useLayoutEffect(() => {
-            const end = performance.now();
-            console.debug(
-                `Performance<ScriptureChunkEditorSlate>: finished rendering ${
-                    end - startChangeScrRef.lastChangeTime
-                } ms from changing scrRef and ${
-                    end - startKeyDown.lastChangeTime
-                } ms from keyDown.`,
-            );
+            performanceLog({
+                name: 'ScriptureChunkEditorSlate',
+                operation: 'finished rendering',
+                end: performance.now(),
+                reportChangeScrRef: true,
+                reportKeyDown: true,
+            });
         }, [scrChapterChunk]);
 
         /** When the contents are changed, update the chapter chunk */
         const onChange = useCallback(
             (value: CustomDescendant[]) => {
+                // Don't try to send update for chapter -1 when loading
+                // If we ever decide to send writes by book, this could become a problem.
                 // Filter out changes that are just selection changes - thanks to the Slate tutorial https://docs.slatejs.org/walkthroughs/06-saving-to-a-database
-                if (editor.operations.some((op) => op.type !== 'set_selection'))
+                if (
+                    editor.chapter >= 0 &&
+                    editor.operations.some((op) => op.type !== 'set_selection')
+                )
                     updateScrChapterChunk(chunkIndex, {
                         ...scrChapterChunk,
                         contents: value,
@@ -991,8 +995,12 @@ const ScriptureChunkEditorSlate = memo(
                 // Replace the editor's contents
                 editor.children = scrChapterChunk.contents as CustomElement[];
 
-                // TODO: May need to call Editor.normalize, potentially with option { force: true }
-                // Editor.normalize(editor);
+                // Normalize the input to make sure it conforms to Slate's expectations
+                // If content seems to be disappearing from what is received from getScripture to what is shown on the screen at startup,
+                // it would be good for debugging to look here. Maybe remove the normalization and see what happens.
+                // TODO: Right now, we normalize to add { text: "" } between in-line elements. Probably would be best to add these on the backend and pass them up
+                // TODO: Maybe remove this and do everything you need to do on the backend so we don't waste time force normalizing text when it has very few issues
+                Editor.normalize(editor, { force: true });
 
                 // TODO: Restore cursor to new ScrRef
 
@@ -1188,10 +1196,12 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
                     chunkSize,
                 );
             });
-            console.debug(
-                `Performance<ScriptureTextPanelSlate.scrChaptersChunked>: chunking scrChapters took ${
-                    performance.now() - start
-                } ms`,
+            performanceLog(
+                {
+                    name: 'ScriptureTextPanelSlate.scrChaptersChunked',
+                    operation: 'chunking scrChapters',
+                },
+                `took ${performance.now() - start} ms`,
             );
             return scrChapterChunks;
         }
@@ -1365,12 +1375,12 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
     const updateScrChapterChunk = useCallback(
         (chunkIndex: number, updatedScrChapterChunk: ScriptureContentChunk) => {
             const startWriteScripture = performance.now();
-
-            console.debug(
-                `Performance<ScriptureTextPanelSlate.updateScrChapterChunk>: keyDown to starting updateScrChapterChunk took ${
-                    startWriteScripture - startKeyDown.lastChangeTime
-                } ms`,
-            );
+            performanceLog({
+                name: 'ScriptureTextPanelSlate.updateScrChapterChunk',
+                operation: 'starting updateScrChapterChunk',
+                end: startWriteScripture,
+                reportKeyDown: true,
+            });
 
             const editedScrChapterChunk = scrChaptersChunked[chunkIndex];
             const editedChapter = editedScrChapterChunk.chapter;
@@ -1388,10 +1398,12 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
                 unchunkScriptureContent(editedScrChapterChunks, editedChapter),
             ];
 
-            console.debug(
-                `Performance<ScriptureTextPanelSlate.updateScrChapterChunk>: Unchunking Scripture Chapter ${editedChapter} for saving took ${
-                    performance.now() - startChunking
-                } ms`,
+            performanceLog(
+                {
+                    name: 'ScriptureTextPanelSlate.updateScrChapterChunk',
+                    operation: `Unchunking Scripture Chapter ${editedChapter} for saving`,
+                },
+                `took ${performance.now() - startChunking} ms`,
             );
 
             // Save the newly edited chapters in scrChapters
@@ -1412,11 +1424,16 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
                 editedScrChaptersUnchunked,
             )
                 .then((success) => {
-                    console.debug(
-                        `Performance<ScriptureTextPanelSlate.updateScrChapterChunk>: writeScripture resolved with success = ${success} and took ${
-                            performance.now() - startKeyDown.lastChangeTime
-                        } ms from keyDown and ${
-                            performance.now() - startWriteScripture
+                    const end = performance.now();
+                    performanceLog(
+                        {
+                            name: 'ScriptureTextPanelSlate.updateScrChapterChunk',
+                            operation: `writeScripture resolved with success = ${success}`,
+                            end,
+                            reportKeyDown: true,
+                        },
+                        `\n\tat ${
+                            end - startWriteScripture
                         } ms from starting updateScrChapterChunk`,
                     );
                     return undefined;
@@ -1513,11 +1530,13 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
         style,
     }: Omit<ListChildComponentProps, 'data'>) => {
         const scrChapterChunk = scrChaptersChunked[index];
+        const chunkKey = `${scrChapterChunk.chapter}-${scrChapterChunk.chunkNum}`;
         return (
             <EditorElement
+                key={chunkKey}
                 element={{
                     type: 'editor',
-                    number: `${scrChapterChunk.chapter}-${scrChapterChunk.chunkNum}`,
+                    number: chunkKey,
                     children: [],
                 }}
                 attributes={{} as never}
