@@ -822,6 +822,10 @@ const ScriptureChunkEditorSlate = memo(
         /** When the contents are changed, update the chapter chunk */
         const onChange = useCallback(
             (value: CustomDescendant[]) => {
+                // Normalizing when loading a resource fires an onChange because the text is not generated with empty text between elements.
+                // Let's just skip writing on uneditable texts and fix the other problem another time
+                if (!editable) return;
+
                 // Don't try to send update for chapter -1 when loading
                 // If we ever decide to send writes by book, this could become a problem.
                 // Filter out changes that are just selection changes - thanks to the Slate tutorial https://docs.slatejs.org/walkthroughs/06-saving-to-a-database
@@ -834,7 +838,13 @@ const ScriptureChunkEditorSlate = memo(
                         contents: value,
                     });
             },
-            [editor, updateScrChapterChunk, chunkIndex, scrChapterChunk],
+            [
+                editor,
+                editable,
+                updateScrChapterChunk,
+                chunkIndex,
+                scrChapterChunk,
+            ],
         );
 
         // Focus the editor when we close the search bar

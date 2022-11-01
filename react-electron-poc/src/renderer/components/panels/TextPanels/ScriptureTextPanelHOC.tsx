@@ -1,4 +1,4 @@
-import {
+﻿import {
     getScriptureStyle,
     setActiveResource,
 } from '@services/ScriptureService';
@@ -50,12 +50,9 @@ export function ScriptureTextPanelHOC<T extends ScriptureTextPanelHOCProps>(
         // Pull in the project's stylesheet
         useStyle(
             useCallback(async () => {
-                // TODO: Fix RTL scripture style sheets
                 if (!shortName) return undefined;
                 const style = await getScriptureStyle(shortName, book);
-                return shortName !== 'OHEB' && shortName !== 'zzz1'
-                    ? style
-                    : undefined;
+                return style;
             }, [shortName, book]),
         );
 

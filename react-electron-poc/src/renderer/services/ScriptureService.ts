@@ -439,10 +439,6 @@ export const getScriptureRaw = async (
  * Gets the specified Scripture stylesheeet from the specified project
  * @param shortName the short name of the project
  * @returns Promise with specified Scripture stylesheet
-
-export const getScriptureStyle = async (shortName: string): Promise<string> => {
-    return window.electronAPI.scripture.getScriptureStyle(shortName);
-};
  */
 
 export const getScriptureStyle = async (
@@ -450,7 +446,7 @@ export const getScriptureStyle = async (
     bookNum: number,
 ): Promise<string> => {
     try {
-        return await fetch(
+        const style = await fetch(
             `http://localhost:5122/api/scriptureText/GetScriptureStyle/${shortName}/${bookNum}`,
             {
                 method: 'GET',
@@ -460,6 +456,8 @@ export const getScriptureStyle = async (
                 },
             },
         ).then((response) => response.json());
+		// TODO: Fix RTL scripture style sheets
+    	return style.includes('direction: rtl;') ? undefined : style;
     } catch (e) {
         console.log(e);
         return `Could not get the css style for ${shortName}`;
@@ -470,9 +468,12 @@ export const getScriptureStyle = async (
  * Gets the specified Scripture stylesheeet from the specified project
  * @param shortName the short name of the project
  * @returns Promise with specified Scripture stylesheet
-
-export const getScriptureStyle = async (shortName: string): Promise<string> => {
-    return window.electronAPI.scripture.getScriptureStyle(shortName);
+export const getScriptureStyle = async (shortName: string): Promise<string | undefined> => {
+    const style = await window.electronAPI.scripture.getScriptureStyle(
+        shortName,
+    );
+    // TODO: Fix RTL scripture style sheets
+    return style.includes('direction: rtl;') ? undefined : style;
 };
  */
 
