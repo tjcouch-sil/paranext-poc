@@ -33,7 +33,16 @@ const getWebserverStartTime = async (): Promise<number> => {
 
     // Get the webserver's Start Time
     try {
-        const startTime = await window.electronAPI.webserver.getStartTime();
+        const startTime = await fetch(
+            `http://localhost:5122/api/time/GetStartTime`,
+            {
+                method: 'GET',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                },
+            },
+        ).then((response) => response.json());
         startTimes.webserver = startTime;
         return startTimes.webserver;
     } catch (e) {
