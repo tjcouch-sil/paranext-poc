@@ -266,8 +266,12 @@ export const getScriptureHtml = async (
  * @param shortName the short name of the project
  * @returns Promise with specified Scripture stylesheet
  */
-export const getScriptureStyle = async (shortName: string): Promise<string> => {
-    return window.electronAPI.scripture.getScriptureStyle(shortName);
+export const getScriptureStyle = async (shortName: string): Promise<string | undefined> => {
+    const style = await window.electronAPI.scripture.getScriptureStyle(
+        shortName,
+    );
+    // TODO: Fix RTL scripture style sheets
+    return style.includes('direction: rtl;') ? undefined : style;
 };
 
 /**
