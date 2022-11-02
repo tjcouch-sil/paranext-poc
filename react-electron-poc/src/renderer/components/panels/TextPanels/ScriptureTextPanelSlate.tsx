@@ -153,7 +153,7 @@ const CharElement = memo((props: MyRenderElementProps<CharElementProps>) => (
 /** Renders a chapter number */
 const ChapterElement = memo(
     (props: MyRenderElementProps<ChapterElementProps>) => {
-        useLayoutEffect(() => {
+        useEffect(() => {
             performanceLog({
                 name: 'ChapterElement',
                 operation: 'finished rendering',
@@ -770,6 +770,7 @@ interface ScriptureChunkEditorSlateProps
     updateScrChapterChunk: (
         chunkIndex: number,
         updatedScrChapterChunk: ScriptureContentChunk,
+        shouldWriteScripture?: boolean,
     ) => void;
 }
 
@@ -819,6 +820,12 @@ const ScriptureChunkEditorSlate = memo(
             });
         }, [scrChapterChunk]);
 
+        /**
+         * Boolean for whether we are loading the chunk into the Slate editor.
+         * TODO: We are preventing writing Scripture back to the backend after normalizing it with this. Please fix so we normalize on backend in the first place
+         */
+        const loaded = useRef(false);
+
         /** When the contents are changed, update the chapter chunk */
         const onChange = useCallback(
             (value: CustomDescendant[]) => {
@@ -833,10 +840,14 @@ const ScriptureChunkEditorSlate = memo(
                     editor.chapter >= 0 &&
                     editor.operations.some((op) => op.type !== 'set_selection')
                 )
-                    updateScrChapterChunk(chunkIndex, {
-                        ...scrChapterChunk,
-                        contents: value,
-                    });
+                    updateScrChapterChunk(
+                        chunkIndex,
+                        {
+                            ...scrChapterChunk,
+                            contents: value,
+                        },
+                        loaded.current,
+                    );
             },
             [
                 editor,
@@ -989,6 +1000,7 @@ const ScriptureChunkEditorSlate = memo(
         // When we get new Scripture project contents, update slate
         useEffect(() => {
             if (scrChapterChunk) {
+                loaded.current = false;
                 // TODO: Save the selection
 
                 // Unselect
@@ -1015,6 +1027,12 @@ const ScriptureChunkEditorSlate = memo(
                 // TODO: Restore cursor to new ScrRef
 
                 editor.onChange();
+
+                // Enable writing
+                // TODO: We are disallowing the normalization step from writing Scripture back to the backend with this. setTimeout because onChange happens later than editor.onChange runs. Please fix
+                setTimeout(() => {
+                    loaded.current = true;
+                }, 1);
             }
         }, [editor, editable, scrChapterChunk]);
 
@@ -1383,7 +1401,11 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
      * @param scrChapterChunk the updated Scripture chunk
      */
     const updateScrChapterChunk = useCallback(
-        (chunkIndex: number, updatedScrChapterChunk: ScriptureContentChunk) => {
+        (
+            chunkIndex: number,
+            updatedScrChapterChunk: ScriptureContentChunk,
+            shouldWriteScripture = true,
+        ) => {
             const startWriteScripture = performance.now();
             performanceLog({
                 name: 'ScriptureTextPanelSlate.updateScrChapterChunk',
@@ -1426,33 +1448,35 @@ const ScriptureTextPanelJSON = (props: ScriptureTextPanelSlateProps) => {
                     originalScrChapter.contents = editedScrChapter.contents;
             });
 
-            // Send the chapter to the backend for saving
-            writeScripture(
-                shortName,
-                book,
-                editedChapter,
-                editedScrChaptersUnchunked,
-            )
-                .then((success) => {
-                    const end = performance.now();
-                    performanceLog(
-                        {
-                            name: 'ScriptureTextPanelSlate.updateScrChapterChunk',
-                            operation: `writeScripture resolved with success = ${success}`,
-                            end,
-                            reportKeyDown: true,
-                        },
-                        `\n\tat ${
-                            end - startWriteScripture
-                        } ms from starting updateScrChapterChunk`,
+            if (shouldWriteScripture) {
+                // Send the chapter to the backend for saving
+                writeScripture(
+                    shortName,
+                    book,
+                    editedChapter,
+                    editedScrChaptersUnchunked,
+                )
+                    .then((success) => {
+                        const end = performance.now();
+                        performanceLog(
+                            {
+                                name: 'ScriptureTextPanelSlate.updateScrChapterChunk',
+                                operation: `writeScripture resolved with success = ${success}`,
+                                end,
+                                reportKeyDown: true,
+                            },
+                            `\n\tat ${
+                                end - startWriteScripture
+                            } ms from starting updateScrChapterChunk`,
+                        );
+                        return undefined;
+                    })
+                    .catch((r) =>
+                        console.log(
+                            `Exception while writing Scripture from Slate! ${r}`,
+                        ),
                     );
-                    return undefined;
-                })
-                .catch((r) =>
-                    console.log(
-                        `Exception while writing Scripture from Slate! ${r}`,
-                    ),
-                );
+            }
 
             // Invalidate the updated chunk's cached height so we recalculate in case we added a line or something
             // TODO: setTimeout required because we need to wait for Slate to update the editor chunk to the new height. Clean this up by listening for the end of slate changes somehow?
