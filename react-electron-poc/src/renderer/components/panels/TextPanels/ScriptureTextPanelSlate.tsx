@@ -121,17 +121,31 @@ const InlineElement = ({
     children,
     endSpace = false,
     closingMarker = false,
-}: InlineElementProps) => (
-    // eslint-disable-next-line react/jsx-props-no-spreading
-    <span className={`${MARKER_CLASS_PREFIX}${style}`} {...attributes}>
-        <Marker style={style} />
-        {children}
-        {endSpace ? <span contentEditable={false}>&nbsp;</span> : undefined}
-        {closingMarker ? (
-            <Marker style={`${style}*`} closingMarker />
-        ) : undefined}
-    </span>
-);
+}: InlineElementProps) => {
+    useEffect(() => {
+        if (style === 'no')
+            performanceLog({
+                name: 'InlineElement \\no',
+                operation: 'finished rendering',
+                end: performance.now(),
+                reportStart: true,
+                reportChangeScrRef: true,
+                reportKeyDown: true,
+            });
+    }, [style, children]);
+
+    return (
+        // eslint-disable-next-line react/jsx-props-no-spreading
+        <span className={`${MARKER_CLASS_PREFIX}${style}`} {...attributes}>
+            <Marker style={style} />
+            {children}
+            {endSpace ? <span contentEditable={false}>&nbsp;</span> : undefined}
+            {closingMarker ? (
+                <Marker style={`${style}*`} closingMarker />
+            ) : undefined}
+        </span>
+    );
+};
 
 const VerseElement = memo((props: MyRenderElementProps<VerseElementProps>) => (
     // eslint-disable-next-line react/jsx-props-no-spreading
@@ -1032,7 +1046,7 @@ const ScriptureChunkEditorSlate = memo(
                 // TODO: We are disallowing the normalization step from writing Scripture back to the backend with this. setTimeout because onChange happens later than editor.onChange runs. Please fix
                 setTimeout(() => {
                     loaded.current = true;
-                }, 1);
+                }, SLATE_VIRTUALIZED_LOAD_TIME);
             }
         }, [editor, editable, scrChapterChunk]);
 
