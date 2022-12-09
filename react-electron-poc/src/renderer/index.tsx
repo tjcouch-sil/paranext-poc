@@ -1,7 +1,9 @@
 import { createRoot } from 'react-dom/client';
 import * as PerformanceService from '@services/PerformanceService';
+import * as WebSocketService from '@services/WebSocketService';
 import App from './App';
 
+// App-wide service setup
 PerformanceService.performanceLog({
     name: 'index.tsx',
     operation: 'entered index code',
@@ -9,6 +11,7 @@ PerformanceService.performanceLog({
     reportStart: true,
 });
 PerformanceService.initialize();
+WebSocketService.connect();
 
 const container = document.getElementById('root');
 const root = createRoot(container as HTMLElement);
