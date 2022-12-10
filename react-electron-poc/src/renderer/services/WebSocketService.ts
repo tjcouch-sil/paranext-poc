@@ -1,6 +1,8 @@
-/** Whether this service is being set up or has finished setting up (does not return to false when connected is true) */
+/** Whether this service has finished setting up */
+let initialized = false;
+/** Whether the websocket connection is being set up or has finished connecting (does not return to false when connected is true) */
 let connecting = false;
-/** Whether this service is finished setting up and we have a websocket connection */
+/** Whether this service has a websocket connection */
 let connected = false;
 /** The websocket connected to the server */
 let websocket: WebSocket | undefined;
@@ -17,25 +19,57 @@ const messageSubscriptions = new Map<
     ((eventData: Message) => void)[]
 >();
 
-type InitClient = {
+export type InitClient = {
     type: 'initClient';
     clientId: string;
 };
-type ClientConnect = {
+export type ClientConnect = {
     type: 'clientConnect';
     sender: string;
     contents: string;
 };
-type Event = {
+export type Event = {
     type: 'event';
     sender: string;
     contents: string;
 };
+export type Request = {
+    type: 'request';
+    sender: string;
+    requestId: number;
+    contents: string;
+};
+export type Response = {
+    type: 'response';
+    /** The process that originally sent the Request that matches to this response */
+    sender: string;
+    requestId: number;
+    /** The process that sent this Response */
+    responder: string;
+    contents: string;
+};
 
-type Message = InitClient | ClientConnect | Event;
+export type Message = InitClient | ClientConnect | Event | Request | Response;
 
-const MessageTypes = ['initClient', 'clientConnect', 'event'] as const;
-type MessageType = typeof MessageTypes[number];
+export const MessageTypes = [
+    'initClient',
+    'clientConnect',
+    'event',
+    'request',
+    'response',
+] as const;
+export type MessageType = typeof MessageTypes[number];
+
+/** Send a message to the server via websocket */
+const sendMessage = (message: Message): void => {
+    // TODO: add message queueing
+    if (!connected || !websocket)
+        throw new Error(
+            `Trying to send message when not connected! Message ${message}`,
+        );
+
+    websocket.send(JSON.stringify(message));
+};
 
 /**
  * Receives and appropriately publishes server websocket messages
@@ -43,7 +77,6 @@ type MessageType = typeof MessageTypes[number];
  */
 const onMessage = (event: MessageEvent<string>) => {
     const data = JSON.parse(event.data) as Message;
-    console.log('From server:', data);
 
     const callbacks = messageSubscriptions.get(data.type);
     if (callbacks) callbacks.forEach((callback) => callback(data));
@@ -101,6 +134,120 @@ export const subscribe = (
     return () => unsubscribe(messageType, callback);
 };
 
+/** The next requestId to use for identifying requests */
+let nextRequestId = 0;
+// TODO: implement request timeout logic
+type LiveRequest = {
+    requestId: number;
+    resolve: (value: Response | PromiseLike<Response>) => void;
+    reject: (reason?: any) => void;
+};
+/** All requests that are waiting for a response */
+const requests = new Map<number, LiveRequest>();
+
+/**
+ * Send a request to the server and resolve after receiving a response
+ * @param contents contents to send in the request
+ * @returns promise that resolves with the response message
+ */
+export const request = async (contents: string): Promise<Response> => {
+    const requestId = nextRequestId;
+    nextRequestId += 1;
+
+    // Set up a promise we can resolve later
+    let liveRequest: LiveRequest | undefined;
+    const requestPromise = new Promise<Response>((resolve, reject) => {
+        liveRequest = {
+            requestId,
+            resolve,
+            reject,
+        };
+    });
+
+    if (!liveRequest)
+        throw new Error(
+            `Live request was not created for requestId ${requestId}`,
+        );
+
+    // Send the request corresponding to the live request promise
+    sendMessage({
+        type: 'request',
+        sender: clientId,
+        requestId,
+        contents,
+    });
+
+    // Save the live request to resolve when we get the response
+    requests.set(requestId, liveRequest);
+
+    return requestPromise;
+};
+
+/** Sets up the WebSocketService - does not connect the websocket. Automatically run when connect has been run */
+export const initialize = () => {
+    if (initialized) return;
+
+    // Set up subscriptions that the service needs to work
+    // Get the client id from the server on new connections
+    subscribe('initClient', ({ clientId: newClientId }: InitClient) => {
+        if (clientId !== CLIENT_ID_UNASSIGNED)
+            throw new Error(
+                `Received initClient message multiple times! Current clientId: ${clientId}. New clientId: ${newClientId}`,
+            );
+
+        clientId = newClientId;
+        console.log(`Got clientId ${clientId}`);
+
+        if (!websocket) return;
+
+        sendMessage({
+            type: 'clientStuff',
+            sender: clientId,
+            contents:
+                'Hello server part 2! This is from the Client, and it is a long message!',
+        } as unknown as Message);
+
+        sendMessage({
+            type: 'clientStuff',
+            sender: clientId,
+            contents: 'Hello server part 3! This is from the Client',
+        } as unknown as Message);
+
+        const start = performance.now();
+        request('Hi server!')
+            .then((response) =>
+                console.log(
+                    'Response!!!',
+                    response,
+                    'Response time:',
+                    performance.now() - start,
+                ),
+            )
+            .catch((e) => console.error(e));
+    });
+
+    // Handle response messages to requests we made
+    subscribe('response', (response: Response) => {
+        const { sender, responder, requestId } = response;
+        if (clientId !== sender)
+            throw new Error(`Received response with sender ${sender}!`);
+
+        const liveRequest = requests.get(requestId);
+        if (!liveRequest)
+            throw new Error(
+                `Received response for nonexistent requestId ${requestId}`,
+            );
+
+        // Remove the request from the requests because it is receiving a response
+        requests.delete(requestId);
+
+        // Run the request's response function with the response
+        liveRequest.resolve(response);
+    });
+
+    initialized = true;
+};
+
 /** Disconnects from the server websocket */
 export const disconnect = () => {
     // We don't need to run this if we aren't at least connecting (or connected)
@@ -124,6 +271,8 @@ export const connect = async (): Promise<void> => {
     // We don't need to run this more than once
     if (connecting) return;
 
+    if (!initialized) initialize();
+
     connecting = true;
 
     websocket = new WebSocket('ws://localhost:5122/ws');
@@ -137,13 +286,11 @@ export const connect = async (): Promise<void> => {
 
         connected = true;
 
-        websocket.send(
-            JSON.stringify({
-                type: 'clientConnect',
-                sender: 'the client',
-                contents: 'Hello server! This is from the Client',
-            }),
-        );
+        sendMessage({
+            type: 'clientConnect',
+            sender: 'the client',
+            contents: 'Hello server! This is from the Client',
+        });
 
         websocket.removeEventListener('open', onOpen);
     };
@@ -151,41 +298,4 @@ export const connect = async (): Promise<void> => {
     websocket.addEventListener('open', onOpen);
     websocket.addEventListener('message', onMessage);
     websocket.addEventListener('close', disconnect);
-
-    unsubscribeInitClient = subscribe(
-        'initClient',
-        ({ clientId: newClientId }: InitClient) => {
-            if (clientId !== CLIENT_ID_UNASSIGNED)
-                throw new Error(
-                    `Received initClient message multiple times! Current clientId: ${clientId}. New clientId: ${newClientId}`,
-                );
-
-            clientId = newClientId;
-            console.log(`Got clientId ${clientId}`);
-
-            if (!websocket) return;
-
-            websocket.send(
-                JSON.stringify({
-                    type: 'clientStuff',
-                    sender: clientId,
-                    contents:
-                        'Hello server part 2! This is from the Client, and it is a long message!',
-                }),
-            );
-
-            websocket.send(
-                JSON.stringify({
-                    type: 'clientStuff',
-                    sender: clientId,
-                    contents: 'Hello server part 3! This is from the Client',
-                }),
-            );
-        },
-    );
 };
-
-const sendMessage = async (): Promise<void> => {};
-
-/** Sets up the WebSocketService by connecting to the server websocket */
-const initialize = async (): Promise<void> => connect();

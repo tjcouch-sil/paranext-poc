@@ -31,6 +31,7 @@ import { isValidValue } from '@util/Util';
 import DefaultTabHeader from '@components/DefaultTabHeader';
 import { ScriptureTextPanelFunctions } from '@components/panels/TextPanels/ScriptureTextPanelHOC';
 import { startChangeScrRef } from '@services/PerformanceService';
+import * as WebSocketService from '@services/WebSocketService';
 
 /** Key for saving scrRef setting */
 const scrRefSettingKey = 'scrRef';
@@ -446,6 +447,73 @@ const Layout = () => {
                     Tab
                 </button>
                 <span className="settings">
+                    <button
+                        type="button"
+                        className="layout-interactive"
+                        onClick={() => {
+                            const start = performance.now();
+                            WebSocketService.request('Hi server!')
+                                .then((response) =>
+                                    console.log(
+                                        'Response!!!',
+                                        response,
+                                        'Response time:',
+                                        performance.now() - start,
+                                    ),
+                                )
+                                .catch((e) => console.error(e));
+                        }}
+                        onContextMenu={(e) => {
+                            const numRequests = 1000;
+                            const requests = new Array<
+                                Promise<WebSocketService.Response | void>
+                            >(numRequests);
+                            const requestTime = new Array<number>(numRequests);
+                            const start = performance.now();
+                            for (let i = 0; i < numRequests; i++) {
+                                requestTime[i] = performance.now();
+                                requests[i] = WebSocketService.request(
+                                    `Hi server ${i}`,
+                                )
+                                    .then((response) => {
+                                        requestTime[i] =
+                                            performance.now() - requestTime[i];
+                                        return response;
+                                    })
+                                    .catch((err) => console.error(err));
+                            }
+                            e.preventDefault();
+
+                            Promise.all(requests)
+                                .then((responses) => {
+                                    const finish = performance.now();
+
+                                    const avgResponseTime =
+                                        requestTime.reduce(
+                                            (sum, time) => sum + time,
+                                            0,
+                                        ) / numRequests;
+                                    const maxTime = requestTime.reduce(
+                                        (max, time) => Math.max(max, time),
+                                        0,
+                                    );
+                                    const minTime = requestTime.reduce(
+                                        (min, time) => Math.min(min, time),
+                                        Number.MAX_VALUE,
+                                    );
+                                    console.log(
+                                        `Of ${numRequests} requests:\n\tAvg response time: ${avgResponseTime} ms\n\tMax response time: ${maxTime} ms\n\tMin response time: ${minTime}\n\tTotal time: ${
+                                            finish - start
+                                        }\n\tResponse times:`,
+                                        requestTime,
+                                    );
+                                    return undefined;
+                                })
+                                .catch((err) => console.error(err));
+                        }}
+                    >
+                        Request
+                    </button>
                     {!rememberLayout && (
                         <label className="layout-interactive">
                             Starting Tabs:
