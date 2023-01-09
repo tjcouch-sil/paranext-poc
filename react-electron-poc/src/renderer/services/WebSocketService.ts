@@ -1,3 +1,7 @@
+/**
+ * Handles setting up a websocket connection to the Paratext backend
+ */
+
 /** Whether this service has finished setting up */
 let initialized = false;
 /** Whether the websocket connection is being set up or has finished connecting (does not return to false when connected is true) */
@@ -28,28 +32,45 @@ export type ClientConnect = {
     sender: string;
     contents: string;
 };
-export type Event = {
+/** One-way broadcast that something has occurred */
+export type Event<T> = {
     type: 'event';
+    /** What kind of event this is */
+    eventType: string;
     sender: string;
-    contents: string;
+    contents?: T;
 };
-export type Request = {
+/** Request to do something and to respond */
+export type Request<T> = {
     type: 'request';
+    /** What kind of request this is. Certain command, event, etc */
+    requestType: string;
     sender: string;
     requestId: number;
-    contents: string;
+    contents?: T;
 };
-export type Response = {
+/** Response to a request */
+export type Response<K> = {
     type: 'response';
+    /** What kind of request this is. Certain command, event, etc */
+    requestType: string;
     /** The process that originally sent the Request that matches to this response */
     sender: string;
     requestId: number;
     /** The process that sent this Response */
     responder: string;
-    contents: string;
+    contents?: K;
+    success: boolean;
+    /** Error explaining the problem that is only populated if success is false */
+    errorMessage: string;
 };
 
-export type Message = InitClient | ClientConnect | Event | Request | Response;
+export type Message =
+    | InitClient
+    | ClientConnect
+    | Event<unknown>
+    | Request<unknown>
+    | Response<unknown>;
 
 export const MessageTypes = [
     'initClient',
@@ -113,14 +134,14 @@ const unsubscribe = (
 /** Function to run to stop calling a function on some websocket message. Returns true if successfully unsubscribed */
 type Unsubscriber = () => boolean;
 /**
- * Subscribes a function to run on every websocket message
+ * Subscribes a function to run on websocket messages of a particular type
  * @param messageType the type of message on which to subscribe the function
  * @param callback function to run with the contents of the websocket message
  * @returns unsubscriber function to run to stop calling the passed-in function on websocket messages
  */
 export const subscribe = (
     messageType: MessageType,
-    // Any is here because I dunno how to narrow Message type to a specific message type in parameters of a functoin
+    // Any is here because I dunno how to narrow Message type to a specific message type in parameters of a function
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     callback: (eventData: Message | any) => void,
 ): Unsubscriber => {
@@ -137,26 +158,32 @@ export const subscribe = (
 /** The next requestId to use for identifying requests */
 let nextRequestId = 0;
 // TODO: implement request timeout logic
-type LiveRequest = {
+type LiveRequest<T> = {
     requestId: number;
-    resolve: (value: Response | PromiseLike<Response>) => void;
-    reject: (reason?: any) => void;
+    resolve: (value: Response<T> | PromiseLike<Response<T>>) => void;
+    reject: (reason?: unknown) => void;
 };
 /** All requests that are waiting for a response */
-const requests = new Map<number, LiveRequest>();
+// Disabled no-explicit-any because assigning a request with generic type to LiveRequest<unknown> gave error
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const requests = new Map<number, LiveRequest<any>>();
 
 /**
  * Send a request to the server and resolve after receiving a response
+ * @param requestType the type of request
  * @param contents contents to send in the request
  * @returns promise that resolves with the response message
  */
-export const request = async (contents: string): Promise<Response> => {
+export const request = async <T, K>(
+    requestType: string,
+    contents: T,
+): Promise<Response<K>> => {
     const requestId = nextRequestId;
     nextRequestId += 1;
 
     // Set up a promise we can resolve later
-    let liveRequest: LiveRequest | undefined;
-    const requestPromise = new Promise<Response>((resolve, reject) => {
+    let liveRequest: LiveRequest<K> | undefined;
+    const requestPromise = new Promise<Response<K>>((resolve, reject) => {
         liveRequest = {
             requestId,
             resolve,
@@ -169,16 +196,17 @@ export const request = async (contents: string): Promise<Response> => {
             `Live request was not created for requestId ${requestId}`,
         );
 
+    // Save the live request to resolve when we get the response
+    requests.set(requestId, liveRequest);
+
     // Send the request corresponding to the live request promise
     sendMessage({
         type: 'request',
+        requestType,
         sender: clientId,
         requestId,
         contents,
     });
-
-    // Save the live request to resolve when we get the response
-    requests.set(requestId, liveRequest);
 
     return requestPromise;
 };
@@ -214,7 +242,7 @@ export const initialize = () => {
         } as unknown as Message);
 
         const start = performance.now();
-        request('Hi server!')
+        request('echoTest', 'Hi server!')
             .then((response) =>
                 console.log(
                     'Response!!!',
@@ -227,15 +255,17 @@ export const initialize = () => {
     });
 
     // Handle response messages to requests we made
-    subscribe('response', (response: Response) => {
+    subscribe('response', (response: Response<unknown>) => {
         const { sender, responder, requestId } = response;
         if (clientId !== sender)
-            throw new Error(`Received response with sender ${sender}!`);
+            throw new Error(
+                `Received response from ${responder} with wrong sender ${sender}!`,
+            );
 
         const liveRequest = requests.get(requestId);
         if (!liveRequest)
             throw new Error(
-                `Received response for nonexistent requestId ${requestId}`,
+                `Received response from ${responder} for nonexistent requestId ${requestId}`,
             );
 
         // Remove the request from the requests because it is receiving a response

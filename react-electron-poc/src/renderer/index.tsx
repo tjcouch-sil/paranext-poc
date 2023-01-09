@@ -1,6 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import * as PerformanceService from '@services/PerformanceService';
-import * as WebSocketService from '@services/WebSocketService';
+import * as CommunicationService from '@services/CommunicationService';
 import App from './App';
 
 // App-wide service setup
@@ -11,7 +11,7 @@ PerformanceService.performanceLog({
     reportStart: true,
 });
 PerformanceService.initialize();
-WebSocketService.connect();
+CommunicationService.initialize();
 
 const container = document.getElementById('root');
 const root = createRoot(container as HTMLElement);
