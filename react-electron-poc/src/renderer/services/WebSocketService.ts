@@ -2,8 +2,6 @@
  * Handles setting up a websocket connection to the Paratext backend
  */
 
-/** Whether this service has finished setting up */
-let initialized = false;
 /** Whether the websocket connection is being set up or has finished connecting (does not return to false when connected is true) */
 let connecting = false;
 /** Whether this service has a websocket connection */
@@ -211,48 +209,85 @@ export const request = async <T, K>(
     return requestPromise;
 };
 
-/** Sets up the WebSocketService - does not connect the websocket. Automatically run when connect has been run */
-export const initialize = () => {
-    if (initialized) return;
+/** Disconnects from the server websocket */
+export const disconnect = () => {
+    // We don't need to run this if we aren't at least connecting (or connected)
+    if (!connecting || !websocket) return;
+
+    if (websocket.readyState === websocket.OPEN) websocket.close();
+
+    // Remove event listeners
+    websocket.removeEventListener('message', onMessage);
+    websocket.removeEventListener('close', disconnect);
+
+    if (unsubscribeInitClient) unsubscribeInitClient();
+    clientId = CLIENT_ID_UNASSIGNED;
+
+    connecting = false;
+    connected = false;
+};
+
+// TODO: memoize this so it only runs once and always returns the same promise
+/** Sets up the WebSocketService by connecting to the server websocket */
+export const connect = (): Promise<void> => {
+    // We don't need to run this more than once
+    if (connecting || connected) return Promise.resolve();
+
+    connecting = true;
+
+    /** Function that resolves the connection promise to be run after receiving a client id */
+    let resolveConnect: () => void;
+    /** Function that rejects the connection promise */
+    let rejectConnect: (reason?: string) => void;
+
+    /** The promise that resolves when the service is finished connecting */
+    const connectPromise = new Promise<void>((resolve, reject) => {
+        resolveConnect = resolve;
+        rejectConnect = reject;
+    });
 
     // Set up subscriptions that the service needs to work
     // Get the client id from the server on new connections
-    subscribe('initClient', ({ clientId: newClientId }: InitClient) => {
-        if (clientId !== CLIENT_ID_UNASSIGNED)
-            throw new Error(
-                `Received initClient message multiple times! Current clientId: ${clientId}. New clientId: ${newClientId}`,
-            );
+    unsubscribeInitClient = subscribe(
+        'initClient',
+        ({ clientId: newClientId }: InitClient) => {
+            if (clientId !== CLIENT_ID_UNASSIGNED)
+                throw new Error(
+                    `Received initClient message multiple times! Current clientId: ${clientId}. New clientId: ${newClientId}`,
+                );
 
-        clientId = newClientId;
-        console.log(`Got clientId ${clientId}`);
+            clientId = newClientId;
+            console.log(`Got clientId ${clientId}`);
 
-        if (!websocket) return;
+            if (!websocket) {
+                rejectConnect('websocket is gone!');
+                return;
+            }
 
-        sendMessage({
-            type: 'clientStuff',
-            sender: clientId,
-            contents:
-                'Hello server part 2! This is from the Client, and it is a long message!',
-        } as unknown as Message);
+            // Finished setting up WebSocketService and connecting! Resolve the promise
+            connected = true;
+            resolveConnect();
 
-        sendMessage({
-            type: 'clientStuff',
-            sender: clientId,
-            contents: 'Hello server part 3! This is from the Client',
-        } as unknown as Message);
+            sendMessage({
+                type: 'clientConnect',
+                sender: 'the client',
+                contents: 'Hello server! This is from the Client',
+            });
 
-        const start = performance.now();
-        request('echoTest', 'Hi server!')
-            .then((response) =>
-                console.log(
-                    'Response!!!',
-                    response,
-                    'Response time:',
-                    performance.now() - start,
-                ),
-            )
-            .catch((e) => console.error(e));
-    });
+            sendMessage({
+                type: 'clientStuff',
+                sender: clientId,
+                contents:
+                    'Hello server part 2! This is from the Client, and it is a long message!',
+            } as unknown as Message);
+
+            sendMessage({
+                type: 'clientStuff',
+                sender: clientId,
+                contents: 'Hello server part 3! This is from the Client',
+            } as unknown as Message);
+        },
+    );
 
     // Handle response messages to requests we made
     subscribe('response', (response: Response<unknown>) => {
@@ -275,57 +310,28 @@ export const initialize = () => {
         liveRequest.resolve(response);
     });
 
-    initialized = true;
-};
-
-/** Disconnects from the server websocket */
-export const disconnect = () => {
-    // We don't need to run this if we aren't at least connecting (or connected)
-    if (!connecting || !websocket) return;
-
-    if (websocket.readyState === websocket.OPEN) websocket.close();
-
-    // Remove event listeners
-    websocket.removeEventListener('message', onMessage);
-    websocket.removeEventListener('close', disconnect);
-
-    if (unsubscribeInitClient) unsubscribeInitClient();
-    clientId = CLIENT_ID_UNASSIGNED;
-
-    connecting = false;
-    connected = false;
-};
-
-/** Sets up the WebSocketService by connecting to the server websocket */
-export const connect = async (): Promise<void> => {
-    // We don't need to run this more than once
-    if (connecting) return;
-
-    if (!initialized) initialize();
-
-    connecting = true;
-
     websocket = new WebSocket('ws://localhost:5122/ws');
 
-    // Mark that we have connected to the websocket
+    // Do stuff when we open the web socket. Does not represent successfully connectnig as we need a client id
+    // Cannot send messages here as we are not considered to be fully connected
+    // TODO: if the web socket never opens, we never remove the onOpen event listener. Pls fix
     const onOpen = () => {
         if (!websocket) {
             connecting = false;
             return;
         }
 
-        connected = true;
-
-        sendMessage({
-            type: 'clientConnect',
-            sender: 'the client',
-            contents: 'Hello server! This is from the Client',
-        });
-
         websocket.removeEventListener('open', onOpen);
     };
 
     websocket.addEventListener('open', onOpen);
     websocket.addEventListener('message', onMessage);
-    websocket.addEventListener('close', disconnect);
+    websocket.addEventListener('close', () => {
+        if (!connected)
+            // The service is not connected, so reject the connection promise
+            rejectConnect('Web socket closed before connecting!');
+        disconnect();
+    });
+
+    return connectPromise;
 };
