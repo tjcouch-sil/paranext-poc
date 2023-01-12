@@ -5,13 +5,52 @@ export type Unsubscriber = () => boolean;
 
 export type CommandResponse<T> = WebSocketService.Response<T>;
 
+/** Handler function for a command. Called when a command is executed */
+// Any is probably fine because we likely never know or care about the args or return
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type CommandHandler<T extends Array<unknown> = any[], K = any> = (
+    ...args: T
+) => K;
+
 /** Registration object for a command. Want an object so we can register multiple commands at once */
-export type CommandRegistration<T extends Array<unknown>, K> = {
+// Any is probably fine because we likely never know or care about the args or return
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type CommandRegistration<T extends Array<unknown> = any[], K = any> = {
     commandName: string;
-    handler: (...args: T) => K;
+    handler: CommandHandler<T, K>;
 };
 
-/* Following is a failed attempt at inheriting promises to attach an unsubscriber. 
+/** Prefix on requests that indicates that the request is a command */
+export const CATEGORY_COMMAND = 'command';
+/** Prefix on requests that indicates that the request is an internal epm operation */
+export const CATEGORY_EPM = 'epm';
+
+/** Information about a request that tells us what to do with it */
+export type RequestType = {
+    /** the general category of request */
+    category: string;
+    /** specific identifier for this type of request */
+    directive: string;
+};
+
+/**
+ * Create a request message requestType string from a category and a directive
+ * @param category the general category of request
+ * @param directive specific idenitifer for this type of request
+ * @returns full requestType for use in network calls
+ */
+export const serializeRequestType = (
+    category: string,
+    directive: string,
+): string => `${category}:${directive}`;
+
+/** Split a request message requestType string into its parts */
+export const deserializeRequestType = (requestType: string): RequestType => {
+    const [category, directive] = requestType.split(':', 1);
+    return { category, directive };
+};
+
+/* Following is a failed attempt at inheriting promises to attach an unsubscriber.
  * Inheriting promise doesn't work with async/await as it sometimes wraps the return in a Promise.
  * Maybe it would be worth it just to try using UnsubPromise on registerCommands in the future, but let's abandon for now
  */

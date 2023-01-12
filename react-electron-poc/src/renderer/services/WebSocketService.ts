@@ -14,35 +14,41 @@ let websocket: WebSocket | undefined;
 const CLIENT_ID_UNASSIGNED = '';
 /** The client id for this browser as assigned by the server */
 let clientId: string = CLIENT_ID_UNASSIGNED;
-/** An unsubscriber for the current initClient subscription. Only want to get client id once per connection,
- *  and don't want to subscribe multiple times on accident */
-let unsubscribeInitClient: Unsubscriber | undefined;
 /** All message subscriptions - arrays of functions that run each time a message with a specific message type comes in */
 const messageSubscriptions = new Map<
     MessageType,
     ((eventData: Message) => void)[]
 >();
 
+export enum MessageType {
+    InitClient = 'initClient',
+    ClientConnect = 'clientConnect',
+    Event = 'event',
+    Request = 'request',
+    Response = 'response',
+}
+export const MessageTypes = Object.values(MessageType);
+
 export type InitClient = {
-    type: 'initClient';
+    type: MessageType.InitClient;
     clientId: string;
 };
 export type ClientConnect = {
-    type: 'clientConnect';
+    type: MessageType.ClientConnect;
     sender: string;
     contents: string;
 };
 /** One-way broadcast that something has occurred */
 export type Event<T> = {
-    type: 'event';
+    type: MessageType.Event;
     /** What kind of event this is */
     eventType: string;
     sender: string;
     contents?: T;
 };
 /** Request to do something and to respond */
-export type Request<T> = {
-    type: 'request';
+export type Request<T = unknown> = {
+    type: MessageType.Request;
     /** What kind of request this is. Certain command, event, etc */
     requestType: string;
     sender: string;
@@ -51,7 +57,7 @@ export type Request<T> = {
 };
 /** Response to a request */
 export type Response<K> = {
-    type: 'response';
+    type: MessageType.Response;
     /** What kind of request this is. Certain command, event, etc */
     requestType: string;
     /** The process that originally sent the Request that matches to this response */
@@ -71,15 +77,6 @@ export type Message =
     | Event<unknown>
     | Request<unknown>
     | Response<unknown>;
-
-export const MessageTypes = [
-    'initClient',
-    'clientConnect',
-    'event',
-    'request',
-    'response',
-] as const;
-export type MessageType = typeof MessageTypes[number];
 
 /** Send a message to the server via websocket */
 const sendMessage = (message: Message): void => {
@@ -199,7 +196,7 @@ export const request = async <T, K>(
 
     // Send the request corresponding to the live request promise
     sendMessage({
-        type: 'request',
+        type: MessageType.Request,
         requestType,
         sender: clientId,
         requestId,
@@ -220,7 +217,6 @@ export const disconnect = () => {
     websocket.removeEventListener('message', onMessage);
     websocket.removeEventListener('close', disconnect);
 
-    if (unsubscribeInitClient) unsubscribeInitClient();
     clientId = CLIENT_ID_UNASSIGNED;
 
     connecting = false;
@@ -248,8 +244,8 @@ export const connect = (): Promise<void> => {
 
     // Set up subscriptions that the service needs to work
     // Get the client id from the server on new connections
-    unsubscribeInitClient = subscribe(
-        'initClient',
+    const unsubscribeInitClient = subscribe(
+        MessageType.InitClient,
         ({ clientId: newClientId }: InitClient) => {
             if (clientId !== CLIENT_ID_UNASSIGNED)
                 throw new Error(
@@ -269,7 +265,7 @@ export const connect = (): Promise<void> => {
             resolveConnect();
 
             sendMessage({
-                type: 'clientConnect',
+                type: MessageType.ClientConnect,
                 sender: 'the client',
                 contents: 'Hello server! This is from the Client',
             });
@@ -290,25 +286,28 @@ export const connect = (): Promise<void> => {
     );
 
     // Handle response messages to requests we made
-    subscribe('response', (response: Response<unknown>) => {
-        const { sender, responder, requestId } = response;
-        if (clientId !== sender)
-            throw new Error(
-                `Received response from ${responder} with wrong sender ${sender}!`,
-            );
+    const unsubscribeResponse = subscribe(
+        MessageType.Response,
+        (response: Response<unknown>) => {
+            const { sender, responder, requestId } = response;
+            if (clientId !== sender)
+                throw new Error(
+                    `Received response from ${responder} with wrong sender ${sender}!`,
+                );
 
-        const liveRequest = requests.get(requestId);
-        if (!liveRequest)
-            throw new Error(
-                `Received response from ${responder} for nonexistent requestId ${requestId}`,
-            );
+            const liveRequest = requests.get(requestId);
+            if (!liveRequest)
+                throw new Error(
+                    `Received response from ${responder} for nonexistent requestId ${requestId}`,
+                );
 
-        // Remove the request from the requests because it is receiving a response
-        requests.delete(requestId);
+            // Remove the request from the requests because it is receiving a response
+            requests.delete(requestId);
 
-        // Run the request's response function with the response
-        liveRequest.resolve(response);
-    });
+            // Run the request's response function with the response
+            liveRequest.resolve(response);
+        },
+    );
 
     websocket = new WebSocket('ws://localhost:5122/ws');
 
@@ -330,6 +329,8 @@ export const connect = (): Promise<void> => {
         if (!connected)
             // The service is not connected, so reject the connection promise
             rejectConnect('Web socket closed before connecting!');
+        unsubscribeInitClient();
+        unsubscribeResponse();
         disconnect();
     });
 
