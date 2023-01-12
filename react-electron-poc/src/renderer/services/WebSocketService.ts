@@ -1,3 +1,5 @@
+import type { Unsubscriber } from '@util/PapiUtil';
+
 /**
  * Handles setting up a websocket connection to the Paratext backend
  */
@@ -129,8 +131,6 @@ const unsubscribe = (
     return true;
 };
 
-/** Function to run to stop calling a function on some websocket message. Returns true if successfully unsubscribed */
-type Unsubscriber = () => boolean;
 /**
  * Subscribes a function to run on websocket messages of a particular type
  * @param messageType the type of message on which to subscribe the function
