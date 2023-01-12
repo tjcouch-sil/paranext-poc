@@ -27,6 +27,10 @@ export const initialize = async (): Promise<void> => {
     // TODO: Might be best to make a singleton or something
     await WebSocketService.connect();
 
+    // Set up subscriptions that the service needs to work
+
+    initialized = true;
+
     const start = performance.now();
     sendCommand('echo', 'Hi server!')
         .then((response) =>
@@ -38,8 +42,4 @@ export const initialize = async (): Promise<void> => {
             ),
         )
         .catch((e) => console.error(e));
-
-    // Set up subscriptions that the service needs to work
-
-    initialized = true;
 };
