@@ -1,9 +1,24 @@
-import * as WebSocketService from '@services/WebSocketService';
-
-/** Function to run to stop calling a function on some websocket message. Returns true if successfully unsubscribed */
+/** Function to run to dispose of something. Returns true if successfully unsubscribed */
 export type Unsubscriber = () => boolean;
 
-export type CommandResponse<T> = WebSocketService.Response<T>;
+/**
+ * Type of object passed to a complex request handler that provides information about the request.
+ * This type is used as the public-facing interface for requests
+ */
+export type ComplexRequest<T = unknown> = {
+    contents?: T;
+};
+
+/**
+ * Type of object to create when handling a complex request where you desire to provide additional information beyond the contents of the response
+ * This type is used as the public-facing interface for responses
+ */
+export type ComplexResponse<K = unknown> = {
+    contents?: K;
+    success: boolean;
+    /** Error explaining the problem that is only populated if success is false */
+    errorMessage: string;
+};
 
 /** Handler function for a command. Called when a command is executed */
 // Any is probably fine because we likely never know or care about the args or return

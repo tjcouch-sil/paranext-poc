@@ -5,8 +5,9 @@ import {
     CATEGORY_EPM,
     CommandHandler,
     CommandRegistration,
-    CommandResponse,
     deserializeRequestType,
+    Unsubscriber,
+    ComplexResponse,
 } from '@util/PapiUtil';
 import memoizeOne from 'memoize-one';
 
@@ -17,8 +18,8 @@ import memoizeOne from 'memoize-one';
 /** Whether this service has finished setting up */
 let initialized = false;
 
-/** Map of command name to registered handler for that command */
-const commandRegistrations = new Map<string, CommandRegistration>();
+/** Map of command name to unregister function for that command */
+const commandUnsubscribers = new Map<string, Unsubscriber>();
 
 function addThree(a: number, b: number, c: number) {
     return a + b + c;
@@ -34,12 +35,12 @@ const commandFunctions: { [commandName: string]: CommandHandler } = {
 
 /**
  * Send a command to the backend.
- * WARNING: THIS DOES NOT CHECK FOR INITIALIZATION. DO NOT USE. Use sendCommand
+ * WARNING: THIS DOES NOT CHECK FOR INITIALIZATION. DO NOT USE OUTSIDE OF INITIALIZATION. Use sendCommand
  */
 const sendCommandUnsafe = async <T extends Array<unknown>, K>(
     type: string,
     ...args: T
-): Promise<CommandResponse<K>> => {
+): Promise<ComplexResponse<K>> => {
     return WebSocketService.request(
         serializeRequestType(CATEGORY_COMMAND, type),
         args,
@@ -48,12 +49,12 @@ const sendCommandUnsafe = async <T extends Array<unknown>, K>(
 
 /**
  * Send an epm request to the backend.
- * WARNING: THIS DOES NOT CHECK FOR INITIALIZATION. DO NOT USE. Use sendEpmRequest
+ * WARNING: THIS DOES NOT CHECK FOR INITIALIZATION. DO NOT USE OUTSIDE OF INITIALIZATION. Use sendEpmRequest
  */
 const sendEpmRequestUnsafe = async <T extends Array<unknown>, K>(
     type: string,
     ...args: T
-): Promise<CommandResponse<K>> => {
+): Promise<ComplexResponse<K>> => {
     return WebSocketService.request(
         serializeRequestType(CATEGORY_EPM, type),
         args,
@@ -62,14 +63,14 @@ const sendEpmRequestUnsafe = async <T extends Array<unknown>, K>(
 
 /**
  * Unregister commands on the papi that were being handled here
- * WARNING: THIS DOES NOT CHECK FOR INITIALIZATION. DO NOT USE. Use unregisterCommands
+ * WARNING: THIS DOES NOT CHECK FOR INITIALIZATION. DO NOT USE OUTSIDE OF INITIALIZATION. Use unregisterCommands
  * @param commands list of command names to unregister from handling here
  * @returns response whose contents are a list of commands that were not successfully unregistered if error
  * TODO: instead of having an independent unregister, refactor so registerCommandsUnsafe returns a promise and an unsubscriber per command
  */
 const unregisterCommandsUnsafe = async (
     ...commandNames: string[]
-): Promise<CommandResponse<string[]>> => {
+): Promise<ComplexResponse<string[]>> => {
     const commandResponse = await sendEpmRequestUnsafe<string[], string[]>(
         'unregisterCommands',
         ...commandNames,
@@ -80,8 +81,12 @@ const unregisterCommandsUnsafe = async (
             commandResponse.success ||
             !commandResponse.contents?.includes(commandName)
         ) {
-            // Command successfully registered. Listen for the command!
-            if (!commandRegistrations.delete(commandName))
+            // Command successfully unregistered. Unsubscribe the command request handler!
+            const commandUnsubscriber = commandUnsubscribers.get(commandName);
+            if (commandUnsubscriber) {
+                commandUnsubscriber();
+                commandUnsubscribers.delete(commandName);
+            } else
                 throw Error(
                     `Command ${commandName} does not have a handler to remove`,
                 );
@@ -97,27 +102,33 @@ const unregisterCommandsUnsafe = async (
 
 /**
  * Register commands on the papi to be handled here
- * WARNING: THIS DOES NOT CHECK FOR INITIALIZATION. DO NOT USE. Use registerCommands
+ * WARNING: THIS DOES NOT CHECK FOR INITIALIZATION. DO NOT USE OUTSIDE OF INITIALIZATION. Use registerCommands
  * @param commands list of commands and handlers to register for handling here
  * @returns response whose contents are a list of commands that were not successfully registered if error
  */
 const registerCommandsUnsafe = async (
     ...commands: CommandRegistration[]
-): Promise<CommandResponse<string[]>> => {
-    const commandResponse = await sendEpmRequestUnsafe<
-        CommandRegistration[],
-        string[]
-    >('registerCommands', ...commands);
+): Promise<ComplexResponse<string[]>> => {
+    const commandResponse = await sendEpmRequestUnsafe<string[], string[]>(
+        'registerCommands',
+        ...commands.map((command) => command.commandName),
+    );
 
     commands.forEach((commandRegistration) => {
         if (
             commandResponse.success ||
             !commandResponse.contents?.includes(commandRegistration.commandName)
         ) {
-            // Command successfully registered. Listen for the command!
-            commandRegistrations.set(
+            // Command successfully registered. Register to respond to the command request
+            commandUnsubscribers.set(
                 commandRegistration.commandName,
-                commandRegistration,
+                WebSocketService.registerRequestHandler(
+                    serializeRequestType(
+                        CATEGORY_COMMAND,
+                        commandRegistration.commandName,
+                    ),
+                    commandRegistration.handler,
+                ),
             );
         }
     });
@@ -137,14 +148,14 @@ export const initialize = memoizeOne(async (): Promise<void> => {
     // TODO: Might be best to make a singleton or something
     await WebSocketService.connect();
 
-    // Set up subscriptions that the service needs to work
+    /* // Set up subscriptions that the service needs to work
     // Listens to command requests and fires handlers
     const unsubscribeRequests = WebSocketService.subscribe(
         WebSocketService.MessageType.Request,
         (request: WebSocketService.Request<unknown[]>) => {
             const requestType = deserializeRequestType(request.requestType);
             if (requestType.category === CATEGORY_COMMAND) {
-                const registration = commandRegistrations.get(
+                const registration = commandUnsubscribers.get(
                     requestType.directive,
                 );
                 if (registration) {
@@ -155,7 +166,7 @@ export const initialize = memoizeOne(async (): Promise<void> => {
                 }
             }
         },
-    );
+    ); */
 
     // Register built-in commands
     console.log(
@@ -172,8 +183,8 @@ export const initialize = memoizeOne(async (): Promise<void> => {
     // On closing, try to remove command listeners
     // TODO: should probably do this on the server when the connection closes
     window.addEventListener('beforeunload', async () => {
-        unsubscribeRequests();
-        await unregisterCommandsUnsafe(...Object.keys(commandFunctions));
+        /* unsubscribeRequests(); */
+        await unregisterCommandsUnsafe(...commandUnsubscribers.keys());
     });
 
     initialized = true;
@@ -197,7 +208,7 @@ export const initialize = memoizeOne(async (): Promise<void> => {
 export const sendCommand = async <T extends Array<unknown>, K>(
     type: string,
     ...args: T
-): Promise<CommandResponse<K>> => {
+): Promise<ComplexResponse<K>> => {
     await initialize();
     return sendCommandUnsafe(type, ...args);
 };
@@ -209,7 +220,7 @@ export const sendCommand = async <T extends Array<unknown>, K>(
 const sendEpmRequest = async <T extends Array<unknown>, K>(
     type: string,
     ...args: T
-): Promise<CommandResponse<K>> => {
+): Promise<ComplexResponse<K>> => {
     await initialize();
     return sendEpmRequestUnsafe(type, ...args);
 };

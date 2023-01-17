@@ -1,4 +1,5 @@
-import type { Unsubscriber } from '@util/PapiUtil';
+import { ComplexRequest, ComplexResponse, Unsubscriber } from '@util/PapiUtil';
+import { getErrorMessage } from '@util/Util';
 
 /**
  * Handles setting up a websocket connection to the Paratext backend
@@ -19,6 +20,65 @@ const messageSubscriptions = new Map<
     MessageType,
     ((eventData: Message) => void)[]
 >();
+/** Map of requestType to registered handler for that request */
+const requestRegistrations = new Map<string, RequestRegistration>();
+
+/** Information about the request handler and how to run it */
+// Any is probably fine because we likely never know or care about the args or return
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RequestRegistration<T = any, K = any> = {
+    requestType: string;
+    handler: RequestHandler<T, K> | RequestHandler<T[], K>;
+    handlerType: RequestHandlerType;
+};
+
+/** Type of request handler - indicates what type of parameters and what return type the handler has */
+export enum RequestHandlerType {
+    Args = 'args',
+    Contents = 'contents',
+    Complex = 'complex',
+}
+
+/**
+ * Args handler function for a request. Called when a request is handled.
+ * The function should accept the spread of the contents array of the request as its parameters.
+ * The function should return an object that becomes the contents object of the response.
+ * This type of handler is a normal function.
+ */
+// Any is probably fine because we likely never know or care about the args or return
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ArgsRequestHandler<T extends Array<unknown> = any[], K = any> = (
+    ...args: T
+) => K;
+
+/**
+ * Contents handler function for a request. Called when a request is handled.
+ * The function should accept the contents object of the request as its single parameter.
+ * The function should return an object that becomes the contents object of the response.
+ */
+// Any is probably fine because we likely never know or care about the args or return
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ContentsRequestHandler<T = any, K = any> = (contents: T) => K;
+
+/**
+ * Complex handler function for a request. Called when a request is handled.
+ * The function should accept a ComplexRequest object as its single parameter.
+ * The function should return a ComplexResponse object that becomes the response..
+ * This type of handler is the most flexible of the request handlers.
+ */
+// Any is probably fine because we likely never know or care about the args or return
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ComplexRequestHandler<T = any, K = any> = (
+    request: ComplexRequest<T>,
+) => ComplexResponse<K>;
+
+/** Handler function for a request */
+// Any is probably fine because we likely never know or care about the args or return
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type RequestHandler<T = any, K = any> =
+    | ArgsRequestHandler<T[], K>
+    | ContentsRequestHandler<T, K>
+    | ComplexRequestHandler<T, K>;
 
 export enum MessageType {
     InitClient = 'initClient',
@@ -53,10 +113,9 @@ export type Request<T = unknown> = {
     requestType: string;
     sender: string;
     requestId: number;
-    contents?: T;
-};
+} & ComplexRequest<T>;
 /** Response to a request */
-export type Response<K> = {
+export type Response<K = unknown> = {
     type: MessageType.Response;
     /** What kind of request this is. Certain command, event, etc */
     requestType: string;
@@ -65,11 +124,7 @@ export type Response<K> = {
     requestId: number;
     /** The process that sent this Response */
     responder: string;
-    contents?: K;
-    success: boolean;
-    /** Error explaining the problem that is only populated if success is false */
-    errorMessage: string;
-};
+} & ComplexResponse<K>;
 
 export type Message =
     | InitClient
@@ -206,6 +261,66 @@ export const request = async <T, K>(
     return requestPromise;
 };
 
+/**
+ * Unregisters a request handler from running on requests
+ * @param requestType the type of request from which to unregister the handler
+ * @param handler function to unregister from running on requests
+ * @returns true if successfully unregistered
+ * Likely will never need to be exported from this file. Just use registerRequestHandler, which returns a matching unsubscriber function that runs this.
+ */
+function unregisterRequestHandler(
+    requestType: string,
+    handler: RequestHandler,
+): boolean {
+    if (requestRegistrations.get(requestType)?.handler === handler) {
+        requestRegistrations.delete(requestType);
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Subscribes a function to run on websocket messages of a particular type
+ * @param messageType the type of message on which to subscribe the function
+ * @param callback function to run with the contents of the websocket message
+ * @returns unsubscriber function to run to stop calling the passed-in function on websocket messages
+ */
+
+/**
+ * Register a request handler to run on requests. Must register requests with the server to receive them here.
+ * @param requestType the type of request on which to register the handler
+ * @param handler function to register to run on requests
+ * @param handlerType type of handler function - indicates what type of parameters and what return type the handler has
+ * @returns unsubscriber function to run to stop the passed-in function from handling requests
+ */
+export function registerRequestHandler(
+    requestType: string,
+    handler: ContentsRequestHandler,
+    handlerType?: RequestHandlerType,
+): Unsubscriber;
+export function registerRequestHandler(
+    requestType: string,
+    handler: ComplexRequestHandler,
+    handlerType?: RequestHandlerType,
+): Unsubscriber;
+export function registerRequestHandler(
+    requestType: string,
+    handler: ArgsRequestHandler,
+    handlerType?: RequestHandlerType,
+): Unsubscriber;
+export function registerRequestHandler(
+    requestType: string,
+    handler: RequestHandler,
+    handlerType = RequestHandlerType.Args,
+): Unsubscriber {
+    requestRegistrations.set(requestType, {
+        requestType,
+        handler,
+        handlerType,
+    });
+    return () => unregisterRequestHandler(requestType, handler);
+}
+
 /** Disconnects from the server websocket */
 export const disconnect = () => {
     // We don't need to run this if we aren't at least connecting (or connected)
@@ -309,6 +424,82 @@ export const connect = (): Promise<void> => {
         },
     );
 
+    // Respond to requests from the server
+    const unsubscribeRequest = subscribe(
+        MessageType.Request,
+        (requestMessage: Request<unknown>) => {
+            const registration = requestRegistrations.get(
+                requestMessage.requestType,
+            );
+
+            let result: unknown | undefined;
+            let success = false;
+            let errorMessage = '';
+
+            if (!registration)
+                // There is no handler registered for this request. Respond failure
+                errorMessage = 'No handler was found to process the request';
+            else
+                switch (registration.handlerType) {
+                    case RequestHandlerType.Args:
+                        try {
+                            result = requestMessage.contents
+                                ? (registration.handler as ArgsRequestHandler)(
+                                      ...(requestMessage.contents as unknown[]),
+                                  )
+                                : (
+                                      registration.handler as ArgsRequestHandler
+                                  )();
+                            success = true;
+                        } catch (e) {
+                            errorMessage = getErrorMessage(e);
+                        }
+                        break;
+                    case RequestHandlerType.Contents:
+                        try {
+                            result = (
+                                registration.handler as ContentsRequestHandler
+                            )(requestMessage.contents);
+                            success = true;
+                        } catch (e) {
+                            errorMessage = getErrorMessage(e);
+                        }
+                        break;
+                    case RequestHandlerType.Complex: {
+                        // Not sure if it's really responsible to put the whole requestMessage in. Might want to destructure and just pass ComplexRequest members
+                        const response = (
+                            registration.handler as ComplexRequestHandler
+                        )(requestMessage);
+                        // Breaking out the contents of the ComplexResponse to use existing variables. Should we destructure instead to support other fields? It was not playing well with Typescript
+                        result = response.contents;
+                        success = response.success;
+                        errorMessage = response.errorMessage;
+                        break;
+                    }
+                    default:
+                        throw Error(
+                            `RequestHandlerType.${registration.handlerType} not supported! On requestType ${requestMessage.requestType}`,
+                        );
+                }
+
+            if (!success && !errorMessage) {
+                errorMessage =
+                    'The JS-handled request was not handled successfully';
+            }
+
+            sendMessage({
+                type: MessageType.Response,
+                requestType: requestMessage.requestType,
+                sender: requestMessage.sender,
+                requestId: requestMessage.requestId,
+                responder: clientId,
+                contents: result,
+                success,
+                errorMessage,
+            });
+        },
+    );
+
     websocket = new WebSocket('ws://localhost:5122/ws');
 
     // Do stuff when we open the web socket. Does not represent successfully connectnig as we need a client id
@@ -331,6 +522,7 @@ export const connect = (): Promise<void> => {
             rejectConnect('Web socket closed before connecting!');
         unsubscribeInitClient();
         unsubscribeResponse();
+        unsubscribeRequest();
         disconnect();
     });
 

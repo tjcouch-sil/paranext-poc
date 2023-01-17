@@ -455,9 +455,10 @@ const Layout = () => {
                             const start = performance.now();
                             // WebSocketService.request('Hi server!')
                             CommunicationService.sendCommand<number[], number>(
-                                'addTwo',
+                                'addThree',
                                 1,
                                 3,
+                                5,
                             )
                                 .then(
                                     (
