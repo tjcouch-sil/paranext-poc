@@ -5,7 +5,6 @@ import {
     CATEGORY_EPM,
     CommandHandler,
     CommandRegistration,
-    deserializeRequestType,
     Unsubscriber,
     ComplexResponse,
 } from '@util/PapiUtil';
@@ -148,25 +147,7 @@ export const initialize = memoizeOne(async (): Promise<void> => {
     // TODO: Might be best to make a singleton or something
     await WebSocketService.connect();
 
-    /* // Set up subscriptions that the service needs to work
-    // Listens to command requests and fires handlers
-    const unsubscribeRequests = WebSocketService.subscribe(
-        WebSocketService.MessageType.Request,
-        (request: WebSocketService.Request<unknown[]>) => {
-            const requestType = deserializeRequestType(request.requestType);
-            if (requestType.category === CATEGORY_COMMAND) {
-                const registration = commandUnsubscribers.get(
-                    requestType.directive,
-                );
-                if (registration) {
-                    const result = request.contents
-                        ? registration.handler(...request.contents)
-                        : registration.handler();
-                    // TODO: send response to server
-                }
-            }
-        },
-    ); */
+    // Set up subscriptions that the service needs to work
 
     // Register built-in commands
     console.log(

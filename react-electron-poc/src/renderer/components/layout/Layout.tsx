@@ -33,6 +33,7 @@ import { ScriptureTextPanelFunctions } from '@components/panels/TextPanels/Scrip
 import { startChangeScrRef } from '@services/PerformanceService';
 import * as WebSocketService from '@services/WebSocketService';
 import * as CommunicationService from '@services/CommunicationService';
+import { ComplexResponse } from '@util/PapiUtil';
 
 /** Key for saving scrRef setting */
 const scrRefSettingKey = 'scrRef';
@@ -460,29 +461,30 @@ const Layout = () => {
                                 3,
                                 5,
                             )
-                                .then(
-                                    (
-                                        response: CommunicationService.CommandResponse<number>,
-                                    ) =>
-                                        console.log(
-                                            'Response!!!',
-                                            response,
-                                            'Response time:',
-                                            performance.now() - start,
-                                        ),
+                                .then((response: ComplexResponse<number>) =>
+                                    console.log(
+                                        'Response!!!',
+                                        response,
+                                        'Response time:',
+                                        performance.now() - start,
+                                    ),
                                 )
                                 .catch((e) => console.error(e));
                         }}
                         onContextMenu={(e) => {
                             const numRequests = 1000;
                             const requests = new Array<
-                                Promise<WebSocketService.Response<string> | void>
+                                Promise<ComplexResponse<number> | void>
                             >(numRequests);
                             const requestTime = new Array<number>(numRequests);
                             const start = performance.now();
                             for (let i = 0; i < numRequests; i++) {
                                 requestTime[i] = performance.now();
-                                requests[i] = WebSocketService.request(
+                                requests[i] = CommunicationService.sendCommand<
+                                    number[],
+                                    number
+                                >('addThree', 1, 3, 5)
+                                    /* requests[i] = WebSocketService.request(
                                     `Hi server very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long 
                                     very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long 
                                     very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long 
@@ -809,7 +811,7 @@ const Layout = () => {
                                     very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long 
                                     very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long 
                                     very long very long very long ${i}`,
-                                    /* ~40 `Hi server ${i}`, */
+                                    /* ~40 `Hi server ${i}`, * /
                                     /* ~9700 `Hi server very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long 
                                     very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long 
                                     very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long 
@@ -847,8 +849,8 @@ const Layout = () => {
                                     very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long 
                                     very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long 
                                     very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long very long 
-                                    very long very long very long ${i}`, */
-                                )
+                                    very long very long very long ${i}`, * /
+                                ) */
                                     .then((response) => {
                                         requestTime[i] =
                                             performance.now() - requestTime[i];

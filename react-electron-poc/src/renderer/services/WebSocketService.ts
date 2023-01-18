@@ -1,4 +1,9 @@
-import { ComplexRequest, ComplexResponse, Unsubscriber } from '@util/PapiUtil';
+import {
+    ComplexRequest,
+    ComplexResponse,
+    RequestHandlerType,
+    Unsubscriber,
+} from '@util/PapiUtil';
 import { getErrorMessage } from '@util/Util';
 
 /**
@@ -31,13 +36,6 @@ type RequestRegistration<T = any, K = any> = {
     handler: RequestHandler<T, K> | RequestHandler<T[], K>;
     handlerType: RequestHandlerType;
 };
-
-/** Type of request handler - indicates what type of parameters and what return type the handler has */
-export enum RequestHandlerType {
-    Args = 'args',
-    Contents = 'contents',
-    Complex = 'complex',
-}
 
 /**
  * Args handler function for a request. Called when a request is handled.
@@ -80,26 +78,26 @@ type RequestHandler<T = any, K = any> =
     | ContentsRequestHandler<T, K>
     | ComplexRequestHandler<T, K>;
 
-export enum MessageType {
+enum MessageType {
     InitClient = 'initClient',
     ClientConnect = 'clientConnect',
     Event = 'event',
     Request = 'request',
     Response = 'response',
 }
-export const MessageTypes = Object.values(MessageType);
+/* const MessageTypes = Object.values(MessageType); */
 
-export type InitClient = {
+type InitClient = {
     type: MessageType.InitClient;
     clientId: string;
 };
-export type ClientConnect = {
+type ClientConnect = {
     type: MessageType.ClientConnect;
     sender: string;
     contents: string;
 };
 /** One-way broadcast that something has occurred */
-export type Event<T> = {
+type Event<T> = {
     type: MessageType.Event;
     /** What kind of event this is */
     eventType: string;
@@ -107,7 +105,7 @@ export type Event<T> = {
     contents?: T;
 };
 /** Request to do something and to respond */
-export type Request<T = unknown> = {
+type Request<T = unknown> = {
     type: MessageType.Request;
     /** What kind of request this is. Certain command, event, etc */
     requestType: string;
@@ -115,7 +113,7 @@ export type Request<T = unknown> = {
     requestId: number;
 } & ComplexRequest<T>;
 /** Response to a request */
-export type Response<K = unknown> = {
+type Response<K = unknown> = {
     type: MessageType.Response;
     /** What kind of request this is. Certain command, event, etc */
     requestType: string;
@@ -126,7 +124,7 @@ export type Response<K = unknown> = {
     responder: string;
 } & ComplexResponse<K>;
 
-export type Message =
+type Message =
     | InitClient
     | ClientConnect
     | Event<unknown>
@@ -278,13 +276,6 @@ function unregisterRequestHandler(
     }
     return false;
 }
-
-/**
- * Subscribes a function to run on websocket messages of a particular type
- * @param messageType the type of message on which to subscribe the function
- * @param callback function to run with the contents of the websocket message
- * @returns unsubscriber function to run to stop calling the passed-in function on websocket messages
- */
 
 /**
  * Register a request handler to run on requests. Must register requests with the server to receive them here.

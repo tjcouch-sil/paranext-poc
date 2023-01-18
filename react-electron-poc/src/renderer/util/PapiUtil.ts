@@ -9,6 +9,13 @@ export type ComplexRequest<T = unknown> = {
     contents?: T;
 };
 
+/** Type of request handler - indicates what type of parameters and what return type the handler has */
+export enum RequestHandlerType {
+    Args = 'args',
+    Contents = 'contents',
+    Complex = 'complex',
+}
+
 /**
  * Type of object to create when handling a complex request where you desire to provide additional information beyond the contents of the response
  * This type is used as the public-facing interface for responses
