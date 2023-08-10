@@ -187,7 +187,7 @@ const unsubscribe = (
  * @param callback function to run with the contents of the websocket message
  * @returns unsubscriber function to run to stop calling the passed-in function on websocket messages
  */
-export const subscribe = (
+const subscribe = (
     messageType: MessageType,
     // Any is here because I dunno how to narrow Message type to a specific message type in parameters of a function
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -372,7 +372,7 @@ export const connect = (): Promise<void> => {
 
             sendMessage({
                 type: MessageType.ClientConnect,
-                sender: 'the client',
+                sender: clientId,
                 contents: 'Hello server! This is from the Client',
             });
 

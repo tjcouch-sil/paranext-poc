@@ -472,7 +472,7 @@ const Layout = () => {
                                 .catch((e) => console.error(e));
                         }}
                         onContextMenu={(e) => {
-                            const numRequests = 1000;
+                            const numRequests = 10000;
                             const requests = new Array<
                                 Promise<ComplexResponse<number> | void>
                             >(numRequests);

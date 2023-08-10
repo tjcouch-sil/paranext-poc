@@ -139,8 +139,7 @@ const registerCommandsUnsafe = async (
     return commandResponse;
 };
 
-// TODO: memoize this so it only runs once and always returns the same promise
-/** Sets up the WebSocketService - does not connect the websocket. Automatically run when connect has been run */
+/** Sets up the CommunicationService */
 export const initialize = memoizeOne(async (): Promise<void> => {
     if (initialized) return;
 
