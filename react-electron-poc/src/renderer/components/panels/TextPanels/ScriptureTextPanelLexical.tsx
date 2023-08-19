@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { getScripture } from '@services/ScriptureService';
 import { ScriptureTextPanelHOC } from './ScriptureTextPanelHOC';
 import { ScriptureTextPanelSlateProps } from './ScriptureTextPanelSlate';
+import Editor from './Lexical/Editor';
 
 /**
  * Scripture text panel that uses Lexical to render the Scripture in JSON format.
@@ -19,7 +20,8 @@ function ScriptureTextPanelJSON(
 
     return (
         <div className="text-panel" onFocus={onFocus}>
-            <p>Lexical Placeholder</p>
+            <Editor />
+            <p>Scripture Chapter Data:</p>
             <pre>{scrChaptersPretty}</pre>
         </div>
     );
