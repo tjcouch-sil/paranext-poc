@@ -19,24 +19,26 @@ declare module 'proskomma-react-hooks' {
         unfoldingWord = true,
     }: UseProskommaProps): UseProskomma;
 
+    export type Selectors = {
+        /** Selector: Organization or Owner for context */
+        org: string;
+        /** Selector: Language abbreviation */
+        lang: string;
+        /** Selector: Abbreviation for Bible Translation (ULT) */
+        abbr: string;
+    };
+
     type UseImportProps = {
         /** Proskomma instance to query */
         proskomma?: Proskomma;
         /** Function to trigger a new stateId onImport */
         newStateId: () => void;
         /** Callback when document is imported, props={org, lang, abbr, bookCode} */
-        onImport?: (props: string) => void;
+        onImport?: (props: Selectors & { bookCode: string }) => void;
         /** Array of documents to be imported */
         documents: {
             /** { org, lang, abbr } */
-            selectors: {
-                /** Selector: Organization or Owner for context */
-                org: string;
-                /** Selector: Language abbreviation */
-                lang: string;
-                /** Selector: Abbreviation for Bible Translation (ULT) */
-                abbr: string;
-            };
+            selectors: Selectors;
             /**  */
             bookCode?: string;
             /** data string for the book */

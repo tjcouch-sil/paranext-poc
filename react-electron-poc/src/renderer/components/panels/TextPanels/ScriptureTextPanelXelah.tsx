@@ -1,44 +1,45 @@
 import { useMemo } from 'react';
 import { getScripture } from '@services/ScriptureService';
 import EpiteleteHtml from 'epitelete-html';
-import { useProskomma, useImport } from 'proskomma-react-hooks';
+import { useProskomma, useImport, Selectors } from 'proskomma-react-hooks';
 import { useDeepCompareMemo } from 'use-deep-compare';
 import { ScriptureTextPanelHOC } from './ScriptureTextPanelHOC';
 import { ScriptureTextPanelSlateProps } from './ScriptureTextPanelSlate';
 import Editor from './Xelah/Editor';
-import data from '../../../../../assets/testScripture/LSG/86-TITfraLSG.usfm';
+import data from '../../../../../assets/testScripture/NIV84/19.usfm';
 import '../../../../../node_modules/@xelah/type-perf-html/build/components/HtmlPerfEditor.css';
 import '../../../../../node_modules/@xelah/type-perf-html/build/components/HtmlSequenceEditor.css';
 
-const urlDocument = ({
+const getDocument = ({
     selectors,
     bookCode,
-    ...props
 }: {
-    selectors: {
-        /** Selector: Organization or Owner for context */
-        org: string;
-        /** Selector: Language abbreviation */
-        lang: string;
-        /** Selector: Abbreviation for Bible Translation (ULT) */
-        abbr: string;
-    };
+    selectors: Selectors;
     bookCode: string;
 }) => ({
     selectors,
     bookCode,
-    // url: `/assets/testScripture/LSG/86-TITfraLSG.usfm`,
     data,
 });
 
+const selectors: Selectors = {
+    org: 'Biblica',
+    lang: 'en',
+    abbr: 'niv_psa_book',
+};
+
 const documents = [
-    urlDocument({
-        bookCode: 'tit',
-        selectors: { org: 'KentR1235', lang: 'fr', abbr: 'lsg_tit_book' },
+    getDocument({
+        bookCode: 'PSA',
+        selectors,
     }),
 ];
 
-const onImport = (props: string) => console.log('Imported doc!', props);
+const onImport = (props: Selectors & { bookCode: string }) =>
+    console.log('Imported doc!', props);
+
+const getDocSetId = ({ org, lang, abbr }: Selectors): string =>
+    `${org}/${lang}_${abbr}`;
 
 /**
  * Scripture text panel that uses Xelah to render the Scripture in JSON format.
@@ -48,6 +49,7 @@ function ScriptureTextPanelJSON(
     props: ScriptureTextPanelSlateProps,
 ): JSX.Element {
     const { scrChapters, onFocus } = props;
+    const debug = false;
 
     const scrChaptersPretty = useMemo(
         () => JSON.stringify(scrChapters, undefined, 2),
@@ -67,34 +69,32 @@ function ScriptureTextPanelJSON(
 
     const ready = !importing && done;
 
-    const docSetId = 'KentR1235/fr_lsg_tit_book';
-
     const epiteleteHtml = useDeepCompareMemo<EpiteleteHtml | undefined>(
         () =>
             ready
                 ? new EpiteleteHtml({
                       proskomma,
-                      docSetId,
+                      docSetId: getDocSetId(selectors),
                       options: { historySize: 100 },
                   })
                 : undefined,
-        [proskomma, ready, docSetId],
+        [proskomma, ready, selectors],
     );
 
     return (
         <div className="text-panel" onFocus={onFocus}>
             <Editor
                 epiteleteHtml={epiteleteHtml}
-                bookId="TIT"
-                verbose={false}
+                bookId="PSA"
+                verbose={verbose}
                 activeReference={{
-                    bookId: 'TIT',
+                    bookId: 'PSA',
                     chapter: 1,
-                    verse: 4,
+                    verse: 1,
                 }}
             />
-            <p>Scripture Chapter Data:</p>
-            <pre>{scrChaptersPretty}</pre>
+            {debug && <p>Scripture Chapter Data:</p>}
+            {debug && <pre>{scrChaptersPretty}</pre>}
         </div>
     );
 }
