@@ -83,6 +83,7 @@ export class CharNode extends TextNode {
         const dom = super.createDOM(config);
         dom.setAttribute('data-usx-style', this.__usxStyle);
         dom.classList.add(this.getType());
+        dom.classList.add(`usfm_${this.__usxStyle}`);
         return dom;
     }
 

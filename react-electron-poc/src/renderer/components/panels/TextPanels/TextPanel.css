@@ -51,6 +51,10 @@
 
 /* Lexical */
 
+.verse.usfm_v {
+    vertical-align: super;
+}
+
 .ltr {
     text-align: left;
 }
