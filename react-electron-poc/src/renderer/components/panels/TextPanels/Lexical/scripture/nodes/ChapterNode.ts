@@ -4,10 +4,9 @@ import {
     type LexicalNode,
     type NodeKey,
     $applyNodeReplacement,
-    TextNode,
-    SerializedTextNode,
+    DecoratorNode,
+    SerializedLexicalNode,
     Spread,
-    EditorConfig,
 } from 'lexical';
 
 export const CHAPTER_STYLE = 'c';
@@ -17,12 +16,15 @@ type ChapterUsxStyle = typeof CHAPTER_STYLE;
 
 export type SerializedChapterNode = Spread<
     {
+        number: number;
         usxStyle: ChapterUsxStyle;
     },
-    SerializedTextNode
+    SerializedLexicalNode
 >;
 
-export class ChapterNode extends TextNode {
+export class ChapterNode extends DecoratorNode<void> {
+    __number: number;
+
     __usxStyle: ChapterUsxStyle;
 
     static getType(): string {
@@ -30,23 +32,30 @@ export class ChapterNode extends TextNode {
     }
 
     static clone(node: ChapterNode): ChapterNode {
-        return new ChapterNode(node.__text, node.__key);
+        return new ChapterNode(node.__number, node.__key);
     }
 
     static importJSON(serializedNode: SerializedChapterNode): ChapterNode {
         // eslint-disable-next-line @typescript-eslint/no-use-before-define
-        const node = $createChapterNode(serializedNode.text);
-        node.setDetail(serializedNode.detail);
-        node.setFormat(serializedNode.format);
-        node.setMode(serializedNode.mode);
-        node.setStyle(serializedNode.style);
+        const node = $createChapterNode(serializedNode.number);
         node.setUsxStyle(serializedNode.usxStyle);
         return node;
     }
 
-    constructor(text: string, key?: NodeKey) {
-        super(text, key);
+    constructor(chapterNumber: number, key?: NodeKey) {
+        super(key);
+        this.__number = chapterNumber;
         this.__usxStyle = CHAPTER_STYLE;
+    }
+
+    setNumber(chapterNumber: number): void {
+        const self = this.getWritable();
+        self.__number = chapterNumber;
+    }
+
+    getNumber(): number {
+        const self = this.getLatest();
+        return self.__number;
     }
 
     setUsxStyle(usxStyle: ChapterUsxStyle): void {
@@ -59,8 +68,9 @@ export class ChapterNode extends TextNode {
         return self.__usxStyle;
     }
 
-    createDOM(config: EditorConfig): HTMLElement {
-        const dom = super.createDOM(config);
+    createDOM(): HTMLElement {
+        const dom = document.createElement('span');
+        dom.setAttribute('data-number', this.__number.toString());
         dom.setAttribute('data-usx-style', this.__usxStyle);
         dom.classList.add(this.getType());
         dom.classList.add(`usfm_${this.__usxStyle}`);
@@ -73,18 +83,20 @@ export class ChapterNode extends TextNode {
         return false;
     }
 
+    decorate(): void {}
+
     exportJSON(): SerializedChapterNode {
         return {
-            ...super.exportJSON(),
             type: this.getType(),
+            number: this.getNumber(),
             usxStyle: this.getUsxStyle(),
             version: CHAPTER_VERSION,
         };
     }
 }
 
-export function $createChapterNode(text: string): ChapterNode {
-    return $applyNodeReplacement(new ChapterNode(text));
+export function $createChapterNode(chapterNumber: number): ChapterNode {
+    return $applyNodeReplacement(new ChapterNode(chapterNumber));
 }
 
 export function $isChapterNode(

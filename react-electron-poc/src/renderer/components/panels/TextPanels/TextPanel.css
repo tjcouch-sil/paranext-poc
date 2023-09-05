@@ -51,6 +51,10 @@
 
 /* Lexical */
 
+.chapter[data-number]:after {
+    content: attr(data-number);
+}
+
 .verse.usfm_v {
     vertical-align: super;
 }

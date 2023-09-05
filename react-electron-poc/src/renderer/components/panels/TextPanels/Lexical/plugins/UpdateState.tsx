@@ -51,12 +51,8 @@ function createChapter(
 
     return {
         type: ChapterNode.getType(),
-        text: (contentNode.children[0] as CustomText).text,
+        number: parseInt((contentNode.children[0] as CustomText).text, 10),
         usxStyle: CHAPTER_STYLE,
-        detail: 0,
-        format: 0,
-        mode: 'normal',
-        style: '',
         version: CHAPTER_VERSION,
     };
 }
@@ -174,7 +170,10 @@ function recurseNodes(
             switch (contentNode.type) {
                 case 'chapter':
                     lexicalNode = createChapter(contentNode);
-                    addNode(lexicalNode, parentIsPara, elementNodes);
+                    if (lexicalNode)
+                        (elementNodes as SerializedLexicalNode[]).push(
+                            lexicalNode,
+                        );
                     break;
                 case 'verse':
                     lexicalNode = createVerse(contentNode);
