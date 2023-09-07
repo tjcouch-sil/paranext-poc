@@ -19,6 +19,7 @@
       "@node_modules/*": ["../node_modules/*"],
       "@assets/*": ["../assets/*"],
     },
+    "typeRoots": ["./node_modules/@types", "src/@types"],
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noImplicitReturns": true,

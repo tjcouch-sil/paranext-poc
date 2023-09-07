@@ -93,6 +93,11 @@ const configuration: webpack.Configuration = {
         test: /\.(png|svg|jpg|jpeg|gif)$/i,
         type: 'asset/resource',
       },
+      // USFM
+      {
+        test: /\.(usfm)$/i,
+        type: 'asset/source',
+      },
     ],
   },
   plugins: [
