@@ -21,13 +21,15 @@ import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin';
 import { ListPlugin } from '@lexical/react/LexicalListPlugin';
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin';
 import { TRANSFORMERS } from '@lexical/markdown';
-import exampleTheme from './themes/example-theme';
+import { ScriptureChapterContent } from '@shared/data/ScriptureTypes';
+import editorTheme from './themes/editor-theme';
 import TreeViewPlugin from './plugins/TreeViewPlugin';
 import ToolbarPlugin from './plugins/ToolbarPlugin';
 import ListMaxIndentLevelPlugin from './plugins/ListMaxIndentLevelPlugin';
 import CodeHighlightPlugin from './plugins/CodeHighlightPlugin';
 import AutoLinkPlugin from './plugins/AutoLinkPlugin';
 import scriptureNodes from './scripture/nodes';
+import UpdateState from './plugins/UpdateState';
 
 function Placeholder(): JSX.Element {
     return <div className="editor-placeholder">Enter some rich text...</div>;
@@ -35,8 +37,7 @@ function Placeholder(): JSX.Element {
 
 const editorConfig: InitialConfigType = {
     namespace: 'mainEditor',
-    // The editor theme
-    theme: exampleTheme,
+    theme: editorTheme,
     // Handling of errors during update
     onError(error) {
         throw error;
@@ -58,7 +59,11 @@ const editorConfig: InitialConfigType = {
     ],
 };
 
-export default function Editor(): JSX.Element {
+export default function Editor({
+    scrChapters,
+}: {
+    scrChapters: ScriptureChapterContent[];
+}): JSX.Element {
     return (
         <LexicalComposer initialConfig={editorConfig}>
             <div className="editor-container">
@@ -78,6 +83,7 @@ export default function Editor(): JSX.Element {
                     <ListPlugin />
                     <LinkPlugin />
                     <AutoLinkPlugin />
+                    <UpdateState scrChapters={scrChapters} />
                     <ListMaxIndentLevelPlugin maxDepth={7} />
                     <MarkdownShortcutPlugin transformers={TRANSFORMERS} />
                 </div>

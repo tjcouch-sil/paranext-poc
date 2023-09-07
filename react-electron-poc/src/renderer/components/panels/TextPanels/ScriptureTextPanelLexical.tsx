@@ -12,6 +12,7 @@ function ScriptureTextPanelJSON(
     props: ScriptureTextPanelSlateProps,
 ): JSX.Element {
     const { scrChapters, onFocus } = props;
+    const debug = false;
 
     const scrChaptersPretty = useMemo(
         () => JSON.stringify(scrChapters, undefined, 2),
@@ -20,9 +21,9 @@ function ScriptureTextPanelJSON(
 
     return (
         <div className="text-panel" onFocus={onFocus}>
-            <Editor />
-            <p>Scripture Chapter Data:</p>
-            <pre>{scrChaptersPretty}</pre>
+            <Editor scrChapters={scrChapters} />
+            {debug && <p>Scripture Chapter Data:</p>}
+            {debug && <pre>{scrChaptersPretty}</pre>}
         </div>
     );
 }

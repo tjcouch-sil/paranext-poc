@@ -1,4 +1,8 @@
-const exampleTheme = {
+const editorTheme = {
+    chapter: 'chapter',
+    verse: 'verse',
+    char: 'char',
+    para: 'para',
     ltr: 'ltr',
     rtl: 'rtl',
     placeholder: 'editor-placeholder',
@@ -66,4 +70,4 @@ const exampleTheme = {
     },
 };
 
-export default exampleTheme;
+export default editorTheme;
