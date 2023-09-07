@@ -27,6 +27,7 @@ import ToolbarPlugin from './plugins/ToolbarPlugin';
 import ListMaxIndentLevelPlugin from './plugins/ListMaxIndentLevelPlugin';
 import CodeHighlightPlugin from './plugins/CodeHighlightPlugin';
 import AutoLinkPlugin from './plugins/AutoLinkPlugin';
+import scriptureNodes from './scripture/nodes';
 
 function Placeholder(): JSX.Element {
     return <div className="editor-placeholder">Enter some rich text...</div>;
@@ -53,6 +54,7 @@ const editorConfig: InitialConfigType = {
         TableRowNode,
         AutoLinkNode,
         LinkNode,
+        ...scriptureNodes,
     ],
 };
 
