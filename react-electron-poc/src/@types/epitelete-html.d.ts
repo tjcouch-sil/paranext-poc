@@ -20,6 +20,7 @@ declare module 'epitelete-html' {
     export interface Options {
         readPipeline?: string;
         writePipeline?: string;
+        cloning?: boolean;
     }
 
     export interface HtmlPerf {
@@ -28,6 +29,40 @@ declare module 'epitelete-html' {
         schema: unknown;
         metadata: unknown;
         sequencesHtml: unknown;
+    }
+
+    type PerfSchema = {
+        structure: 'flat' | 'nested';
+        structure_version: string;
+        constraints: unknown[];
+    };
+
+    type PerfMetadata = {
+        translation?: {
+            tags?: unknown[];
+            properties?: { [key: string]: string };
+            selectors?: { [selector: string]: string };
+        };
+        document?: {
+            properties?: { [key: string]: string };
+            chapters?: string;
+        };
+    };
+
+    type BlockOrGraftPerf = unknown;
+
+    type PerfSequence = {
+        type: string;
+        preview_text?: string;
+        blocks?: BlockOrGraftPerf[];
+    };
+
+    export interface PerfDocument {
+        schema: PerfSchema;
+        metadata: PerfMetadata;
+        sequences?: { [sequence_id: string]: PerfSequence };
+        sequence?: PerfSequence;
+        mainSequenceId?: string;
     }
 
     export default class EpiteleteHtml {
@@ -58,5 +93,12 @@ declare module 'epitelete-html' {
         canUndo(bookCode: string): boolean;
         canRedo(bookCode: string): boolean;
         readUsfm(bookCode: string, options?: Options): Promise<string>;
+
+        readPerf(bookCode: string, options?: Options): Promise<PerfDocument>;
+        sideloadPerf(
+            bookCode: string,
+            perfDocument: PerfDocument,
+            options?: Options,
+        ): Promise<PerfDocument>;
     }
 }

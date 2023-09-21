@@ -1,12 +1,15 @@
 import { useMemo } from 'react';
 import { getScripture } from '@services/ScriptureService';
-import EpiteleteHtml from 'epitelete-html';
+import EpiteleteHtml, { PerfDocument } from 'epitelete-html';
 import { useProskomma, useImport, Selectors } from 'proskomma-react-hooks';
-import { useDeepCompareMemo } from 'use-deep-compare';
+// import { useDeepCompareMemo } from 'use-deep-compare';
 import { ScriptureTextPanelHOC } from './ScriptureTextPanelHOC';
 import { ScriptureTextPanelSlateProps } from './ScriptureTextPanelSlate';
 import Editor from './Xelah/Editor';
-import data from '../../../../../assets/testScripture/NIV84/19.usfm';
+import perfJson from '../../../../../assets/testScripture/CSB/19PSACSB.perf.json';
+import data from '../../../../../assets/testScripture/CSB/19PSACSB.usfm';
+// import data from '../../../../../assets/testScripture/19PSAengWEB14.usfm';
+// import data from '../../../../../assets/testScripture/zzz6/19PSAzzz6.usfm';
 import '../../../../../node_modules/@xelah/type-perf-html/build/components/HtmlPerfEditor.css';
 import '../../../../../node_modules/@xelah/type-perf-html/build/components/HtmlSequenceEditor.css';
 
@@ -23,9 +26,9 @@ const getDocument = ({
 });
 
 const selectors: Selectors = {
-    org: 'Biblica',
+    org: 'unknown',
     lang: 'en',
-    abbr: 'niv_psa_book',
+    abbr: 'csb_psa_book',
 };
 
 const documents = [
@@ -40,6 +43,15 @@ const onImport = (props: Selectors & { bookCode: string }) =>
 
 const getDocSetId = ({ org, lang, abbr }: Selectors): string =>
     `${org}/${lang}_${abbr}`;
+
+const epiteleteHtml = new EpiteleteHtml({
+    docSetId: getDocSetId(selectors),
+    options: { historySize: 100 },
+});
+
+(async () => {
+    await epiteleteHtml.sideloadPerf('PSA', perfJson as PerfDocument);
+})();
 
 /**
  * Scripture text panel that uses Xelah to render the Scripture in JSON format.
@@ -57,6 +69,7 @@ function ScriptureTextPanelJSON(
     );
 
     const verbose = true;
+    /*
     const proskommaHook = useProskomma({ verbose });
     const { proskomma } = proskommaHook;
 
@@ -80,7 +93,7 @@ function ScriptureTextPanelJSON(
                 : undefined,
         [proskomma, ready, selectors],
     );
-
+*/
     return (
         <div className="text-panel" onFocus={onFocus}>
             <Editor
@@ -89,7 +102,7 @@ function ScriptureTextPanelJSON(
                 verbose={verbose}
                 activeReference={{
                     bookId: 'PSA',
-                    chapter: 1,
+                    chapter: 119,
                     verse: 1,
                 }}
             />
