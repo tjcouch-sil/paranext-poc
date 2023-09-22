@@ -244,31 +244,33 @@ const Layout = () => {
                             Math.floor(Math.random() * panelsInfo.length)
                         ];
 
-                    panelManager.current.addPanel(
-                        panelType,
-                        {
-                            shortName: resource.shortName,
-                            editable: resource.editable,
-                            ...scrRef,
-                            useVirtualization,
-                            browseBook,
-                            ...panelFunctions,
-                        } as ScriptureTextPanelSlateProps,
-                        rootPanel
-                            ? {
-                                  position: {
-                                      direction:
-                                          DIRECTIONS[
-                                              Math.floor(
-                                                  Math.random() *
-                                                      DIRECTIONS.length,
-                                              )
-                                          ],
-                                      referencePanel: rootPanel.id,
-                                  },
-                              }
-                            : undefined,
-                    );
+                    for (let i = 0; i < 10; i++) {
+                        panelManager.current.addPanel(
+                            panelType,
+                            {
+                                shortName: resource.shortName,
+                                editable: resource.editable,
+                                ...scrRef,
+                                useVirtualization,
+                                browseBook,
+                                ...panelFunctions,
+                            } as ScriptureTextPanelSlateProps,
+                            rootPanel
+                                ? {
+                                      position: {
+                                          direction:
+                                              DIRECTIONS[
+                                                  Math.floor(
+                                                      Math.random() *
+                                                          DIRECTIONS.length,
+                                                  )
+                                              ],
+                                          referencePanel: rootPanel.id,
+                                      },
+                                  }
+                                : undefined,
+                        );
+                    }
                 }
             }
         },
