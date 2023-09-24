@@ -55,8 +55,9 @@
         "start:preload": "cross-env NODE_ENV=development TS_NODE_TRANSPILE_ONLY=true webpack --config ./.erb/configs/webpack.config.preload.dev.ts",
         "start:renderer": "cross-env NODE_ENV=development TS_NODE_TRANSPILE_ONLY=true webpack serve --config ./.erb/configs/webpack.config.renderer.dev.ts",
         "test": "jest",
-        "perf": "ts-node --files ./extractPerf.ts ./src/@types",
-        "usx2json": "ts-node --files ./usx2slateJson.ts ./src/@types"
+        "perf": "ts-node --files ./src/scripts/extractPerf.ts ./src/@types",
+        "combine": "node ./src/scripts/combinePerf.js",
+        "usx2json": "ts-node --files ./src/scripts/usx2slateJson.ts ./src/@types"
     },
     "lint-staged": {
         "*.{js,jsx,ts,tsx}": [
