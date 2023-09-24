@@ -1,46 +1,21 @@
 import { useMemo } from 'react';
 import { getScripture } from '@services/ScriptureService';
 import EpiteleteHtml, { PerfDocument } from 'epitelete-html';
-import { useProskomma, useImport, Selectors } from 'proskomma-react-hooks';
-// import { useDeepCompareMemo } from 'use-deep-compare';
+import { Selectors } from 'proskomma-react-hooks';
 import { ScriptureTextPanelHOC } from './ScriptureTextPanelHOC';
 import { ScriptureTextPanelSlateProps } from './ScriptureTextPanelSlate';
 import Editor from './Xelah/Editor';
-import perfJson from '../../../../../assets/testScripture/CSB/19PSACSBempty.perf.json';
+import perfJson from '../../../../../assets/testScripture/CSB/19PSACSB-combined.perf.json';
+// import perfJson from '../../../../../assets/testScripture/CSB/19PSACSBempty.perf.json';
 // import perfJson from '../../../../../assets/testScripture/CSB/19PSACSB.perf.json';
-import data from '../../../../../assets/testScripture/CSB/19PSACSB.usfm';
-// import data from '../../../../../assets/testScripture/19PSAengWEB14.usfm';
-// import data from '../../../../../assets/testScripture/zzz6/19PSAzzz6.usfm';
 import '../../../../../node_modules/@xelah/type-perf-html/build/components/HtmlPerfEditor.css';
 import '../../../../../node_modules/@xelah/type-perf-html/build/components/HtmlSequenceEditor.css';
 
-const getDocument = ({
-    selectors,
-    bookCode,
-}: {
-    selectors: Selectors;
-    bookCode: string;
-}) => ({
-    selectors,
-    bookCode,
-    data,
-});
-
 const selectors: Selectors = {
     org: 'unknown',
-    lang: 'en',
+    lang: 'eng',
     abbr: 'csb_psa_book',
 };
-
-const documents = [
-    getDocument({
-        bookCode: 'PSA',
-        selectors,
-    }),
-];
-
-const onImport = (props: Selectors & { bookCode: string }) =>
-    console.log('Imported doc!', props);
 
 const getDocSetId = ({ org, lang, abbr }: Selectors): string =>
     `${org}/${lang}_${abbr}`;
@@ -70,31 +45,7 @@ function ScriptureTextPanelJSON(
     );
 
     const verbose = true;
-    /*
-    const proskommaHook = useProskomma({ verbose });
-    const { proskomma } = proskommaHook;
 
-    const { importing, done } = useImport({
-        ...proskommaHook,
-        onImport,
-        documents,
-        verbose,
-    });
-
-    const ready = !importing && done;
-
-    const epiteleteHtml = useDeepCompareMemo<EpiteleteHtml | undefined>(
-        () =>
-            ready
-                ? new EpiteleteHtml({
-                      proskomma,
-                      docSetId: getDocSetId(selectors),
-                      options: { historySize: 100 },
-                  })
-                : undefined,
-        [proskomma, ready, selectors],
-    );
-*/
     return (
         <div className="text-panel" onFocus={onFocus}>
             <Editor
@@ -103,7 +54,7 @@ function ScriptureTextPanelJSON(
                 verbose={verbose}
                 activeReference={{
                     bookId: 'PSA',
-                    chapter: 119,
+                    chapter: 1,
                     verse: 1,
                 }}
             />
