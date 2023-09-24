@@ -55,6 +55,11 @@
     content: attr(data-number);
 }
 
+.note > a {
+    color: #00f;
+    text-decoration: none;
+}
+
 .verse.usfm_v {
     vertical-align: super;
 }

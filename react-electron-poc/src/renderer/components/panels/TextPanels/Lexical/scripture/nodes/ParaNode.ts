@@ -124,8 +124,7 @@ export class ParaNode extends ParagraphNode {
         // Define the DOM element here
         const dom = document.createElement('p');
         dom.setAttribute('data-usx-style', this.__usxStyle);
-        dom.classList.add(this.getType());
-        dom.classList.add(`usfm_${this.__usxStyle}`);
+        dom.classList.add(this.getType(), `usfm_${this.__usxStyle}`);
         return dom;
     }
 

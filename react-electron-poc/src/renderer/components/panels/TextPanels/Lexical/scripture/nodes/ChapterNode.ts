@@ -72,8 +72,7 @@ export class ChapterNode extends DecoratorNode<void> {
         const dom = document.createElement('span');
         dom.setAttribute('data-number', this.__number.toString());
         dom.setAttribute('data-usx-style', this.__usxStyle);
-        dom.classList.add(this.getType());
-        dom.classList.add(`usfm_${this.__usxStyle}`);
+        dom.classList.add(this.getType(), `usfm_${this.__usxStyle}`);
         return dom;
     }
 

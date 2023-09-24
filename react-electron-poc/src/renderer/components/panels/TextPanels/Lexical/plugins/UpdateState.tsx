@@ -11,6 +11,7 @@ import { useEffect } from 'react';
 import {
     CustomElement,
     CustomText,
+    NoteElementProps,
     ScriptureChapterContent,
     ScriptureContent,
 } from '@shared/data/ScriptureTypes';
@@ -34,6 +35,13 @@ import {
     SerializedParaNode,
     VALID_PARA_STYLES,
 } from '../scripture/nodes/ParaNode';
+import {
+    NOTE_VERSION,
+    NoteNode,
+    NoteUsxStyle,
+    SerializedNoteNode,
+    VALID_NOTE_STYLES,
+} from '../scripture/nodes/NoteNode';
 import {
     SerializedVerseNode,
     VERSE_STYLE,
@@ -124,6 +132,38 @@ function createPara(
     };
 }
 
+function createNote(
+    contentNode: CustomElement,
+    elementNodes: (SerializedElementNode | SerializedTextNode)[],
+): SerializedNoteNode | undefined {
+    if (
+        contentNode.style &&
+        !VALID_NOTE_STYLES.includes(contentNode.style as NoteUsxStyle)
+    ) {
+        console.error(`Unexpected note style '${contentNode.style}'!`);
+        return undefined;
+    }
+
+    const previewText = elementNodes
+        .reduce(
+            (text, node) =>
+                text +
+                (node.type === 'char'
+                    ? ` ${(node as SerializedTextNode).text}`
+                    : ''),
+            '',
+        )
+        .trim();
+
+    return {
+        type: NoteNode.getType(),
+        caller: (contentNode as NoteElementProps).caller ?? '*',
+        usxStyle: contentNode.style as NoteUsxStyle,
+        previewText,
+        version: NOTE_VERSION,
+    };
+}
+
 function createText(contentNode: CustomText): SerializedTextNode {
     return {
         type: TextNode.getType(),
@@ -142,24 +182,15 @@ const emptyParaNode = createPara({
 
 function addNode(
     lexicalNode: SerializedLexicalNode | undefined,
-    parentIsPara: boolean,
     elementNodes: (SerializedElementNode | SerializedTextNode)[],
 ) {
     if (lexicalNode) {
-        if (parentIsPara) {
-            (elementNodes as SerializedLexicalNode[]).push(lexicalNode);
-        } else {
-            const emptyNode = { ...emptyParaNode };
-            emptyNode.usxStyle = (lexicalNode as SerializedParaNode).usxStyle;
-            emptyNode.children = [lexicalNode];
-            elementNodes.push(emptyNode);
-        }
+        (elementNodes as SerializedLexicalNode[]).push(lexicalNode);
     }
 }
 
 function recurseNodes(
     contentNodes: ScriptureContent[],
-    parentIsPara = false,
 ): (SerializedElementNode | SerializedTextNode)[] {
     const elementNodes: (SerializedElementNode | SerializedTextNode)[] = [];
     contentNodes.forEach((contentNode) => {
@@ -170,32 +201,34 @@ function recurseNodes(
             switch (contentNode.type) {
                 case 'chapter':
                     lexicalNode = createChapter(contentNode);
-                    if (lexicalNode)
-                        (elementNodes as SerializedLexicalNode[]).push(
-                            lexicalNode,
-                        );
+                    addNode(lexicalNode, elementNodes);
                     break;
                 case 'verse':
                     lexicalNode = createVerse(contentNode);
-                    addNode(lexicalNode, parentIsPara, elementNodes);
+                    addNode(lexicalNode, elementNodes);
                     break;
                 case 'char':
                     lexicalNode = createChar(contentNode);
-                    addNode(lexicalNode, parentIsPara, elementNodes);
+                    addNode(lexicalNode, elementNodes);
                     break;
                 case 'para':
                     elementNode = createPara(contentNode);
                     if (elementNode) {
                         elementNode.children = recurseNodes(
                             contentNode.children,
-                            true,
                         );
                         elementNodes.push(elementNode);
                     }
                     break;
+                case 'note':
+                    lexicalNode = createNote(
+                        contentNode,
+                        recurseNodes(contentNode.children),
+                    );
+                    addNode(lexicalNode, elementNodes);
+                    break;
                 default:
-                    if (!nodeType || nodeType === 'ms' || nodeType === 'note')
-                        break;
+                    if (!nodeType || nodeType === 'ms') break;
                     console.error(`Unexpected node type '${nodeType}'!`);
             }
         } else if ('text' in contentNode) {

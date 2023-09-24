@@ -10,8 +10,10 @@ import {
     EditorConfig,
 } from 'lexical';
 
-export const CHAR_STYLE = 'c';
-/** @see https://ubsicap.github.io/usx/charstyles.html */
+/**
+ * @see https://ubsicap.github.io/usx/charstyles.html
+ * @see https://ubsicap.github.io/usx/notes.html
+ */
 export const VALID_CHAR_STYLES = [
     // Special Text (partial)
     'nd',
@@ -28,6 +30,28 @@ export const VALID_CHAR_STYLES = [
     // Special Features
     // Structured List Entries
     // Linking
+
+    // Footnote
+    'fr',
+    'ft',
+    'fk',
+    'fq',
+    'fqa',
+    'fl',
+    'fw',
+    'fp',
+    'fv',
+    'fdc',
+    // Cross Reference
+    'xo',
+    'xop',
+    'xt',
+    'xta',
+    'xk',
+    'xq',
+    'xot',
+    'xnt',
+    'xdc',
 ] as const;
 export const CHAR_VERSION = 1;
 
@@ -82,8 +106,7 @@ export class CharNode extends TextNode {
     createDOM(config: EditorConfig): HTMLElement {
         const dom = super.createDOM(config);
         dom.setAttribute('data-usx-style', this.__usxStyle);
-        dom.classList.add(this.getType());
-        dom.classList.add(`usfm_${this.__usxStyle}`);
+        dom.classList.add(this.getType(), `usfm_${this.__usxStyle}`);
         return dom;
     }
 

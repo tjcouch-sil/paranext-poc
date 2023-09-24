@@ -244,7 +244,7 @@ const Layout = () => {
                             Math.floor(Math.random() * panelsInfo.length)
                         ];
 
-                    for (let i = 0; i < 10; i++) {
+                    for (let i = 0; i < 1; i++) {
                         panelManager.current.addPanel(
                             panelType,
                             {

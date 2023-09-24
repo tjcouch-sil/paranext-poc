@@ -121,6 +121,11 @@ export type ChapterElementProps = {
     type: 'chapter';
 } & CustomElementProps;
 
+export type NoteElementProps = {
+    type: 'note';
+    caller: string;
+} & CustomElementProps;
+
 export type EditorElementProps = {
     type: 'editor';
     number: string;
@@ -131,7 +136,8 @@ export type CustomElement =
     | VerseElementProps
     | ParaElementProps
     | CharElementProps
-    | ChapterElementProps;
+    | ChapterElementProps
+    | NoteElementProps;
 //    | EditorElementProps;
 
 export type FormattedText = {
