@@ -37,9 +37,25 @@ const selectors = {
 const docs: any = pk.importDocument(selectors, fileType, content);
 
 // console.log(docs);
-console.log(docs.sequences[docs.mainId].blocks[0]);
+console.log('mainId', docs.mainId);
+// console.log(docs.sequences[docs.mainId].blocks[0]);
+// console.log(docs);
 
-const query = '{id}';
+const query = `{
+    __schema {
+        queryType {
+          name
+        }
+    }
+    __type(name: "Query") {
+        name
+        fields {
+          name
+        }
+    }
+    id
+    documents { id docSetId perf }
+}`;
 pk.gqlQuery(query)
     .then((output) => console.log(JSON.stringify(output, undefined, 2)))
     .catch((err) => console.error(`ERROR: Could not run query: '${err}'`));

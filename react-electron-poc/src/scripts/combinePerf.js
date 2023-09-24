@@ -12,26 +12,22 @@ function transformJson(dataObj) {
 
     // First paragraph block in the main sequence
     let firstParagraphIndex = -1;
-    // Other paragraph blocks in the main sequence
-    const otherParagraphIndices = [];
 
-    // Identify the first paragraph and add the contents of all the other paragraph blocks to it
+    // Identify the first paragraph and remove any subsequent chapters
     mainSequence.blocks.forEach((block, index) => {
         if (block.type === 'paragraph') {
             if (firstParagraphIndex < 0) firstParagraphIndex = index;
-            else {
-                otherParagraphIndices.push(index);
-                mainSequence.blocks[firstParagraphIndex].content.push(
-                    ...block.content,
-                );
+            // Assumes chapter is always the first item in `content`.
+            else if (
+                block.content.length > 0 &&
+                typeof block.content[0] === 'object' &&
+                block.content[0].type === 'mark' &&
+                block.content[0].subtype === 'chapter'
+            ) {
+                block.content.shift();
             }
         }
     });
-
-    // Remove all the other paragraph blocks
-    otherParagraphIndices.forEach((index, previouslyRemovedCount) =>
-        mainSequence.blocks.splice(index - previouslyRemovedCount, 1),
-    );
 }
 
 // Load the JSON data from the input file
